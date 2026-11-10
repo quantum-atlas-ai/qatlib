@@ -1,0 +1,129 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.QCatalysis20.MainResults.MajoranaRotation
+set_option warningAsError false
+set_option backward.isDefEq.respectTransparency false
+
+set_option autoImplicit false
+set_option maxHeartbeats 1800000
+noncomputable section
+open Matrix
+open scoped Classical BigOperators Matrix.Norms.L2Operator
+open Qatlib.Foundations.MatrixGeometry.AxisRotations.SphericalAngles
+
+namespace Qatlib.Papers.QCatalysis20.MainResults
+variable {H : Type*} [Fintype H] [DecidableEq H]
+
+theorem majoranaRotation_unitary {N : ℕ} (γ : Fin N→Matrix H H ℂ)
+    (hsq : ∀p,γ p*γ p=1) (hanti : ∀p q,p≠q→γ p*γ q= -(γ q*γ p))
+    (hherm : ∀p,(γ p)ᴴ=γ p) (p q : Fin N) (hpq : p≠q) (θ : ℝ) :
+    majoranaRotation γ p q θ∈unitaryGroup H ℂ := by
+  rw [Matrix.mem_unitaryGroup_iff',Matrix.star_eq_conjTranspose,
+    majoranaRotation_adjoint γ hherm hanti p q hpq θ,majoranaRotation]
+  have hJ := pairGenerator_sq γ hsq hanti p q hpq
+  have htrig : (Real.cos θ:ℂ)*(Real.cos θ:ℂ)+(Real.sin θ:ℂ)*(Real.sin θ:ℂ)=1 := by
+    have h:=Real.cos_sq_add_sin_sq θ
+    rw [pow_two,pow_two] at h
+    exact_mod_cast h
+  calc
+    _=((Real.cos θ:ℂ)*(Real.cos θ:ℂ)+(Real.sin θ:ℂ)*(Real.sin θ:ℂ))•(1:Matrix H H ℂ) := by
+      simp only [sub_mul,mul_add,smul_mul_assoc,mul_smul_comm,one_mul,mul_one,hJ,smul_neg]
+      module
+    _=1 := by rw [htrig,one_smul]
+
+theorem rotation_conj_external {N : ℕ} (γ : Fin N→Matrix H H ℂ)
+    (hsq : ∀p,γ p*γ p=1) (hanti : ∀p q,p≠q→γ p*γ q= -(γ q*γ p))
+    (hherm : ∀p,(γ p)ᴴ=γ p) (C : Matrix H H ℂ)
+    (hC : ∀p,C*γ p= -(γ p*C)) (p q : Fin N) (hpq : p≠q) (θ : ℝ) :
+    (majoranaRotation γ p q θ)ᴴ*C*majoranaRotation γ p q θ=C := by
+  have hcomm : C*(γ p*γ q)=(γ p*γ q)*C := by
+    calc
+      _=(C*γ p)*γ q := by noncomm_ring
+      _= -(γ p*C)*γ q := by rw [hC p]
+      _= -(γ p*(C*γ q)) := by noncomm_ring
+      _= -(γ p*(-(γ q*C))) := by rw [hC q]
+      _=_ := by noncomm_ring
+  have hc : C*majoranaRotation γ p q θ=majoranaRotation γ p q θ*C := by
+    simp only [majoranaRotation,mul_add,add_mul,mul_smul_comm,smul_mul_assoc,mul_one,one_mul,hcomm]
+  have hu : (majoranaRotation γ p q θ)ᴴ*majoranaRotation γ p q θ=1 := by
+    simpa only [Matrix.star_eq_conjTranspose] using!
+      (majoranaRotation_unitary γ hsq hanti hherm p q hpq θ).1
+  rw [mul_assoc,hc,← mul_assoc,hu,one_mul]
+
+def finiteWord : (n : ℕ)→(Fin (n+1)→Matrix H H ℂ)→(Fin n→ℝ)→Matrix H H ℂ
+  | 0,_,_=>1
+  | n+1,γ,θ=>majoranaRotation γ 0 (Fin.succ 0) (θ 0)*
+      finiteWord n (fun i=>γ i.succ) (fun i=>θ i.succ)
+
+theorem finiteWord_unitary (n : ℕ) (γ : Fin (n+1)→Matrix H H ℂ)
+    (hsq : ∀p,γ p*γ p=1) (hanti : ∀p q,p≠q→γ p*γ q= -(γ q*γ p))
+    (hherm : ∀p,(γ p)ᴴ=γ p) (θ : Fin n→ℝ) : finiteWord n γ θ∈unitaryGroup H ℂ := by
+  induction n with
+  | zero => exact (unitaryGroup H ℂ).one_mem
+  | succ n ih =>
+    exact (unitaryGroup H ℂ).mul_mem
+      (majoranaRotation_unitary γ hsq hanti hherm 0 (Fin.succ 0) (by simp) (θ 0))
+      (ih (fun i=>γ i.succ) (fun i=>hsq i.succ)
+        (fun i j h=>hanti i.succ j.succ ((fun he=>h (Fin.succ_inj.mp he)))) (fun i=>hherm i.succ)
+        (fun i=>θ i.succ))
+
+theorem finiteWord_conj_external (n : ℕ) (γ : Fin (n+1)→Matrix H H ℂ)
+    (hsq : ∀p,γ p*γ p=1) (hanti : ∀p q,p≠q→γ p*γ q= -(γ q*γ p))
+    (hherm : ∀p,(γ p)ᴴ=γ p) (θ : Fin n→ℝ) (C : Matrix H H ℂ)
+    (hC : ∀p,C*γ p= -(γ p*C)) : (finiteWord n γ θ)ᴴ*C*finiteWord n γ θ=C := by
+  induction n with
+  | zero => simp [finiteWord]
+  | succ n ih =>
+    simp only [finiteWord,Matrix.conjTranspose_mul]
+    rw [show (finiteWord n (fun i=>γ i.succ) (fun i=>θ i.succ))ᴴ*
+      (majoranaRotation γ 0 (Fin.succ 0) (θ 0))ᴴ*C*
+      (majoranaRotation γ 0 (Fin.succ 0) (θ 0)*finiteWord n (fun i=>γ i.succ) (fun i=>θ i.succ))=
+      (finiteWord n (fun i=>γ i.succ) (fun i=>θ i.succ))ᴴ*
+      ((majoranaRotation γ 0 (Fin.succ 0) (θ 0))ᴴ*C*majoranaRotation γ 0 (Fin.succ 0) (θ 0))*
+      finiteWord n (fun i=>γ i.succ) (fun i=>θ i.succ) by noncomm_ring]
+    rw [rotation_conj_external γ hsq hanti hherm C hC 0 (Fin.succ 0) (by simp) (θ 0)]
+    exact ih (fun i=>γ i.succ) (fun i=>hsq i.succ)
+      (fun i j h=>hanti i.succ j.succ ((fun he=>h (Fin.succ_inj.mp he)))) (fun i=>hherm i.succ)
+      (fun i=>θ i.succ) (fun i=>hC i.succ)
+
+theorem finiteWord_conjugation (n : ℕ) (γ : Fin (n+1)→Matrix H H ℂ)
+    (hsq : ∀p,γ p*γ p=1) (hanti : ∀p q,p≠q→γ p*γ q= -(γ q*γ p))
+    (hherm : ∀p,(γ p)ᴴ=γ p) (θ : Fin n→ℝ) :
+    (finiteWord n γ θ)ᴴ*γ 0*finiteWord n γ θ=∑i,(coefficients n θ i:ℂ)•γ i := by
+  induction n with
+  | zero => simp [finiteWord,coefficients]
+  | succ n ih =>
+    let V:=majoranaRotation γ 0 (Fin.succ 0) (θ 0)
+    let W:=finiteWord n (fun i=>γ i.succ) (fun i=>θ i.succ)
+    have hc : Wᴴ*γ 0*W=γ 0 :=
+      finiteWord_conj_external n (fun i=>γ i.succ) (fun i=>hsq i.succ)
+        (fun i j h=>hanti i.succ j.succ ((fun he=>h (Fin.succ_inj.mp he)))) (fun i=>hherm i.succ)
+        (fun i=>θ i.succ) (γ 0) (fun i=>hanti 0 i.succ (by intro he;have hv:=congrArg Fin.val he;simp at hv))
+    have ht : Wᴴ*γ (Fin.succ 0)*W=
+      ∑i,(coefficients n (fun j=>θ j.succ) i:ℂ)•γ i.succ :=
+      ih (fun i=>γ i.succ) (fun i=>hsq i.succ)
+        (fun i j h=>hanti i.succ j.succ ((fun he=>h (Fin.succ_inj.mp he)))) (fun i=>hherm i.succ)
+        (fun i=>θ i.succ)
+    change (V*W)ᴴ*γ 0*(V*W)=_
+    rw [Matrix.conjTranspose_mul]
+    rw [show Wᴴ*Vᴴ*γ 0*(V*W)=Wᴴ*(Vᴴ*γ 0*V)*W by noncomm_ring]
+    have hv := rotation_conj_self γ hsq hanti hherm 0 (Fin.succ 0) (by simp) (θ 0)
+    change Vᴴ*γ 0*V=_ at hv
+    rw [hv,mul_add,add_mul,mul_smul_comm,mul_smul_comm,smul_mul_assoc,smul_mul_assoc,hc,ht]
+    conv_rhs => rw [Fin.sum_univ_succ]
+    simp only [coefficients_head,coefficients_tail,Complex.ofReal_mul,Finset.smul_sum,smul_smul]
+
+theorem finite_majorana_synthesis (n : ℕ) (γ : Fin (n+2)→Matrix H H ℂ)
+    (hsq : ∀p,γ p*γ p=1) (hanti : ∀p q,p≠q→γ p*γ q= -(γ q*γ p))
+    (hherm : ∀p,(γ p)ᴴ=γ p) (u : Fin (n+2)→ℝ) (hu : ∑i,u i^2=1) :
+    ∃θ : Fin (n+1)→ℝ,finiteWord (n+1) γ θ∈unitaryGroup H ℂ ∧
+      (finiteWord (n+1) γ θ)ᴴ*γ 0*finiteWord (n+1) γ θ=∑i,(u i:ℂ)•γ i := by
+  obtain ⟨θ,hθ⟩:=exists_angles n u hu
+  refine ⟨θ,finiteWord_unitary (n+1) γ hsq hanti hherm θ,?_⟩
+  rw [finiteWord_conjugation (n+1) γ hsq hanti hherm θ,hθ]
+
+end Qatlib.Papers.QCatalysis20.MainResults

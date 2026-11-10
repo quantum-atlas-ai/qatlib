@@ -1,0 +1,155 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Foundations.PureStateMath.Qubit
+import Mathlib.Algebra.Group.Subgroup.Basic
+import Mathlib.Tactic
+
+namespace Qatlib.Papers.HiddenTransl02.MainResults.Section4
+
+open Qatlib.Foundations.PureStateMath
+open scoped Classical
+
+set_option autoImplicit false
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+variable {G : Type*} [Group G] [Fintype G] [DecidableEq G]
+
+def uniformAmplitude (m : ℕ) : ℂ := ((Real.sqrt (m : ℝ) : ℂ))⁻¹
+
+def subgroupState (H : Subgroup G) [Fintype H] : QState G :=
+  fun x => if x ∈ H then uniformAmplitude (Fintype.card H) else 0
+
+def cosetState (u : G) (H : Subgroup G) [Fintype H] : QState G :=
+  fun x => if u⁻¹ * x ∈ H then uniformAmplitude (Fintype.card H) else 0
+
+section Subgroup
+
+variable (H : Subgroup G) [Fintype H]
+
+theorem uniformAmplitude_ne_zero : uniformAmplitude (Fintype.card H) ≠ 0 := by
+  have hcard : (0 : ℝ) < (Fintype.card H : ℝ) := by exact_mod_cast Fintype.card_pos
+  have hsqrt : (0 : ℝ) < Real.sqrt (Fintype.card H : ℝ) := Real.sqrt_pos_of_pos hcard
+  have hne : (Real.sqrt (Fintype.card H : ℝ) : ℂ) ≠ 0 := by
+    exact_mod_cast ne_of_gt hsqrt
+  unfold uniformAmplitude
+  exact inv_ne_zero hne
+
+theorem norm_uniformAmplitude :
+    ‖uniformAmplitude (Fintype.card H)‖ = (Real.sqrt (Fintype.card H : ℝ))⁻¹ := by
+  have hcard : (0 : ℝ) < (Fintype.card H : ℝ) := by exact_mod_cast Fintype.card_pos
+  have hsqrt : (0 : ℝ) < Real.sqrt (Fintype.card H : ℝ) := Real.sqrt_pos_of_pos hcard
+  unfold uniformAmplitude
+  rw [norm_inv, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hsqrt.le]
+
+theorem subgroupState_ne_zero_iff {x : G} :
+    subgroupState H x ≠ 0 ↔ x ∈ H := by
+  unfold subgroupState
+  constructor
+  · intro h
+    by_contra hx
+    exact h (if_neg hx)
+  · intro hx
+    rw [if_pos hx]
+    exact uniformAmplitude_ne_zero H
+
+theorem normalized_subgroupState : Normalized (subgroupState H) := by
+  have hcard : (0 : ℝ) < (Fintype.card H : ℝ) := by exact_mod_cast Fintype.card_pos
+  have hstep : ∀ x : G,
+      ‖subgroupState H x‖ ^ 2 =
+        if x ∈ H then (Fintype.card H : ℝ)⁻¹ else 0 := by
+    intro x
+    unfold subgroupState
+    by_cases hx : x ∈ H
+    · rw [if_pos hx, if_pos hx, norm_uniformAmplitude H, inv_pow,
+        Real.sq_sqrt (show (0:ℝ) ≤ (Fintype.card H : ℝ) by positivity)]
+    · rw [if_neg hx, if_neg hx, norm_zero, zero_pow (by norm_num)]
+  unfold Normalized
+  simp only [hstep]
+  rw [← Finset.sum_filter, Finset.sum_const, nsmul_eq_mul]
+  have hcard' : (Finset.univ.filter (fun x : G => x ∈ H)).card = Fintype.card H := by
+    have hset : (Finset.univ.filter (fun x : G => x ∈ H))
+        = (Finset.univ : Finset H).image (fun h : H => (h : G)) := by
+      ext x
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_image]
+      exact ⟨fun hx => ⟨⟨x, hx⟩, rfl⟩, by rintro ⟨h, -, rfl⟩; exact h.2⟩
+    rw [hset, Finset.card_image_of_injective _ (fun a b hab => Subtype.ext hab),
+      Finset.card_univ]
+  rw [hcard']
+  field_simp
+
+theorem subgroupState_mul_left {h x : G} (hh : h ∈ H) :
+    subgroupState H (h * x) = subgroupState H x := by
+  unfold subgroupState
+  by_cases hx : x ∈ H
+  · rw [if_pos (H.mul_mem hh hx), if_pos hx]
+  · rw [if_neg (fun hmem => hx ?_), if_neg hx]
+    have : h⁻¹ * (h * x) ∈ H := H.mul_mem (H.inv_mem hh) hmem
+    simpa using this
+
+theorem subgroupState_mul_right {h x : G} (hh : h ∈ H) :
+    subgroupState H (x * h) = subgroupState H x := by
+  unfold subgroupState
+  by_cases hx : x ∈ H
+  · rw [if_pos (H.mul_mem hx hh), if_pos hx]
+  · rw [if_neg (fun hmem => hx ?_), if_neg hx]
+    have : (x * h) * h⁻¹ ∈ H := H.mul_mem hmem (H.inv_mem hh)
+    simpa using this
+
+end Subgroup
+
+section Coset
+
+variable (H : Subgroup G) [Fintype H]
+
+theorem cosetState_ne_zero_iff (u : G) {x : G} :
+    cosetState u H x ≠ 0 ↔ u⁻¹ * x ∈ H := by
+  unfold cosetState
+  constructor
+  · intro h
+    by_contra hx
+    exact h (if_neg hx)
+  · intro hx
+    rw [if_pos hx]
+    exact uniformAmplitude_ne_zero H
+
+theorem normalized_cosetState (u : G) : Normalized (cosetState u H) := by
+  have hstep : ∀ x : G,
+      ‖cosetState u H x‖ ^ 2 =
+        if u⁻¹ * x ∈ H then (Fintype.card H : ℝ)⁻¹ else 0 := by
+    intro x
+    unfold cosetState
+    by_cases hx : u⁻¹ * x ∈ H
+    · rw [if_pos hx, if_pos hx, norm_uniformAmplitude H, inv_pow,
+        Real.sq_sqrt (show (0:ℝ) ≤ (Fintype.card H : ℝ) by positivity)]
+    · rw [if_neg hx, if_neg hx, norm_zero, zero_pow (by norm_num)]
+  unfold Normalized
+  simp only [hstep]
+
+  have hset : (Finset.univ.filter (fun x : G => u⁻¹ * x ∈ H))
+      = (Finset.univ : Finset H).image (fun h : H => u * (h : G)) := by
+    ext x
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_image]
+    constructor
+    · intro hx
+      refine ⟨⟨u⁻¹ * x, hx⟩, ?_⟩
+      simp
+    · rintro ⟨h, -, rfl⟩
+      simp only [inv_mul_cancel_left]
+      exact h.2
+  rw [← Finset.sum_filter, hset, Finset.sum_const, nsmul_eq_mul,
+    Finset.card_image_of_injective _ (fun a b hab => by
+      simpa using mul_left_cancel hab), Finset.card_univ]
+  have hcard : (0 : ℝ) < (Fintype.card H : ℝ) := by exact_mod_cast Fintype.card_pos
+  field_simp
+
+end Coset
+
+end
+
+end Qatlib.Papers.HiddenTransl02.MainResults.Section4

@@ -1,0 +1,255 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Lean.Elab.Tactic.NormCast
+import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+import Mathlib.Analysis.CStarAlgebra.Classes
+import Mathlib.LinearAlgebra.UnitaryGroup
+import Mathlib.Tactic.Ext
+import Mathlib.Tactic.FinCases
+import Mathlib.Tactic.Ring
+import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+set_option backward.isDefEq.respectTransparency false
+set_option warningAsError false
+open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+open Qatlib.Foundations.PureStateMath.Reflection
+open Qatlib.Foundations.PureStateMath
+
+namespace Qatlib.Concepts.WalkSearch.TwoLevelLower
+
+open Matrix
+
+set_option linter.unusedSectionVars false
+
+variable {I : Type*} [Fintype I] [DecidableEq I]
+
+def IsTransitionMatrix (P : I → I → ℝ) : Prop :=
+  (∀ x y, 0 ≤ P x y) ∧ ∀ x, ∑ y, P x y = 1
+
+def IsStationary (P : I → I → ℝ) (π : I → ℝ) : Prop :=
+  (∀ x, 0 ≤ π x) ∧ ∑ x, π x = 1 ∧ ∀ y, ∑ x, π x * P x y = π y
+
+def IsReversible (P : I → I → ℝ) (π : I → ℝ) : Prop :=
+  ∀ x y, π x * P x y = π y * P y x
+
+theorem reversible_stationary {P : I → I → ℝ} (hP : IsTransitionMatrix P) {π : I → ℝ}
+    (hπ : (∀ x, 0 ≤ π x) ∧ ∑ x, π x = 1) (hrev : IsReversible P π) :
+    IsStationary P π := by
+  refine ⟨hπ.1, hπ.2, fun y => ?_⟩
+  have hstep : ∀ x : I, π x * P x y = π y * P y x := fun x => hrev x y
+  rw [Finset.sum_congr rfl (fun x _ => hstep x), ← Finset.mul_sum, hP.2 y, mul_one]
+
+noncomputable def SzegedyIsometry (P : I → I → ℝ) : Matrix (I × I) I ℂ :=
+  Matrix.of fun p x => if p.1 = x then ((Real.sqrt (P x p.2) : ℂ)) else 0
+
+theorem szegedyIsometry_conjTranspose_mul (P : I → I → ℝ) (hP : IsTransitionMatrix P) :
+    (SzegedyIsometry P)ᴴ * SzegedyIsometry P = 1 := by
+  ext x x'
+  simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, RCLike.star_def,
+    SzegedyIsometry, Matrix.of_apply, Matrix.one_apply]
+  by_cases hxx' : x = x'
+  · subst hxx'
+    have hkey : ∀ p : I × I,
+        (starRingEnd ℂ) (if p.1 = x then ((Real.sqrt (P x p.2) : ℂ)) else 0)
+            * (if p.1 = x then ((Real.sqrt (P x p.2) : ℂ)) else 0)
+          = if p.1 = x then ((P x p.2 : ℂ)) else 0 := by
+      intro p
+      by_cases hp : p.1 = x
+      · rw [if_pos hp, if_pos hp, Complex.conj_ofReal, ← Complex.ofReal_mul, ← sq,
+          Real.sq_sqrt (hP.1 x p.2)]
+      · rw [if_neg hp, if_neg hp, map_zero, zero_mul]
+    rw [Finset.sum_congr rfl (fun p _ => hkey p), Fintype.sum_prod_type,
+      Finset.sum_eq_single x]
+    · simp only [if_true]
+      exact_mod_cast hP.2 x
+    · intro a _ ha
+      refine Finset.sum_eq_zero fun y _ => ?_
+      rw [if_neg (fun e : (a, y).1 = x => ha e)]
+    · intro hcon
+      exact absurd (Finset.mem_univ x) hcon
+  · have hzero : ∀ p : I × I,
+        (starRingEnd ℂ) (if p.1 = x then ((Real.sqrt (P x p.2) : ℂ)) else 0)
+            * (if p.1 = x' then ((Real.sqrt (P x' p.2) : ℂ)) else 0) = 0 := by
+      intro p
+      by_cases hp : p.1 = x
+      · simp only [if_pos hp,
+          if_neg (show ¬(p.1 = x') from fun e => hxx' (hp.symm.trans e)), mul_zero]
+      · simp only [if_neg hp, map_zero, zero_mul]
+    rw [Finset.sum_eq_zero (fun p _ => hzero p), if_neg hxx']
+
+theorem isStarProjection_szegedy (P : I → I → ℝ) (hP : IsTransitionMatrix P) :
+    IsOrthogonalProjector (SzegedyIsometry P * (SzegedyIsometry P)ᴴ) := by
+  refine ⟨?_, ?_⟩
+  · show (SzegedyIsometry P * (SzegedyIsometry P)ᴴ)
+        * (SzegedyIsometry P * (SzegedyIsometry P)ᴴ)
+        = SzegedyIsometry P * (SzegedyIsometry P)ᴴ
+    have hcalc : (SzegedyIsometry P * (SzegedyIsometry P)ᴴ)
+        * (SzegedyIsometry P * (SzegedyIsometry P)ᴴ)
+        = SzegedyIsometry P * ((SzegedyIsometry P)ᴴ * SzegedyIsometry P)
+          * (SzegedyIsometry P)ᴴ := by
+      rw [← Matrix.mul_assoc, ← Matrix.mul_assoc, Matrix.mul_assoc]
+    rw [hcalc, szegedyIsometry_conjTranspose_mul P hP, Matrix.mul_one]
+  · show star (SzegedyIsometry P * (SzegedyIsometry P)ᴴ)
+        = SzegedyIsometry P * (SzegedyIsometry P)ᴴ
+    rw [Matrix.star_eq_conjTranspose, Matrix.conjTranspose_mul,
+      Matrix.conjTranspose_conjTranspose]
+
+noncomputable def SzegedyReflection (P : I → I → ℝ) : Matrix (I × I) (I × I) ℂ :=
+  ReflectionAbout (SzegedyIsometry P * (SzegedyIsometry P)ᴴ)
+
+theorem szegedyReflection_unitary (P : I → I → ℝ) (hP : IsTransitionMatrix P) :
+    SzegedyReflection P ∈ Matrix.unitaryGroup (I × I) ℂ :=
+  reflectionAbout_unitary (isStarProjection_szegedy P hP)
+
+noncomputable def SwapGate : Matrix (I × I) (I × I) ℂ := permMatrix Prod.swap
+
+theorem swapGate_unitary : SwapGate ∈ Matrix.unitaryGroup (I × I) ℂ :=
+  permMatrix_unitary Prod.swap_swap
+
+theorem applyGate_swapGate (Φ : QState (I × I)) :
+    SwapGate *ᵥ Φ = fun p => Φ (Prod.swap p) := by
+  funext q
+  rw [SwapGate]
+  exact applyGate_permMatrix Prod.swap_swap Φ q
+
+noncomputable def SzegedyWalk (P : I → I → ℝ) : Matrix (I × I) (I × I) ℂ :=
+  (SwapGate * SzegedyReflection P * SwapGate) * SzegedyReflection P
+
+theorem szegedyWalk_unitary (P : I → I → ℝ) (hP : IsTransitionMatrix P) :
+    SzegedyWalk P ∈ Matrix.unitaryGroup (I × I) ℂ := by
+  unfold SzegedyWalk
+  exact Submonoid.mul_mem _
+    (Submonoid.mul_mem _ (Submonoid.mul_mem _ swapGate_unitary
+      (szegedyReflection_unitary P hP)) swapGate_unitary)
+    (szegedyReflection_unitary P hP)
+
+noncomputable def SzegedyEmbedState (P : I → I → ℝ) (v : I → ℝ) : QState (I × I) :=
+  SzegedyIsometry P *ᵥ fun x => ((Real.sqrt (v x) : ℂ))
+
+theorem szegedyEmbedState_apply (P : I → I → ℝ) (v : I → ℝ) (x y : I) :
+    SzegedyEmbedState P v (x, y)
+      = ((Real.sqrt (P x y) * Real.sqrt (v x) : ℂ)) := by
+  simp only [SzegedyEmbedState, Matrix.mulVec, dotProduct, SzegedyIsometry,
+    Matrix.of_apply]
+  rw [Finset.sum_eq_single x]
+  · rw [if_pos rfl, ← Complex.ofReal_mul]
+  · intro a _ ha
+    simp [show x ≠ a from fun e => ha e.symm]
+  · intro hcon
+    exact absurd (Finset.mem_univ x) hcon
+
+theorem normalized_szegedyEmbedState (P : I → I → ℝ) (hP : IsTransitionMatrix P)
+    {v : I → ℝ} (hv : ∀ x, 0 ≤ v x) (hsum : ∑ x, v x = 1) :
+    Normalized (SzegedyEmbedState P v) := by
+  unfold Normalized
+  have hkey : ∀ p : I × I, ‖SzegedyEmbedState P v p‖ ^ 2 = P p.1 p.2 * v p.1 := by
+    intro p
+    obtain ⟨x, y⟩ := p
+    have hnn : 0 ≤ P x y * v x := mul_nonneg (hP.1 x y) (hv x)
+    have hentry : ((Real.sqrt (P x y * v x) : ℂ))
+        = ((Real.sqrt (P x y) * Real.sqrt (v x) : ℂ)) := by
+      rw [← Complex.ofReal_mul, Real.sqrt_mul (hP.1 x y) (v x)]
+    rw [szegedyEmbedState_apply P v x y, ← hentry, Complex.norm_real, Real.norm_eq_abs,
+      abs_of_nonneg (Real.sqrt_nonneg _), Real.sq_sqrt hnn]
+  have hsplit : ∑ p : I × I, ‖SzegedyEmbedState P v p‖ ^ 2
+      = ∑ x, ∑ y, (P x y * v x) := by
+    rw [Fintype.sum_prod_type]
+    exact Finset.sum_congr rfl fun x _ => Finset.sum_congr rfl fun y _ =>
+      hkey (x, y)
+  rw [hsplit]
+  have hswap : ∑ x : I, ∑ y : I, P x y * v x = ∑ x : I, v x * ∑ y : I, P x y := by
+    refine Finset.sum_congr rfl fun x _ => ?_
+    rw [Finset.mul_sum]
+    exact Finset.sum_congr rfl fun y _ => mul_comm _ _
+  rw [hswap, Finset.sum_congr rfl (fun x _ => by rw [hP.2 x, mul_one])]
+  exact_mod_cast hsum
+
+theorem szegedyWalk_fixes_stationary (P : I → I → ℝ) (hP : IsTransitionMatrix P)
+    {π : I → ℝ}
+    (hrev : IsReversible P π) :
+    SzegedyWalk P *ᵥ SzegedyEmbedState P π = SzegedyEmbedState P π := by
+  set Φ : QState (I × I) := SzegedyEmbedState P π with hΦ
+
+  have hswapfix : SwapGate *ᵥ Φ = Φ := by
+    funext p
+    obtain ⟨x, y⟩ := p
+    have h1 : (SwapGate *ᵥ Φ) (x, y) = Φ (y, x) := by
+      rw [applyGate_swapGate Φ]
+      exact congrArg Φ Prod.swap_prod_mk
+    rw [h1, hΦ, szegedyEmbedState_apply P π y x, szegedyEmbedState_apply P π x y]
+    have hrev' : π y * P y x = π x * P x y := (hrev x y).symm
+    rw [← Complex.ofReal_mul, ← Complex.ofReal_mul, Complex.ofReal_inj,
+      ← Real.sqrt_mul (hP.1 y x) (π y), ← Real.sqrt_mul (hP.1 x y) (π x),
+      mul_comm (P y x) (π y), hrev', mul_comm (P x y) (π x)]
+
+  have hRfix : SzegedyReflection P *ᵥ Φ = Φ := by
+    have hpre : (SzegedyIsometry P * (SzegedyIsometry P)ᴴ) *ᵥ Φ = Φ := by
+      rw [hΦ, SzegedyEmbedState]
+      have eq1 : (SzegedyIsometry P * (SzegedyIsometry P)ᴴ) *ᵥ
+          (SzegedyIsometry P *ᵥ (fun x => ((Real.sqrt (π x) : ℂ))))
+          = SzegedyIsometry P *ᵥ (((SzegedyIsometry P)ᴴ * SzegedyIsometry P) *ᵥ
+            (fun x => ((Real.sqrt (π x) : ℂ)))) := by
+        simp only [Matrix.mulVec_mulVec, Matrix.mul_assoc]
+      rw [eq1, szegedyIsometry_conjTranspose_mul P hP, Matrix.one_mulVec]
+    have h2 : ApplyGate (ReflectionAbout (SzegedyIsometry P * (SzegedyIsometry P)ᴴ)) Φ
+        = Φ :=
+      applyGate_reflectionAbout_of_fixed (by exact hpre)
+    exact h2
+
+  rw [SzegedyWalk]
+  simp only [Matrix.mul_assoc]
+  rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec,
+    hRfix, hswapfix, hRfix, hswapfix]
+
+noncomputable def MetropolisAcceptance (P : I → I → ℝ) (π : I → ℝ) (x y : I) : ℝ :=
+  min 1 (π y * P y x / (π x * P x y))
+
+theorem metropolisAcceptance_detailed_balance (P : I → I → ℝ) (hP : IsTransitionMatrix P)
+    {π : I → ℝ} (hπ : ∀ x, 0 ≤ π x) (x y : I) :
+    π x * (P x y * MetropolisAcceptance P π x y)
+      = π y * (P y x * MetropolisAcceptance P π y x) := by
+  have hnn : ∀ a b : I, 0 ≤ π a * P a b := fun a b => mul_nonneg (hπ a) (hP.1 a b)
+  have hmin : ∀ a b : I, π a * (P a b * MetropolisAcceptance P π a b)
+      = min (π a * P a b) (π b * P b a) := by
+    intro a b
+    rw [MetropolisAcceptance, ← mul_assoc]
+    by_cases h0 : π a * P a b = 0
+    · rw [h0, zero_mul, min_eq_left (hnn b a)]
+    · have hpos : 0 < π a * P a b := lt_of_le_of_ne' (hnn a b) h0
+      by_cases hba : π b * P b a ≤ π a * P a b
+      · rw [min_eq_right (div_le_one_of_le₀ hba (hnn a b)), ← mul_div_assoc,
+          mul_div_cancel_left₀ _ hpos.ne', min_eq_right hba]
+      · have hlt : π a * P a b < π b * P b a := lt_of_not_ge hba
+        rw [min_eq_left ((one_le_div hpos).mpr hlt.le), mul_one, min_eq_left hlt.le]
+  rw [hmin x y, hmin y x, min_comm]
+
+noncomputable def MetropolisCoin (a : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
+  !![((Real.sqrt (1 - a) : ℝ) : ℂ), ((Real.sqrt a : ℝ) : ℂ);
+     ((Real.sqrt a : ℝ) : ℂ), (-(Real.sqrt (1 - a)) : ℂ)]
+
+theorem metropolisCoin_unitary {a : ℝ} (h0 : 0 ≤ a) (h1 : a ≤ 1) :
+    MetropolisCoin a ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
+  have hsq0 : ((Real.sqrt (1 - a) : ℂ)) * ((Real.sqrt (1 - a) : ℂ)) = ((1 - a : ℝ) : ℂ) := by
+    rw [← Complex.ofReal_mul, ← sq, Real.sq_sqrt (sub_nonneg_of_le h1)]
+  have hsq1 : ((Real.sqrt a : ℂ)) * ((Real.sqrt a : ℂ)) = ((a : ℝ) : ℂ) := by
+    rw [← Complex.ofReal_mul, ← sq, Real.sq_sqrt h0]
+  have hreal : ∀ r : ℝ, (starRingEnd ℂ) ((r : ℂ)) = ((r : ℂ)) := fun r => by simp
+  rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
+  ext i j
+  fin_cases i <;> fin_cases j <;>
+    simp [MetropolisCoin, Matrix.mul_apply, Matrix.conjTranspose_apply,
+      Fin.sum_univ_two, hreal, hsq0, hsq1] <;>
+    push_cast <;> ring
+
+theorem metropolisCoin_accept_prob {a : ℝ} (h0 : 0 ≤ a) :
+    BornProb (MetropolisCoin a *ᵥ Ket 0) 1 = a := by
+  rw [BornProb]
+  have hcol : (MetropolisCoin a *ᵥ Ket 0) 1 = ((Real.sqrt a : ℝ) : ℂ) := by
+    simp [Matrix.mulVec, dotProduct, Ket, MetropolisCoin]
+  rw [hcol, ← Complex.normSq_eq_norm_sq, Complex.normSq_ofReal,
+    Real.mul_self_sqrt h0]
+
+end Qatlib.Concepts.WalkSearch.TwoLevelLower

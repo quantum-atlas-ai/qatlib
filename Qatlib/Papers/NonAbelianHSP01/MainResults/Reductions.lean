@@ -1,0 +1,167 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
+import Qatlib.Papers.NonAbelianHSP01.MainResults.MembershipReduction
+import Qatlib.Papers.NonAbelianHSP01.MainResults.HiddenNormalSubgroup
+import Qatlib.Papers.NonAbelianHSP01.MainResults.CommutatorExtraSpecial
+import Qatlib.Papers.NonAbelianHSP01.MainResults.ElementaryAbelianTwo
+import Qatlib.Papers.NonAbelianHSP01.MainResults.AbelianHSP
+import Mathlib.Tactic
+set_option warningAsError false
+
+set_option autoImplicit false
+set_option linter.unusedVariables false
+set_option maxHeartbeats 800000
+
+namespace Qatlib.Papers.NonAbelianHSP01.MainResults
+
+open scoped IsMulCommutative
+
+theorem polyBoundedIn_const_mul {G : Type*} [Group G] (B : BlackBoxGroupData G)
+    (p c : ℕ) (l : CostLedger) (h : PolyBoundedIn B p l) :
+    PolyBoundedIn B p ⟨l.total * (c + 1), 0, 0⟩ := by
+  obtain ⟨C, k, hC⟩ := h
+  refine ⟨C * (c + 1), k, ?_⟩
+  have htot : (⟨l.total * (c + 1), 0, 0⟩ : CostLedger).total = l.total * (c + 1) := by
+    simp [CostLedger.total]
+  rw [htot]
+  calc
+    l.total * (c + 1) ≤ (C * (B.inputSize + p + 1) ^ k) * (c + 1) :=
+      Nat.mul_le_mul_right _ hC
+    _ = (C * (c + 1)) * (B.inputSize + p + 1) ^ k := by ring
+
+theorem polyBoundedIn_zero {G : Type*} [Group G] (B : BlackBoxGroupData G) (p : ℕ) :
+    PolyBoundedIn B p (CostLedger.zero) := by
+  refine ⟨1, 0, ?_⟩
+  simp
+
+theorem oracles_nonempty {G : Type*} [Group G] (B : BlackBoxGroupData G) :
+    Nonempty (Oracles B) := by
+  classical
+  exact ⟨{ orderOracle := fun g => orderOf g
+           order_spec := fun _ => rfl
+           elementaryMembership := fun S g => decide (g ∈ Subgroup.closure (S : Set G))
+           elementaryMembership_spec := fun S g _ _ =>
+             ⟨fun h => of_decide_eq_true h, fun h => decide_eq_true h⟩ }⟩
+
+theorem exists_finset_closure_eq {G : Type*} [Group G] (N : Subgroup G)
+    [Fintype G] : ∃ S : Finset G, Subgroup.closure (S : Set G) = N := by
+  classical
+  refine ⟨Finset.univ.filter (fun y => y ∈ N), ?_⟩
+  apply le_antisymm
+  · refine (Subgroup.closure_le (k := _) (K := N)).mpr ?_
+    intro x hx
+    simpa using (Finset.mem_filter.mp hx).2
+  · intro x hx
+    exact Subgroup.subset_closure (by simp [hx])
+
+theorem theorem_eleven_reduction {G : Type*} [Group G] (B : BlackBoxGroupData G)
+    {X : Type*} (I : HiddenSubgroupInstance G X)
+    (S : Finset G) (hS : Subgroup.closure (S : Set G) = I.H ⊔ commutator G)
+    (T : Finset G) (hT : Subgroup.closure (T : Set G) = I.H ⊓ commutator G)
+    (u : G → G) (hu_mem : ∀ x ∈ (S : Set G), u x ∈ I.H)
+    (hu_eq : ∀ x ∈ (S : Set G), ∃ n ∈ commutator G, u x * n = x)
+    (costS : CostLedger)
+    (hcostS : PolyBoundedIn B (Nat.card (commutator G)) costS) :
+    ∃ s : HiddenSubgroupSolution B I,
+      PolyBoundedIn B (Nat.card (commutator G)) s.cost := by
+  classical
+  haveI : (commutator G).Normal := inferInstance
+  set Gens : Finset G := S.image u ∪ T with hGens
+  set H₁ : Subgroup G := Subgroup.closure (Gens : Set G) with hH₁def
+  have hH₁le : H₁ ≤ I.H := by
+    refine (Subgroup.closure_le (k := (Gens : Set G)) (K := I.H)).mpr ?_
+    intro a ha
+    rw [hGens] at ha
+    rcases Finset.mem_union.mp ha with hS' | hT'
+    · obtain ⟨x, hxS, rfl⟩ := Finset.mem_image.mp hS'
+      exact hu_mem x hxS
+    · have hmem : a ∈ Subgroup.closure (T : Set G) := Subgroup.subset_closure hT'
+      rw [hT] at hmem
+      exact hmem.1
+  have hinf : H₁ ⊓ commutator G = I.H ⊓ commutator G := by
+    apply le_antisymm
+    · intro a ha; exact ⟨hH₁le ha.1, ha.2⟩
+    · intro a ha
+      have hTG : (T : Set G) ⊆ (Gens : Set G) := by
+        intro b hb
+        rw [hGens]
+        exact Finset.mem_union.mpr (Or.inr hb)
+      have hmono : Subgroup.closure (T : Set G) ≤ Subgroup.closure (Gens : Set G) :=
+        Subgroup.closure_mono hTG
+      rw [hT] at hmono
+      exact ⟨hmono ha, ha.2⟩
+  have hsup : H₁ ⊔ commutator G = I.H ⊔ commutator G := by
+    apply le_antisymm
+    · exact sup_le (hH₁le.trans le_sup_left) le_sup_right
+    · rw [← hS]
+      refine (Subgroup.closure_le (k := (S : Set G)) (K := H₁ ⊔ commutator G)).mpr ?_
+      intro x hxS
+      obtain ⟨n, hn, hxn⟩ := hu_eq x hxS
+      rw [← hxn]
+      refine Subgroup.mul_mem_sup ?_ hn
+      refine Subgroup.subset_closure ?_
+      rw [hGens]
+      exact Finset.mem_union.mpr (Or.inl (Finset.mem_image.mpr ⟨x, hxS, rfl⟩))
+  have hH₁ : H₁ = I.H :=
+    subgroup_eq_of_inf_eq_and_sup_eq (H₁ := H₁) (H := I.H) (N := commutator G)
+      hH₁le hinf hsup
+  refine ⟨⟨Gens, ?_, ⟨costS.total * (costS.total + 1), 0, 0⟩⟩, ?_⟩
+  · rw [hH₁def] at hH₁
+    exact hH₁
+  · exact polyBoundedIn_const_mul (G := G) B (Nat.card (commutator G)) costS.total costS hcostS
+
+section TheoremThirteen
+
+variable {G : Type*} [Group G] {H N : Subgroup G} [N.Normal]
+
+omit [N.Normal] in
+
+theorem inv_mul_mem_of_mem_leftCoset_inter {z u : G}
+    (hu : u ∈ leftCoset z H ∩ (N : Set G)) : u⁻¹ * z ∈ H := by
+  obtain ⟨h, hh, hzu⟩ := hu.1
+  have hcalc : u⁻¹ * z = h⁻¹ := by
+    rw [← hzu]
+    group
+  rw [hcalc]
+  exact Subgroup.inv_mem H hh
+
+theorem rightCoset_inter_eq_image (z u : G)
+    (hu : u ∈ leftCoset z H ∩ (N : Set G)) :
+    ((fun n : G => z * n) '' (N : Set G)) ∩ (H : Set G) =
+      ((fun k : G => (u⁻¹ * z) * k) '' ((H ⊓ N : Subgroup G) : Set G)) := by
+  have huN : u ∈ N := hu.2
+  have hwH : u⁻¹ * z ∈ H := inv_mul_mem_of_mem_leftCoset_inter hu
+  ext x
+  constructor
+  · rintro ⟨⟨n, hnN, hxn⟩, hxH⟩
+    refine ⟨(u⁻¹ * z)⁻¹ * x, ⟨?_, ?_⟩, ?_⟩
+    · exact H.mul_mem (Subgroup.inv_mem H hwH) hxH
+    · have hcalc : (u⁻¹ * z)⁻¹ * x = (z⁻¹ * u * z) * n := by
+        rw [← hxn]; group
+      rw [hcalc]
+      exact N.mul_mem ((inferInstance : N.Normal).conj_mem' u huN z) hnN
+    · group
+  · rintro ⟨k, hk, rfl⟩
+    have hxH : (u⁻¹ * z) * k ∈ H := H.mul_mem hwH hk.1
+    have hxN : z⁻¹ * ((u⁻¹ * z) * k) ∈ N := by
+      have hcalc : z⁻¹ * ((u⁻¹ * z) * k) = (z⁻¹ * u⁻¹ * z) * k := by group
+      rw [hcalc]
+      exact N.mul_mem ((inferInstance : N.Normal).conj_mem' u⁻¹ (N.inv_mem huN) z) hk.2
+    refine ⟨⟨z⁻¹ * ((u⁻¹ * z) * k), hxN, ?_⟩, hxH⟩
+    group
+
+theorem theorem_thirteen_reduction {H₁ : Subgroup G} (hle : H₁ ≤ H)
+    (hHN : H ⊓ N ≤ H₁) (hsup : H₁ ⊔ N = H ⊔ N) : H₁ = H := by
+  refine subgroup_eq_of_inf_eq_and_sup_eq hle ?_ hsup
+  apply le_antisymm
+  · intro x hx; exact ⟨hle hx.1, hx.2⟩
+  · intro x hx; exact ⟨hHN hx, hx.2⟩
+
+end TheoremThirteen
+
+end Qatlib.Papers.NonAbelianHSP01.MainResults

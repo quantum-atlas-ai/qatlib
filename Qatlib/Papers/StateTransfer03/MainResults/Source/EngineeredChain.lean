@@ -1,0 +1,68 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.StateTransfer03.MainResults.Defs
+set_option warningAsError false
+
+namespace Qatlib.Papers.StateTransfer03.MainResults.Source
+
+open Matrix
+open scoped BigOperators
+open Qatlib.Papers.StateTransfer03.MainResults.Defs
+
+set_option autoImplicit false
+set_option maxHeartbeats 2000000
+set_option linter.unusedVariables false
+
+noncomputable section
+
+def engineeredCoupling (N : ℕ) (lam : ℝ) (n : ℕ) : ℝ :=
+  lam / 2 * Real.sqrt ((n : ℝ) * ((N : ℝ) - (n : ℝ)))
+
+def engineeredAdj (N : ℕ) (lam : ℝ) : Matrix (Fin N) (Fin N) ℝ :=
+  fun i j =>
+    if i.val + 1 = j.val then engineeredCoupling N lam (i.val + 1)
+    else if j.val + 1 = i.val then engineeredCoupling N lam (j.val + 1)
+    else 0
+
+theorem engineeredCoupling_pos (N : ℕ) (lam : ℝ) (hlam : 0 < lam)
+    (n : ℕ) (hn : 1 ≤ n) (hnN : n < N) :
+    0 < engineeredCoupling N lam n := by
+  unfold engineeredCoupling
+  have h1 : (0 : ℝ) < (n : ℝ) := by exact_mod_cast hn
+  have h2 : (0 : ℝ) < (N : ℝ) - (n : ℝ) := by
+    have : (n : ℝ) < (N : ℝ) := by exact_mod_cast hnN
+    linarith
+  have hprod : 0 < (n : ℝ) * ((N : ℝ) - (n : ℝ)) := mul_pos h1 h2
+  have hsqrt : 0 < Real.sqrt ((n : ℝ) * ((N : ℝ) - (n : ℝ))) :=
+    Real.sqrt_pos.mpr hprod
+  have : 0 < lam / 2 := by positivity
+  exact mul_pos this hsqrt
+
+theorem engineeredCoupling_reflect (N : ℕ) (lam : ℝ) (n : ℕ) (hn : n ≤ N) :
+    engineeredCoupling N lam n = engineeredCoupling N lam (N - n) := by
+  unfold engineeredCoupling
+  have hcast : ((N - n : ℕ) : ℝ) = (N : ℝ) - (n : ℝ) := by
+    rw [Nat.cast_sub hn]
+  rw [hcast]
+  rw [show ((N : ℝ) - (n : ℝ)) * ((N : ℝ) - ((N : ℝ) - (n : ℝ))) =
+      (n : ℝ) * ((N : ℝ) - (n : ℝ)) by ring]
+
+theorem engineeredAdj_eq_zero (N : ℕ) (lam : ℝ) (i j : Fin N)
+    (hij : i.val + 1 ≠ j.val) (hji : j.val + 1 ≠ i.val) :
+    engineeredAdj N lam i j = 0 := by
+  unfold engineeredAdj
+  rw [if_neg hij, if_neg hji]
+
+theorem engineeredAdj_diag (N : ℕ) (lam : ℝ) (i : Fin N) :
+    engineeredAdj N lam i i = 0 := by
+  unfold engineeredAdj
+  have h1 : ¬ i.val + 1 = i.val := by omega
+  rw [if_neg h1, if_neg h1]
+
+end
+
+end Qatlib.Papers.StateTransfer03.MainResults.Source

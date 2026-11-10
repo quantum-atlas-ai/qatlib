@@ -1,0 +1,131 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Mathlib.Analysis.CStarAlgebra.Matrix
+import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+set_option backward.isDefEq.respectTransparency false
+set_option warningAsError false
+
+open Qatlib.Concepts.Execution.WorkspaceCP
+
+namespace Qatlib.Concepts.BlockEncoding
+
+open Matrix
+open scoped Matrix.Norms.L2Operator
+
+variable {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
+  [DecidableEq H] [DecidableEq I] [DecidableEq O]
+
+structure BlockEncoding (A : Matrix O I ℂ) (U : Matrix H H ℂ)
+    (L : Matrix H O ℂ) (R : Matrix H I ℂ) (α ε : ℝ) : Prop where
+  unitary : U ∈ Matrix.unitaryGroup H ℂ
+  left_isometry : IsIsometry L
+  right_isometry : IsIsometry R
+  normalization_pos : 0 < α
+  error_nonneg : 0 ≤ ε
+  error_le : ‖A - α • compress L U R‖ ≤ ε
+
+theorem ProjectedUnitaryEncoding.toBlockEncoding {A : Matrix O I ℂ} {U : Matrix H H ℂ}
+    {L : Matrix H O ℂ} {R : Matrix H I ℂ} (h : ProjectedUnitaryEncoding A U L R) :
+    BlockEncoding A U L R 1 0 := by
+  refine ⟨h.unitary, h.left_isometry, h.right_isometry, by norm_num, le_rfl, ?_⟩
+  simp [h.encoded]
+
+theorem BlockEncoding.mono {A : Matrix O I ℂ} {U : Matrix H H ℂ}
+    {L : Matrix H O ℂ} {R : Matrix H I ℂ} {α ε δ : ℝ}
+    (h : BlockEncoding A U L R α ε) (hεδ : ε ≤ δ) : BlockEncoding A U L R α δ :=
+  ⟨h.unitary, h.left_isometry, h.right_isometry, h.normalization_pos,
+    h.error_nonneg.trans hεδ, h.error_le.trans hεδ⟩
+
+theorem BlockEncoding.perturb {A B : Matrix O I ℂ} {U : Matrix H H ℂ}
+    {L : Matrix H O ℂ} {R : Matrix H I ℂ} {α ε δ : ℝ}
+    (h : BlockEncoding A U L R α ε) (hδ : 0 ≤ δ) (hAB : ‖B - A‖ ≤ δ) :
+    BlockEncoding B U L R α (ε + δ) := by
+  refine ⟨h.unitary, h.left_isometry, h.right_isometry, h.normalization_pos,
+    add_nonneg h.error_nonneg hδ, ?_⟩
+  calc
+    ‖B - α • compress L U R‖ = ‖(B - A) + (A - α • compress L U R)‖ := by
+      congr 1
+      abel
+    _ ≤ ‖B - A‖ + ‖A - α • compress L U R‖ := norm_add_le _ _
+    _ ≤ δ + ε := add_le_add hAB h.error_le
+    _ = ε + δ := add_comm _ _
+
+end Qatlib.Concepts.BlockEncoding
+
+open Matrix Polynomial
+open Qatlib
+open Qatlib.Concepts.BlockEncoding
+open Qatlib
+open Qatlib
+open Qatlib
+open scoped Matrix.Norms.L2Operator
+
+variable {I O : Type*} [Fintype I] [Fintype O] [DecidableEq I]
+namespace Qatlib.Concepts.BlockEncoding.Encoding
+open Matrix
+open scoped Matrix.Norms.L2Operator
+
+theorem BlockEncoding.adjoint {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
+    [DecidableEq H] [DecidableEq I] [DecidableEq O]
+    {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
+    {α ε : ℝ} (h : BlockEncoding A U L R α ε) : BlockEncoding Aᴴ Uᴴ R L α ε := by
+  refine ⟨adjoint_unitary h.unitary, h.right_isometry, h.left_isometry,
+    h.normalization_pos, h.error_nonneg, ?_⟩
+  have he : Aᴴ - α • compress R Uᴴ L = (A - α • compress L U R)ᴴ := by
+    simp [compress_adjoint]
+  rw [he, Matrix.l2_opNorm_conjTranspose]
+  exact h.error_le
+end Qatlib.Concepts.BlockEncoding.Encoding
+
+open Matrix
+open scoped Matrix.Norms.L2Operator
+namespace Qatlib.Concepts.BlockEncoding.Encoding
+
+theorem matrix_one_norm_le {I : Type*} [Fintype I] [DecidableEq I] :
+    ‖(1 : Matrix I I ℂ)‖ ≤ 1 := by
+  change ‖(Matrix.diagonal (fun _ : I => (1 : ℂ)) : Matrix I I ℂ)‖ ≤ 1
+  rw [Matrix.l2_opNorm_diagonal]
+  exact (pi_norm_le_iff_of_nonneg zero_le_one).2 (fun _ => by simp)
+
+theorem IsIsometry.norm_le_one {H I : Type*} [Fintype H] [Fintype I]
+    [DecidableEq I] {V : Matrix H I ℂ} (hV : IsIsometry V) : ‖V‖ ≤ 1 := by
+  rw [← sq_le_one_iff₀ (norm_nonneg V), pow_two,
+    ← Matrix.l2_opNorm_conjTranspose_mul_self, show Vᴴ * V = 1 from hV]
+  exact matrix_one_norm_le
+
+theorem unitary_norm_le_one {H : Type*} [Fintype H] [DecidableEq H]
+    {U : Matrix H H ℂ} (hU : U ∈ Matrix.unitaryGroup H ℂ) : ‖U‖ ≤ 1 := by
+  apply IsIsometry.norm_le_one
+  change Uᴴ * U = 1
+  simpa only [Matrix.star_eq_conjTranspose] using hU.1
+
+theorem compress_norm_le {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
+    [DecidableEq H] [DecidableEq I] [DecidableEq O]
+    {L : Matrix H O ℂ} {R : Matrix H I ℂ}
+    (hL : IsIsometry L) (hR : IsIsometry R) (U : Matrix H H ℂ) :
+    ‖compress L U R‖ ≤ ‖U‖ := by
+  have hLa : ‖Lᴴ‖ ≤ 1 := by
+    rw [Matrix.l2_opNorm_conjTranspose]
+    exact IsIsometry.norm_le_one hL
+  have hleft : ‖Lᴴ * U‖ ≤ ‖U‖ := by
+    calc
+      ‖Lᴴ * U‖ ≤ ‖Lᴴ‖ * ‖U‖ := Matrix.l2_opNorm_mul _ _
+      _ ≤ 1 * ‖U‖ := mul_le_mul_of_nonneg_right hLa (norm_nonneg U)
+      _ = ‖U‖ := one_mul _
+  calc
+    ‖compress L U R‖ ≤ ‖Lᴴ * U‖ * ‖R‖ := Matrix.l2_opNorm_mul _ _
+    _ ≤ ‖U‖ * 1 := mul_le_mul hleft (IsIsometry.norm_le_one hR) (norm_nonneg R) (norm_nonneg U)
+    _ = ‖U‖ := mul_one _
+
+theorem compress_sub_norm_le {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
+    [DecidableEq H] [DecidableEq I] [DecidableEq O]
+    {L : Matrix H O ℂ} {R : Matrix H I ℂ}
+    (hL : IsIsometry L) (hR : IsIsometry R) (U V : Matrix H H ℂ) :
+    ‖compress L U R - compress L V R‖ ≤ ‖U - V‖ := by
+  simpa only [compress, Matrix.mul_sub, Matrix.sub_mul] using
+    compress_norm_le hL hR (U - V)
+end Qatlib.Concepts.BlockEncoding.Encoding

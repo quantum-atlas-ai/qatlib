@@ -1,0 +1,91 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.QspSimulation.Achievability.CountedHamiltonian
+import Qatlib.Concepts.BlockEncoding.Postselection
+open Qatlib.Concepts.BlockEncoding.LCU
+set_option warningAsError false
+
+open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+open Qatlib.Concepts.LocalMachine.LocalTransport
+open Qatlib.Concepts.QspSimulation.Achievability
+
+open Qatlib.Concepts.Execution.WorkspaceCP
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Concepts.BlockEncoding.Postselection
+open Qatlib.Concepts.BlockEncoding
+open Qatlib.Concepts.BlockEncoding.Encoding
+open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
+
+set_option autoImplicit false
+
+namespace Qatlib.Concepts.CopyEvolution.Discriminate
+
+open Matrix
+open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
+open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
+open scoped Matrix.Norms.L2Operator
+
+theorem hamiltonianEvolution_unitary {I : Type*} [Fintype I] [DecidableEq I]
+    {A : Matrix I I ℂ} (t : ℝ) (hA : A.IsHermitian) :
+    hamiltonianEvolution A t ∈ Matrix.unitaryGroup I ℂ := by
+  change Qatlib.Foundations.PureStateMath.HamiltonianEvolution A t ∈ Matrix.unitaryGroup I ℂ
+  exact Qatlib.Foundations.PureStateMath.hamiltonianEvolution_unitary hA t
+
+theorem hamiltonianEncoding_conditionalOutput
+    {H : Type*} {I : Type*} [Fintype H] [Fintype I] [DecidableEq H] [DecidableEq I]
+    {A : Matrix I I ℂ} {V : Matrix H H ℂ} {L R : Matrix H I ℂ}
+    (t : ℝ) {ε : ℝ} {ψ : QState I}
+    (hA : A.IsHermitian) (h : BlockEncoding (hamiltonianEvolution A t) V L R 8 ε)
+    (hψ : Normalized ψ) (_hε : 0 < ε) (hε1 : ε < 1) :
+    ((1 - ε) / 8) ^ 2 ≤ postselectionProbability V L R ψ ∧
+    0 < postselectionProbability V L R ψ ∧
+    ∃ φ : QState I, postselectionOutput V L R ψ = some φ ∧ Normalized φ ∧
+      ‖stateVector φ - stateVector (hamiltonianEvolution A t *ᵥ ψ)‖ ≤ 2 * ε := by
+  have hn : ‖stateVector (hamiltonianEvolution A t *ᵥ ψ)‖ = 1 := by
+    exact (normalized_iff_stateVector_norm _).mp
+      (normalized_applyGate (hamiltonianEvolution_unitary t hA) hψ)
+  have hgap : ε < ‖stateVector (hamiltonianEvolution A t *ᵥ ψ)‖ := by
+    rw [hn]
+    exact hε1
+  have hlower :=
+      Qatlib.Concepts.BlockEncoding.Postselection.Encoding.BlockEncoding.postselection_probability_lower h hψ hgap.le
+  obtain ⟨hp, φ, hout, happ⟩ :=
+      Qatlib.Concepts.BlockEncoding.Postselection.Encoding.BlockEncoding.postselection_output_of_gap h hψ hgap
+  rcases happ with ⟨_, hφ, herr⟩
+  refine ⟨?_, hp, φ, hout, hφ, ?_⟩
+  · simpa only [hn] using hlower
+  · simpa only [NormedSpace.normalize_eq_self_of_norm_eq_one hn, hn, div_one] using herr
+
+theorem hamiltonianSimulation_counted_output_exists
+    {H : Type*} {I : Type*} [Fintype H] [Fintype I] [DecidableEq H] [DecidableEq I]
+    {A : Matrix I I ℂ} {U : Matrix H H ℂ} {F : Matrix H I ℂ} (t : ℝ) {ε : ℝ}
+    (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F)
+    (hε : 0 < ε) (hε1 : ε < 1) :
+    ∃ (n : ℕ) (cs : List (AdjointStep (Bool × (Bool × H)))),
+      WellFormedAdjointCircuit cs ∧
+      BlockEncoding (hamiltonianEvolution A t)
+        (evaluate (controlOracle (parallelOracle (J := Bool) U)) cs)
+        (hamiltonianFrame F) (hamiltonianFrame F) 8 ε ∧
+      adjointQueryCount cs = 4 * n + 1 ∧ adjointGateCount cs = 4 * n + 6 ∧
+      ∀ (ψ : QState I), Normalized ψ →
+        ((1 - ε) / 8) ^ 2 ≤ postselectionProbability
+          (evaluate (controlOracle (parallelOracle (J := Bool) U)) cs)
+          (hamiltonianFrame F) (hamiltonianFrame F) ψ ∧
+        0 < postselectionProbability
+          (evaluate (controlOracle (parallelOracle (J := Bool) U)) cs)
+          (hamiltonianFrame F) (hamiltonianFrame F) ψ ∧
+        ∃ φ : QState I, postselectionOutput
+            (evaluate (controlOracle (parallelOracle (J := Bool) U)) cs)
+            (hamiltonianFrame F) (hamiltonianFrame F) ψ = some φ ∧
+          Normalized φ ∧
+          ‖stateVector φ - stateVector (hamiltonianEvolution A t *ᵥ ψ)‖ ≤ 2 * ε := by
+  obtain ⟨n, cs, hwf, hbe, hq, hg⟩ := hamiltonianSimulation_counted_exists hA h t hε
+  refine ⟨n, cs, hwf, hbe, hq, hg, ?_⟩
+  intro ψ hψ
+  exact hamiltonianEncoding_conditionalOutput t hA hbe hψ hε hε1
+
+end Qatlib.Concepts.CopyEvolution.Discriminate

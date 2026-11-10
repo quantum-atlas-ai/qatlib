@@ -1,0 +1,63 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurementFrame
+import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+open Qatlib.Foundations.PureStateMath
+set_option warningAsError false
+set_option backward.isDefEq.respectTransparency false
+
+open Qatlib.Foundations.PureStateMath.Reflection
+open Qatlib.Foundations.PureStateMath.BornBridge
+
+namespace Qatlib.Concepts.MbqcFlow.FlowDecision
+
+open Matrix
+open scoped ComplexOrder MatrixOrder
+
+variable {I : Type} [Fintype I] [DecidableEq I] {D : ℕ}
+
+noncomputable def prettyGoodSupport (W : Matrix (Fin D) I ℂ) :
+    HermitianMat (Fin D) ℂ :=
+  ⟨prettyGoodFrame W * (prettyGoodFrame W)ᴴ,
+    (pretty_good_frame_support_contract I D W).2.2.1⟩
+
+noncomputable def prettyGoodEffect (W : Matrix (Fin D) I ℂ) :
+    Option I → HermitianMat (Fin D) ℂ
+  | none => 1 - prettyGoodSupport W
+  | some i => ⟨outerProduct (fun d => prettyGoodFrame W d i),
+      outerProduct_isHermitian _⟩
+
+private theorem pretty_good_effect_nonneg (W : Matrix (Fin D) I ℂ)
+    (o : Option I) : 0 ≤ prettyGoodEffect W o := by
+  rw [HermitianMat.zero_le_iff]
+  cases o with
+  | none => exact (pretty_good_frame_support_contract I D W).2.2.2.2
+  | some i => exact outerProduct_posSemidef _
+
+private theorem pretty_good_columns_sum (W : Matrix (Fin D) I ℂ) :
+    ∑ i : I, (prettyGoodEffect W (some i)).mat =
+      (prettyGoodSupport W).mat := by
+  ext d e
+  simp only [prettyGoodEffect, prettyGoodSupport, HermitianMat.mat_mk,
+    Matrix.sum_apply, Matrix.mul_apply, Matrix.conjTranspose_apply, outerProduct_apply]
+  rfl
+
+private theorem pretty_good_effect_sum (W : Matrix (Fin D) I ℂ) :
+    ∑ o : Option I, prettyGoodEffect W o = 1 := by
+  apply HermitianMat.ext
+  rw [HermitianMat.mat_finset_sum, Fintype.sum_option,
+    pretty_good_columns_sum]
+  change (1 - (prettyGoodSupport W).mat) + (prettyGoodSupport W).mat = 1
+  exact sub_add_cancel _ _
+
+noncomputable def prettyGoodPOVM (W : Matrix (Fin D) I ℂ) :
+    POVM (Option I) (Fin D) where
+  mats := prettyGoodEffect W
+  nonneg := pretty_good_effect_nonneg W
+  normalized := pretty_good_effect_sum W
+
+end Qatlib.Concepts.MbqcFlow.FlowDecision

@@ -1,0 +1,7 @@
+cff-version: 1.2.0
+message: "If you use this library, please cite it as below."
+authors:
+- name: "Qatlib Contributors"
+title: "Qatlib: The Lean Library for Formalized Quantum Computing and Quantum Information"
+date-released: 2026-11-10
+url: "https://github.com/quantum-atlas-ai/qatlib"

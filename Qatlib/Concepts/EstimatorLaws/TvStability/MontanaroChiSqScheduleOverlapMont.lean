@@ -1,0 +1,33 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChiSqScheduleOverlapStat
+import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChiSqScheduleOverlapSubgoal
+set_option autoImplicit false
+open Qatlib.Concepts.EstimatorLaws.TvStability.Montanaro2015
+
+namespace Qatlib.Concepts.EstimatorLaws.TvStability
+
+open scoped Classical BigOperators
+
+theorem montanaro_normalized_gibbs_chi_sum (Ω : Type) [Fintype Ω] (H : Ω→ℕ) (β₁ β₂ : ℝ)
+    (hZ₁ : 0<partitionFn H β₁) (hZ₂ : 0<partitionFn H β₂) :
+    chiSqGibbsSumCorrected H β₁ β₂=
+      ∑ x : Ω,(Real.exp (-(β₂*(H x:ℝ)))/partitionFn H β₂)^2/
+        (Real.exp (-(β₁*(H x:ℝ)))/partitionFn H β₁) := by
+  unfold chiSqGibbsSumCorrected chiSqGibbsSum
+  rw [Finset.sum_div,Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro x _
+  field_simp [hZ₁.ne',hZ₂.ne',(Real.exp_pos (-(β₁*(H x:ℝ)))).ne']
+
+theorem montanaroChiSqScheduleOverlapCorrectedSubgoal : MontanaroChiSqScheduleOverlapCorrectedSubgoal := by
+  intro Ω _ H β₁ β₂ B hβ hZ₁ hZ₂ hB hs
+  constructor
+  · rw [chiSqGibbsSumCorrected,montanaro_raw_gibbs_sum_identity Ω H β₁ β₂]
+    ring
+  · exact montanaro_schedule_overlap_bound Ω H β₁ β₂ B hβ hZ₁ hZ₂ hB hs
+end Qatlib.Concepts.EstimatorLaws.TvStability

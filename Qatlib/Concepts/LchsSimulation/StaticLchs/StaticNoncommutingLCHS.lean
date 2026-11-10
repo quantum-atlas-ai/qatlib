@@ -1,0 +1,997 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Lean.Elab.Tactic.NormCast
+import Lean.Elab.Tactic.Omega
+import Mathlib.Analysis.CStarAlgebra.Matrix
+import Mathlib.Analysis.CStarAlgebra.Module.Constructions
+import Mathlib.Analysis.Real.Pi.Bounds
+import Mathlib.Data.Real.Hom
+import Mathlib.LinearAlgebra.FreeModule.PID
+import Mathlib.LinearAlgebra.Matrix.PosDef
+import Mathlib.Order.CompletePartialOrder
+import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
+import Mathlib.RingTheory.Flat.TorsionFree
+import Mathlib.RingTheory.SimpleRing.Principal
+import Mathlib.Tactic.Convert
+import Mathlib.Tactic.Ext
+import Mathlib.Tactic.FieldSimp
+import Mathlib.Tactic.FunProp
+import Mathlib.Tactic.GCongr
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.Positivity
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.SimpRw
+import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
+import Mathlib.MeasureTheory.Integral.Bochner.Basic
+import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
+import Mathlib.Analysis.InnerProductSpace.Calculus
+import Mathlib.Analysis.Calculus.MeanValue
+import Mathlib.Analysis.SpecialFunctions.Exponential
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+import Mathlib.MeasureTheory.Integral.Bochner.Set
+import Mathlib.Analysis.Complex.CauchyIntegral
+import Mathlib.Analysis.Calculus.DSlope
+import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+open Qatlib.Foundations.PureStateMath.Reflection
+set_option warningAsError false
+open Qatlib.Concepts.PhaseGeometry.Phase
+open Qatlib.Concepts.BlockEncoding
+open Qatlib.Concepts.BlockEncoding.Encoding
+
+set_option autoImplicit false
+set_option maxHeartbeats 200000
+set_option maxRecDepth 1000
+open Qatlib.Concepts.Execution.WorkspaceCP
+open Qatlib.Foundations.QueryWordCore.Circuit
+open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.OperatorErrors.OperatorError
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
+open Qatlib.Concepts.BlockEncoding.EncodingCore
+
+open Qatlib.Concepts.QspSimulation.Achievability
+
+namespace Qatlib.Concepts.LchsSimulation.StaticLchs
+open Matrix Qatlib.Concepts.BlockEncoding
+open Qatlib.Concepts.BlockEncoding.Encoding Qatlib.Concepts.PhaseGeometry.Phase
+open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
+
+noncomputable def staticNonunitaryEvolution {I : Type} [Fintype I] [DecidableEq I]
+    (L H : Matrix I I ℂ) (t : ℝ) : Matrix I I ℂ :=
+  NormedSpace.exp ((-t:ℝ) • (L + Complex.I • H))
+
+noncomputable def staticLchsGrid (K N : ℕ) (j : Fin N) : ℝ := -(K:ℝ)+2*K*j.val/N
+
+noncomputable def staticLchsCoeff (K N : ℕ) (j : Fin N) : ℂ :=
+  ((2*(K:ℝ)/N)/(Real.pi*(1+(staticLchsGrid K N j)^2)) : ℝ)
+
+noncomputable def staticLchsQuadrature {I : Type} [Fintype I] [DecidableEq I]
+    (L H : Matrix I I ℂ) (t : ℝ) (K N : ℕ) : Matrix I I ℂ :=
+  ∑ j : Fin N, staticLchsCoeff K N j • hamiltonianEvolution (H+staticLchsGrid K N j • L) t
+
+noncomputable def staticLchsCutoff (ε : ℝ) : ℕ := max 1 (Nat.ceil (16/ε))
+
+noncomputable def staticLchsNodes {I : Type} [Fintype I] [DecidableEq I]
+    (L : Matrix I I ℂ) (t ε : ℝ) : ℕ :=
+  max 1 (Nat.ceil (16*(staticLchsCutoff ε : ℝ)*(2+t*‖L‖)/ε))
+
+inductive StaticLchsInstruction where
+  | selectF | selectB | inputF | inputB | coefF | coefB | reflect | mark
+  deriving DecidableEq
+
+def staticLchsWord (k : ℕ) : List StaticLchsInstruction :=
+  [.inputF,.coefF,.selectF,.coefB] ++
+    (List.replicate k [.mark,.coefF,.selectB,.coefB,.inputB,.reflect,.inputF,.coefF,.selectF,.coefB]).flatten
+
+noncomputable def staticLchsCompile {I : Type} [Fintype I] [DecidableEq I] {N : ℕ}
+    (c : Fin N → ℂ) (V : Fin N → Matrix I I ℂ) (B : Matrix I I ℂ)
+    (j₀ : Fin N) (i₀ : I) (k : ℕ) : Circuit (Fin N × I) :=
+  (staticLchsWord k).map (fun g => match g with
+    | .selectF => .gate (select (phaseAbsorbed c V))
+    | .selectB => .gate ((select (phaseAbsorbed c V))ᴴ)
+    | .inputF => .gate (TensorGate (1 : Matrix (Fin N) (Fin N) ℂ) B)
+    | .inputB => .gate (TensorGate (1 : Matrix (Fin N) (Fin N) ℂ) Bᴴ)
+    | .coefF => .gate (prepareRegister (coefficientPrepare c j₀))
+    | .coefB => .gate ((prepareRegister (coefficientPrepare c j₀))ᴴ)
+    | .reflect => .gate (ReflectionAbout (outerProduct (Qatlib.Foundations.PureStateMath.Ket (j₀,i₀))))
+    | .mark => .query)
+
+section CauchyHalfPlane
+open Complex MeasureTheory Set Filter
+open scoped Topology
+
+variable {E : Type} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
+
+omit [CompleteSpace E] in
+
+private theorem staticLchs_dslope_regular (F : ℂ → E) (z : ℂ) (hz : z ≠ 1) :
+    (z+1)⁻¹ • dslope F 1 z = (z^2-1)⁻¹ • (F z-F 1) := by
+  rw [dslope_of_ne F hz, slope, smul_smul]
+  congr 1
+  rw [← _root_.mul_inv_rev]
+  congr 1
+  ring
+
+omit [CompleteSpace E] in
+
+private theorem staticLchs_regular_norm (F : ℂ → E)
+    (hF : ∀ z : ℂ, 0 ≤ z.re → ‖F z‖ ≤ 1) (R : ℝ) (hR : 2 ≤ R)
+    (z : ℂ) (hz : 0 ≤ z.re) (hzn : R ≤ ‖z‖) :
+    ‖(z+1)⁻¹ • dslope F 1 z‖ ≤ 2/(R^2-1) := by
+  have hz1 : z ≠ 1 := by
+    intro he; rw [he, norm_one] at hzn; linarith
+  rw [staticLchs_dslope_regular F z hz1, norm_smul, norm_inv, ← div_eq_inv_mul]
+  have hdiff : ‖F z-F 1‖ ≤ 2 := (norm_sub_le _ _).trans (by
+    linarith [hF z hz, hF 1 (by norm_num)])
+  have hden : R^2-1 ≤ ‖z^2-1‖ := by
+    have hb := norm_sub_norm_le (z^2) (1 : ℂ)
+    rw [norm_pow, norm_one] at hb
+    nlinarith [norm_nonneg z]
+  exact div_le_div₀ (by norm_num) hdiff (by nlinarith : 0 < R^2-1) hden
+
+omit [CompleteSpace E] in
+
+private theorem staticLchs_regular_boundary_zero (F : ℂ → E) (hF : Differentiable ℂ F)
+    (R : ℝ) (hR : 2 ≤ R) :
+    let g := fun z : ℂ => (z+1)⁻¹ • dslope F 1 z
+    (∫ x in 0..R, g (x-R*Complex.I)) - (∫ x in 0..R, g (x+R*Complex.I)) +
+      Complex.I • (∫ y in (-R)..R, g (R+y*Complex.I)) -
+      Complex.I • (∫ y in (-R)..R, g (y*Complex.I)) = 0 := by
+  (try dsimp only)
+  let g := fun z : ℂ => (z+1)⁻¹ • dslope F 1 z
+  have hc (z : ℂ) (hz : 0 ≤ z.re) : ContinuousAt g z := by
+    have hn : z+1 ≠ 0 := by
+      intro he; have hr := congrArg Complex.re he; simp at hr; linarith
+    apply ((continuousAt_id.add continuousAt_const).inv₀ hn).smul
+    by_cases hz1 : z = 1
+    · subst z; exact continuousAt_dslope_same.mpr (hF 1)
+    · exact (continuousAt_dslope_of_ne hz1).mpr (hF z).continuousAt
+  have hd (z : ℂ) (hz : 0 ≤ z.re) (hz1 : z ≠ 1) : DifferentiableAt ℂ g z := by
+    have hn : z+1 ≠ 0 := by
+      intro he; have hr := congrArg Complex.re he; simp at hr; linarith
+    have hi : DifferentiableAt ℂ (fun w : ℂ => w+1) z := differentiableAt_id.add_const 1
+    exact (hi.inv hn).smul
+      ((differentiableAt_dslope_of_ne hz1).mpr (hF z))
+  have hzero := Complex.integral_boundary_rect_eq_zero_of_differentiable_on_off_countable g
+    ⟨0,-R⟩ ⟨R,R⟩ {1} (countable_singleton 1) (by
+      intro z hz
+      apply (hc z ?_).continuousWithinAt
+      have hr := hz.1
+      simpa only [Complex.mem_reProdIm, mem_uIcc, min_eq_left (by linarith : (0 : ℝ) ≤ R),
+        max_eq_right (by linarith : (0 : ℝ) ≤ R)] using hr.1)
+    (by
+      intro z hz
+      apply hd z ?_ (by simpa using! hz.2)
+      have hr := hz.1.1
+      simpa only [mem_Ioo, min_eq_left (by linarith : (0 : ℝ) ≤ R)] using hr.1.le)
+  simpa only [Complex.ofReal_zero, zero_add,
+    Complex.ofReal_neg, neg_mul, sub_eq_add_neg] using! hzero
+
+omit [CompleteSpace E] in
+
+private theorem staticLchs_regular_left_bound (F : ℂ → E) (hF : Differentiable ℂ F)
+    (hFn : ∀ z : ℂ, 0 ≤ z.re → ‖F z‖ ≤ 1) (R : ℝ) (hR : 2 ≤ R) :
+    ‖∫ y in (-R)..R, (y*Complex.I+1)⁻¹ • dslope F 1 (y*Complex.I)‖ ≤ 16/R := by
+  let g := fun z : ℂ => (z+1)⁻¹ • dslope F 1 z
+  let C := 2/(R^2-1)
+  have hR0 : 0 ≤ R := by linarith
+  have hb : ‖∫ x in 0..R, g (x-R*Complex.I)‖ ≤ C*R := by
+    have hi := intervalIntegral.norm_integral_le_of_norm_le_const
+      (f := fun x : ℝ => g (x-R*Complex.I)) (C := C) (a := 0) (b := R) (by
+        intro x hx
+        rw [uIoc_of_le hR0] at hx
+        apply staticLchs_regular_norm F hFn R hR _
+        · simpa using! hx.1.le
+        · calc
+            R = |((x : ℂ)-R*Complex.I).im| := by simp [abs_of_nonneg hR0]
+            _ ≤ _ := Complex.abs_im_le_norm _)
+    simpa [abs_of_nonneg hR0] using! hi
+  have ht : ‖∫ x in 0..R, g (x+R*Complex.I)‖ ≤ C*R := by
+    have hi := intervalIntegral.norm_integral_le_of_norm_le_const
+      (f := fun x : ℝ => g (x+R*Complex.I)) (C := C) (a := 0) (b := R) (by
+        intro x hx
+        rw [uIoc_of_le hR0] at hx
+        apply staticLchs_regular_norm F hFn R hR _
+        · simpa using! hx.1.le
+        · calc
+            R = |((x : ℂ)+R*Complex.I).im| := by simp [abs_of_nonneg hR0]
+            _ ≤ _ := Complex.abs_im_le_norm _)
+    simpa [abs_of_nonneg hR0] using! hi
+  have hr : ‖∫ y in (-R)..R, g (R+y*Complex.I)‖ ≤ C*(2*R) := by
+    have hi := intervalIntegral.norm_integral_le_of_norm_le_const
+      (f := fun y : ℝ => g (R+y*Complex.I)) (C := C) (a := -R) (b := R) (by
+        intro y _
+        apply staticLchs_regular_norm F hFn R hR _
+        · simpa using! hR0
+        · simpa using! Complex.re_le_norm ((R : ℂ)+y*Complex.I))
+    simpa [abs_of_nonneg hR0, show R-(-R) = 2*R by ring] using hi
+  have hz := staticLchs_regular_boundary_zero F hF R hR
+  dsimp only at hz
+  have heq := (sub_eq_zero.mp hz).symm
+  have hn : ‖∫ y in (-R)..R, g (y*Complex.I)‖ ≤ C*R+C*R+C*(2*R) := by
+    calc
+      _ = ‖Complex.I • (∫ y in (-R)..R, g (y*Complex.I))‖ := by simp [norm_smul]
+      _ = _ := congrArg (fun v : E => ‖v‖) heq
+      _ ≤ ‖∫ x in 0..R, g (x-R*Complex.I)‖ + ‖∫ x in 0..R, g (x+R*Complex.I)‖ +
+          ‖∫ y in (-R)..R, g (R+y*Complex.I)‖ := by
+        refine (norm_add_le _ _).trans ?_
+        simp only [norm_smul, Complex.norm_I, one_mul]
+        linarith [norm_sub_le (∫ x in 0..R, g (x-R*Complex.I)) (∫ x in 0..R, g (x+R*Complex.I))]
+      _ ≤ _ := by linarith
+  change ‖∫ y in (-R)..R, g (y*Complex.I)‖ ≤ 16/R
+  apply hn.trans
+  have hRp : 0 < R := by linarith
+  have hDp : 0 < R^2-1 := by nlinarith
+  dsimp only [C]
+  rw [show 2/(R^2-1)*R + 2/(R^2-1)*R + 2/(R^2-1)*(2*R) = 8*R/(R^2-1) by ring]
+  rw [div_le_div_iff₀ hDp hRp]
+  nlinarith
+
+theorem static_lchs_bounded_entire_cauchy_formula (F : ℂ → E) (hF : Differentiable ℂ F)
+    (hFn : ∀ z : ℂ, 0 ≤ z.re → ‖F z‖ ≤ 1) :
+    (∫ k : ℝ, ((1/(Real.pi*(1+k^2)) : ℝ) : ℂ) • F (k*Complex.I)) = F 1 := by
+  let g := fun z : ℂ => (z+1)⁻¹ • dslope F 1 z
+  let w := fun k : ℝ => (1/(1+k^2) : ℝ)
+  have hw : Integrable w := by simpa [w, one_div] using! integrable_inv_one_add_sq
+  have hc : Continuous (fun k : ℝ => F (k*Complex.I)) :=
+    hF.continuous.comp (Complex.continuous_ofReal.mul continuous_const)
+  have hdn : ∀ k : ℝ, ‖F (k*Complex.I)-F 1‖ ≤ 2 := by
+    intro k
+    apply (norm_sub_le _ _).trans
+    linarith [hFn (k*Complex.I) (by simp), hFn 1 (by norm_num)]
+  have hdiff : Integrable (fun k : ℝ => (w k : ℂ) • (F (k*Complex.I)-F 1)) :=
+    hw.ofReal.smul_bdd 2 (hc.sub continuous_const).aestronglyMeasurable
+      (Filter.Eventually.of_forall hdn)
+  have hg (k : ℝ) : g (k*Complex.I) = -((w k : ℂ) • (F (k*Complex.I)-F 1)) := by
+    rw [show g (k*Complex.I) = ((k*Complex.I)^2-1)⁻¹ • (F (k*Complex.I)-F 1) from
+      staticLchs_dslope_regular F _ (by intro he; have hh := congrArg Complex.re he; simp at hh)]
+    rw [← neg_smul]
+    congr 1
+    dsimp only [w]
+    simp only [mul_pow, Complex.I_sq, Complex.ofReal_div, Complex.ofReal_one,
+      Complex.ofReal_add, Complex.ofReal_pow]
+    rw [show (k : ℂ)^2*(-1)-1 = -(1+(k : ℂ)^2) by ring, inv_neg]
+    rw [one_div]
+  have hgi : Integrable (fun k : ℝ => g (k*Complex.I)) := by
+    simpa only [hg] using! hdiff.neg
+  have hlimit := intervalIntegral_tendsto_integral hgi
+    (tendsto_neg_atTop_atBot.comp tendsto_id) tendsto_id
+  have hzero : Tendsto (fun R : ℝ => ∫ k in (-R)..R, g (k*Complex.I)) atTop (𝓝 0) := by
+    apply squeeze_zero_norm' (a := fun R : ℝ => 16/R)
+    · filter_upwards [eventually_ge_atTop (2 : ℝ)] with R hR
+      exact staticLchs_regular_left_bound F hF hFn R hR
+    · exact tendsto_const_nhds.div_atTop tendsto_id
+  have hizero : (∫ k : ℝ, (w k : ℂ) • (F (k*Complex.I)-F 1)) = 0 := by
+    have hi := tendsto_nhds_unique hlimit hzero
+    simpa only [hg, integral_neg, neg_eq_zero] using! hi
+  have hmain : Integrable (fun k : ℝ => (w k : ℂ) • F (k*Complex.I)) :=
+    hw.ofReal.smul_bdd 1 hc.aestronglyMeasurable
+      (Filter.Eventually.of_forall (fun k => hFn _ (by simp)))
+  have hconst : Integrable (fun k : ℝ => (w k : ℂ) • F 1) := hw.ofReal.smul_const (F 1)
+  have hi : (∫ k : ℝ, (w k : ℂ) • F (k*Complex.I)) = (Real.pi : ℂ) • F 1 := by
+    simp_rw [smul_sub] at hizero
+    rw [integral_sub hmain hconst, integral_smul_const, integral_complex_ofReal] at hizero
+    rw [show (∫ k : ℝ, w k) = Real.pi from (by simp [w, one_div, integral_univ_inv_one_add_sq])] at hizero
+    exact sub_eq_zero.mp hizero
+  have hn (k : ℝ) : ((1/(Real.pi*(1+k^2)) : ℝ) : ℂ) =
+      (Real.pi : ℂ)⁻¹*(w k : ℂ) := by
+    rw [← Complex.ofReal_inv, ← Complex.ofReal_mul]
+    congr 1
+    dsimp [w]
+    simp [div_eq_mul_inv, _root_.mul_inv_rev, mul_comm]
+  simp_rw [hn, mul_smul]
+  rw [integral_smul, hi, smul_smul]
+  simp [Real.pi_ne_zero]
+
+end CauchyHalfPlane
+
+theorem static_lchs_cauchy_entry_integrable {I : Type} [Fintype I] [DecidableEq I] (L H : Matrix I I ℂ) (t : ℝ)
+    (hL : L.PosSemidef) (hH : H.IsHermitian) (i j : I) :
+    MeasureTheory.Integrable (fun k : ℝ =>
+      ((1/(Real.pi*(1+k^2)) : ℝ) : ℂ) * hamiltonianEvolution (H+k • L) t i j) := by
+  have hw : MeasureTheory.Integrable (fun k : ℝ => (1/(Real.pi*(1+k^2)) : ℝ)) := by
+    simpa [div_eq_mul_inv, _root_.mul_inv_rev, mul_comm] using!
+      integrable_inv_one_add_sq.const_mul Real.pi⁻¹
+  have hV : Continuous (fun k : ℝ => hamiltonianEvolution (H+k • L) t) := by
+    letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
+    have hc : Continuous (fun k : ℝ => (-Complex.I * (t : ℂ)) • (H + k • L)) := by fun_prop
+    exact NormedSpace.exp_continuous.comp hc
+  apply hw.ofReal.mul_bdd (c := 1)
+      ((continuous_apply j).comp ((continuous_apply i).comp hV)).aestronglyMeasurable
+  exact Filter.Eventually.of_forall (fun k =>
+    entry_norm_bound_of_unitary (hamiltonianEvolution_unitary
+      (hH.add (hL.isHermitian.smul (R := ℝ) (IsSelfAdjoint.all k))) t) i j)
+
+theorem static_lchs_cauchy_density_integral :
+    (∫ k : ℝ, (1 / (Real.pi * (1+k^2)))) = 1 := by
+  simp only [div_eq_mul_inv, _root_.mul_inv_rev, one_mul]
+  rw [MeasureTheory.integral_mul_const, integral_univ_inv_one_add_sq,
+    mul_inv_cancel₀ Real.pi_ne_zero]
+
+theorem static_lchs_cauchy_representation_zero {I : Type} [Fintype I] [DecidableEq I]
+    (L H : Matrix I I ℂ) :
+    (∫ k : ℝ, (1/(Real.pi*(1+k^2))) • hamiltonianEvolution (H+k • L) 0) =
+      staticNonunitaryEvolution L H 0 := by
+  simp only [hamiltonianEvolution, staticNonunitaryEvolution, Complex.ofReal_zero,
+    mul_zero, zero_smul, NormedSpace.exp_zero, neg_zero]
+  rw [_root_.integral_smul_const, static_lchs_cauchy_density_integral, one_smul]
+
+private theorem staticLchs_generator_dissipative {I : Type} [Fintype I] [DecidableEq I]
+    (L H : Matrix I I ℂ) (hL : L.PosSemidef) (hH : H.IsHermitian)
+    (z : ℂ) (hz : 0 ≤ z.re) (v : QState I) :
+    (Qatlib.Foundations.PureStateMath.Inner v ((-(z • L + Complex.I • H)) *ᵥ v)).re ≤ 0 := by
+  have hreal : (Qatlib.Foundations.PureStateMath.Inner v (H *ᵥ v)).im = 0 := by
+    have hs : star (Qatlib.Foundations.PureStateMath.Inner v (H *ᵥ v)) = Qatlib.Foundations.PureStateMath.Inner v (H *ᵥ v) := by
+      unfold Qatlib.Foundations.PureStateMath.Inner
+      rw [← star_dotProduct (H *ᵥ v) v, star_mulVec, hH.eq, ← dotProduct_mulVec]
+    have hi := congrArg Complex.im hs
+    change -(Qatlib.Foundations.PureStateMath.Inner v (H *ᵥ v)).im =
+        (Qatlib.Foundations.PureStateMath.Inner v (H *ᵥ v)).im at hi
+    linarith
+  have hp : 0 ≤ (Qatlib.Foundations.PureStateMath.Inner v (L *ᵥ v)).re :=
+    (Complex.nonneg_iff.mp (hL.dotProduct_mulVec_nonneg v)).1
+  have hLi : (Qatlib.Foundations.PureStateMath.Inner v (L *ᵥ v)).im = 0 :=
+    (Complex.nonneg_iff.mp (hL.dotProduct_mulVec_nonneg v)).2.symm
+  simp only [Matrix.neg_mulVec, Matrix.add_mulVec, Matrix.smul_mulVec,
+    Qatlib.Foundations.PureStateMath.Inner, dotProduct_neg, dotProduct_add, dotProduct_smul, smul_eq_mul,
+    Complex.neg_re, Complex.add_re, Complex.mul_re,
+    Complex.I_re, Complex.I_im, zero_mul, one_mul] at *
+  rw [hreal, hLi]
+  nlinarith [mul_nonneg hz hp]
+
+theorem static_lchs_halfplane_exponential_contraction {I : Type} [Fintype I] [DecidableEq I]
+    (L H : Matrix I I ℂ) (hL : L.PosSemidef) (hH : H.IsHermitian)
+    (z : ℂ) (hz : 0 ≤ z.re) (t : ℝ) (ht : 0 ≤ t) :
+    ‖NormedSpace.exp ((-t : ℝ) • (z • L + Complex.I • H))‖ ≤ 1 := by
+  letI : InnerProductSpace ℝ (EuclideanSpace ℂ I) := InnerProductSpace.rclikeToReal ℂ _
+  let G := -(z • L + Complex.I • H)
+  have hv (v : QState I) :
+      ‖toEuclidean_fromVec ((NormedSpace.exp (t • G)) *ᵥ v)‖ ≤
+        ‖toEuclidean_fromVec v‖ := by
+    let T : Matrix I I ℂ →ₗ[ℝ] EuclideanSpace ℂ I :=
+      { toFun := fun M => toEuclidean_fromVec (M *ᵥ v)
+        map_add' := by intro M N; simp [Matrix.add_mulVec, toEuclidean_fromVec, WithLp.toLp_add]
+        map_smul' := by intro r M; simp [Matrix.smul_mulVec, toEuclidean_fromVec, WithLp.toLp_smul] }
+    let f := fun u : ℝ => toEuclidean_fromVec ((NormedSpace.exp (u • G)) *ᵥ v)
+    have hf (u : ℝ) : HasDerivAt f
+        (toEuclidean_fromVec (G *ᵥ ((NormedSpace.exp (u • G)) *ᵥ v))) u := by
+      have hd := T.toContinuousLinearMap.hasFDerivAt.comp_hasDerivAt u
+        (hasDerivAt_exp_smul_const' G u)
+      simpa only [T, LinearMap.coe_toContinuousLinearMap', Matrix.mulVec_mulVec] using! hd
+    have hd (u : ℝ) := (hf u).norm_sq
+    have hdec : Antitone (fun u : ℝ => ‖f u‖ ^ 2) := by
+      apply antitone_of_hasDerivAt_nonpos hd
+      intro u
+      dsimp only [Pi.zero_apply, f]
+      rw [real_inner_eq_re_inner ℂ, inner_euclidean_fromVec]
+      have hh := staticLchs_generator_dissipative L H hL hH z hz
+        ((NormedSpace.exp (u • G)) *ᵥ v)
+      exact mul_nonpos_of_nonneg_of_nonpos (by norm_num) hh
+    have hh := hdec ht
+    simp only [f, zero_smul, NormedSpace.exp_zero, Matrix.one_mulVec] at hh
+    nlinarith [norm_nonneg (f t), norm_nonneg (toEuclidean_fromVec v)]
+  rw [neg_smul, ← smul_neg, ← Matrix.l2_opNorm_toEuclideanCLM]
+  apply ContinuousLinearMap.opNorm_le_bound _ zero_le_one
+  intro v
+  simpa only [one_mul, Matrix.toEuclideanCLM_toLp] using! hv (WithLp.ofLp v)
+
+theorem static_nonunitary_evolution_norm_le_one {I : Type} [Fintype I] [DecidableEq I]
+    (L H : Matrix I I ℂ) (t : ℝ) (hL : L.PosSemidef) (hH : H.IsHermitian)
+    (ht : 0 ≤ t) : ‖staticNonunitaryEvolution L H t‖ ≤ 1 := by
+  simpa only [staticNonunitaryEvolution, one_smul, Complex.one_re] using!
+    static_lchs_halfplane_exponential_contraction L H hL hH 1 (by norm_num) t ht
+
+theorem static_noncommuting_lchs_cauchy_representation
+    (I : Type) [Fintype I] [DecidableEq I] (L H : Matrix I I ℂ) (t : ℝ)
+    (hL : L.PosSemidef) (hH : H.IsHermitian) (ht : 0 ≤ t) :
+    (∀ i j : I, MeasureTheory.Integrable (fun k : ℝ =>
+      ((1/(Real.pi*(1+k^2)) : ℝ) : ℂ) * hamiltonianEvolution (H+k • L) t i j)) ∧
+    (∫ k : ℝ, (1/(Real.pi*(1+k^2))) • hamiltonianEvolution (H+k • L) t) =
+      staticNonunitaryEvolution L H t ∧ ‖staticNonunitaryEvolution L H t‖ ≤ 1 := by
+  let F : ℂ → Matrix I I ℂ := fun z => NormedSpace.exp ((-(t : ℂ)) • (z • L + Complex.I • H))
+  have hd : Differentiable ℂ F := by
+    intro z
+    apply (NormedSpace.exp_analytic (𝕂 := ℂ) _).differentiableAt.comp z
+    have ha : DifferentiableAt ℂ (fun z : ℂ => z • L + Complex.I • H) z := by fun_prop
+    exact ha.const_smul (-(t : ℂ))
+  have hn (z : ℂ) (hz : 0 ≤ z.re) : ‖F z‖ ≤ 1 := by
+    have he : F z = NormedSpace.exp ((-t : ℝ) • (z • L + Complex.I • H)) := by
+      dsimp only [F]
+      rw [← Complex.ofReal_neg, Complex.coe_smul]
+    rw [he]
+    exact static_lchs_halfplane_exponential_contraction L H hL hH z hz t ht
+  have hboundary (k : ℝ) : F (k*Complex.I) = hamiltonianEvolution (H+k • L) t := by
+    dsimp only [F, hamiltonianEvolution]
+    congr 1
+    ext i j
+    simp [Matrix.smul_apply, Matrix.add_apply, Complex.real_smul]
+    ring
+  have htarget : F 1 = staticNonunitaryEvolution L H t := by
+    simp only [F, one_smul, staticNonunitaryEvolution, ← Complex.ofReal_neg, Complex.coe_smul]
+  refine ⟨fun i j => static_lchs_cauchy_entry_integrable L H t hL hH i j, ?_,
+    static_nonunitary_evolution_norm_le_one L H t hL hH ht⟩
+  have he := static_lchs_bounded_entire_cauchy_formula F hd hn
+  simpa only [hboundary, htarget, Complex.coe_smul] using! he
+
+theorem static_lchs_hamiltonian_evolution_stability {I : Type} [Fintype I] [DecidableEq I]
+    (H K : Matrix I I ℂ) (hH : H.IsHermitian) (hK : K.IsHermitian) (t : ℝ) :
+    ‖hamiltonianEvolution H t - hamiltonianEvolution K t‖ ≤ |t| * ‖H-K‖ := by
+  let X : Matrix I I ℂ := (-Complex.I * (t : ℂ)) • H
+  let Y : Matrix I I ℂ := (-Complex.I * (t : ℂ)) • K
+  let f : ℝ → Matrix I I ℂ := fun u => NormedSpace.exp (u • X) * NormedSpace.exp ((1-u) • Y)
+  have hexp (M : Matrix I I ℂ) (u : ℝ) :
+      NormedSpace.exp (u • ((-Complex.I * (t : ℂ)) • M)) =
+        hamiltonianEvolution M (u*t) := by
+    congr 1
+    ext i j
+    simp [Matrix.smul_apply, Complex.real_smul]
+    ring
+  have hf (u : ℝ) : HasDerivAt f
+      (NormedSpace.exp (u • X) * (X-Y) * NormedSpace.exp ((1-u) • Y)) u := by
+    have hd : HasDerivAt (fun u : ℝ => 1-u) (-1) u := by
+      simpa using! (hasDerivAt_const u (1 : ℝ)).sub (hasDerivAt_id u)
+    have hYY : HasDerivAt (fun s : ℝ => (NormedSpace.exp (s • Y) : Matrix I I ℂ))
+        (Y * NormedSpace.exp ((1-u) • Y)) (1-u) :=
+      hasDerivAt_exp_smul_const' (𝕂 := ℝ) Y (1-u)
+    have hY := hYY.scomp u hd
+    convert! (hasDerivAt_exp_smul_const (𝕂 := ℝ) X u).mul hY using 1
+    (try simp only [sub_mul, mul_sub, Matrix.mul_assoc])
+    (try simp only [neg_smul, one_smul, mul_neg, sub_eq_add_neg, Function.comp_apply])
+
+  have hnorm (u : ℝ) :
+      ‖NormedSpace.exp (u • X) * (X-Y) * NormedSpace.exp ((1-u) • Y)‖ ≤ ‖X-Y‖ := by
+    have hnx : ‖NormedSpace.exp (u • X)‖ ≤ 1 := by
+      rw [hexp]; exact l2_norm_unitary_le_one (hamiltonianEvolution_unitary hH _)
+    have hny : ‖NormedSpace.exp ((1-u) • Y)‖ ≤ 1 := by
+      rw [hexp]; exact l2_norm_unitary_le_one (hamiltonianEvolution_unitary hK _)
+    calc
+      _ ≤ (‖NormedSpace.exp (u • X)‖ * ‖X-Y‖)*‖NormedSpace.exp ((1-u) • Y)‖ :=
+        (norm_mul_le _ _).trans (mul_le_mul_of_nonneg_right (norm_mul_le _ _) (norm_nonneg _))
+      _ ≤ (1*‖X-Y‖)*1 := by gcongr
+      _ = ‖X-Y‖ := by ring
+  have hb := norm_image_sub_le_of_norm_deriv_le_segment'
+    (fun u (_ : u ∈ Set.Icc (0 : ℝ) 1) => (hf u).hasDerivWithinAt)
+    (fun u (_ : u ∈ Set.Ico (0 : ℝ) 1) => hnorm u) 1 (by simp)
+  have hXY : ‖X-Y‖ = |t| * ‖H-K‖ := by
+    dsimp only [X, Y]
+    rw [← smul_sub, norm_smul]
+    simp [Complex.norm_real, Real.norm_eq_abs]
+  have hX : NormedSpace.exp X = hamiltonianEvolution H t := rfl
+  have hY : NormedSpace.exp Y = hamiltonianEvolution K t := rfl
+  simpa only [f, zero_smul, NormedSpace.exp_zero, sub_zero, sub_self,
+    one_smul, Matrix.one_mul, Matrix.mul_one, hX, hY, one_mul, mul_one, hXY] using! hb
+
+section CauchyQuadrature
+open MeasureTheory
+
+private noncomputable def lchsDensity (k : ℝ) : ℝ := 1/(Real.pi*(1+k^2))
+private noncomputable def lchsVariation (k : ℝ) : ℝ :=
+  if k ≤ 0 then lchsDensity k else 2/Real.pi-lchsDensity k
+
+private theorem lchsDensity_nonneg (k : ℝ) : 0 ≤ lchsDensity k := by dsimp [lchsDensity]; positivity
+
+private theorem lchsDensity_le_peak (k : ℝ) : lchsDensity k ≤ 1/Real.pi := by
+  dsimp only [lchsDensity]
+  apply div_le_div_of_nonneg_left (by norm_num) Real.pi_pos
+  nlinarith [mul_nonneg Real.pi_pos.le (sq_nonneg k)]
+
+private theorem lchsDensity_variation (a b : ℝ) (hab : a ≤ b) :
+    |lchsDensity b-lchsDensity a| ≤ lchsVariation b-lchsVariation a := by
+  by_cases ha : a ≤ 0
+  · by_cases hb : b ≤ 0
+    · have hd : lchsDensity a ≤ lchsDensity b := by
+        dsimp only [lchsDensity]
+        apply div_le_div_of_nonneg_left (by norm_num) (by positivity)
+        nlinarith [mul_le_mul_of_nonneg_left (show b^2 ≤ a^2 by nlinarith) Real.pi_pos.le]
+      simp only [lchsVariation, if_pos ha, if_pos hb, abs_of_nonneg (sub_nonneg.mpr hd)]
+      exact le_rfl
+    · simp only [lchsVariation, if_pos ha, if_neg hb]
+      rw [show 2/Real.pi = 2*(1/Real.pi) by ring]
+      apply abs_le.mpr
+      constructor <;> linarith [lchsDensity_le_peak a, lchsDensity_le_peak b]
+  · have hb : ¬b ≤ 0 := by linarith
+    have hd : lchsDensity b ≤ lchsDensity a := by
+      dsimp only [lchsDensity]
+      apply div_le_div_of_nonneg_left (by norm_num) (by positivity)
+      nlinarith [mul_le_mul_of_nonneg_left (show a^2 ≤ b^2 by nlinarith) Real.pi_pos.le]
+    simp only [lchsVariation, if_neg ha, if_neg hb, abs_of_nonpos (sub_nonpos.mpr hd)]
+    linarith
+
+private theorem lchsDensity_cell_variation (a b k : ℝ) (hak : a ≤ k) (hkb : k ≤ b) :
+    |lchsDensity a-lchsDensity k| ≤ lchsVariation b-lchsVariation a := by
+  have h1 := lchsDensity_variation a k hak
+  have h2 := lchsDensity_variation k b hkb
+  rw [abs_sub_comm] at h1
+  linarith [abs_nonneg (lchsDensity b-lchsDensity k)]
+
+private theorem lchs_arctan_le (x : ℝ) (hx : 0 ≤ x) : Real.arctan x ≤ x := by
+  have hb := norm_image_sub_le_of_norm_deriv_le_segment'
+    (a := 0) (b := x) (f := Real.arctan) (f' := fun k : ℝ => (1+k^2)⁻¹) (C := 1)
+    (fun k _ => (Real.hasDerivAt_arctan' k).hasDerivWithinAt)
+    (fun k _ => by
+      rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)]
+      exact inv_le_one_of_one_le₀ (by nlinarith [sq_nonneg k])) x ⟨hx, le_rfl⟩
+  have hh : |Real.arctan x| ≤ x := by simpa using! hb
+  exact (le_abs_self _).trans hh
+
+private theorem lchsDensity_integrable : Integrable lchsDensity := by
+  change Integrable (fun k : ℝ => 1/(Real.pi*(1+k^2)))
+  simpa [lchsDensity, div_eq_mul_inv, _root_.mul_inv_rev, mul_comm] using!
+    integrable_inv_one_add_sq.const_mul Real.pi⁻¹
+
+private theorem lchsDensity_continuous : Continuous lchsDensity := by
+  apply Continuous.div continuous_const
+  · fun_prop
+  · intro k; positivity
+
+private theorem lchsDensity_interval_le_one (a b : ℝ) (hab : a ≤ b) :
+    (∫ k in a..b, lchsDensity k) ≤ 1 := by
+  rw [intervalIntegral.integral_of_le hab]
+  apply (MeasureTheory.setIntegral_le_integral lchsDensity_integrable
+    (Filter.Eventually.of_forall lchsDensity_nonneg)).trans_eq
+  exact static_lchs_cauchy_density_integral
+
+private theorem lchsDensity_tail (K : ℝ) (hK : 0 < K) :
+    (∫ k : ℝ in (Set.Ioc (-K) K)ᶜ, lchsDensity k) ≤ 2/(Real.pi*K) := by
+  have he : (Set.Ioc (-K) K)ᶜ = Set.Iic (-K) ∪ Set.Ioi K := by
+    ext x
+    simp only [Set.mem_compl_iff, Set.mem_Ioc, Set.mem_union, Set.mem_Iic, Set.mem_Ioi,
+      not_and_or, not_lt, not_le]
+  have hd : Disjoint (Set.Iic (-K)) (Set.Ioi K) := by
+    rw [Set.disjoint_left]
+    intro x hx hy; simp only [Set.mem_Iic, Set.mem_Ioi] at *; linarith
+  rw [he, setIntegral_union hd measurableSet_Ioi lchsDensity_integrable.integrableOn
+    lchsDensity_integrable.integrableOn]
+  have hleft : (∫ k : ℝ in Set.Iic (-K), lchsDensity k) =
+      Real.pi⁻¹*(Real.pi/2-Real.arctan K) := by
+    simp only [lchsDensity, div_eq_mul_inv, _root_.mul_inv_rev, one_mul]
+    rw [integral_mul_const, integral_Iic_inv_one_add_sq, Real.arctan_neg]
+    ring
+  have hright : (∫ k : ℝ in Set.Ioi K, lchsDensity k) =
+      Real.pi⁻¹*(Real.pi/2-Real.arctan K) := by
+    simp only [lchsDensity, div_eq_mul_inv, _root_.mul_inv_rev, one_mul]
+    rw [integral_mul_const, integral_Ioi_inv_one_add_sq]
+    ring
+  rw [hleft, hright, ← Real.arctan_inv_of_pos hK]
+  have ha := lchs_arctan_le K⁻¹ (inv_nonneg.mpr hK.le)
+  calc
+    _ ≤ Real.pi⁻¹*K⁻¹+Real.pi⁻¹*K⁻¹ := by gcongr
+    _ = _ := by ring
+
+section Quadrature
+variable {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+
+omit [CompleteSpace E] in
+
+private theorem lchs_weighted_integrable (V : ℝ → E) (hV : Continuous V)
+    (hn : ∀ k, ‖V k‖ ≤ 1) : Integrable (fun k => lchsDensity k • V k) :=
+  lchsDensity_integrable.smul_bdd 1 hV.aestronglyMeasurable (Filter.Eventually.of_forall hn)
+
+omit [CompleteSpace E] in
+
+private theorem lchs_weighted_tail (V : ℝ → E) (hV : Continuous V)
+    (hn : ∀ k, ‖V k‖ ≤ 1) (K : ℝ) (hK : 0 < K) :
+    ‖(∫ k : ℝ, lchsDensity k • V k) - (∫ k in (-K)..K, lchsDensity k • V k)‖ ≤
+      2/(Real.pi*K) := by
+  have hf := lchs_weighted_integrable V hV hn
+  rw [intervalIntegral.integral_of_le (by linarith : -K ≤ K),
+    ← integral_add_compl measurableSet_Ioc hf, add_sub_cancel_left]
+  apply (MeasureTheory.norm_integral_le_of_norm_le lchsDensity_integrable.integrableOn
+    (Filter.Eventually.of_forall (fun k => ?_))).trans (lchsDensity_tail K hK)
+  rw [norm_smul, Real.norm_of_nonneg (lchsDensity_nonneg k)]
+  simpa using! mul_le_mul_of_nonneg_left (hn k) (lchsDensity_nonneg k)
+
+private theorem lchs_weighted_grid_error (V : ℝ → E) (hV : Continuous V)
+    (hn : ∀ k, ‖V k‖ ≤ 1) (T : ℝ) (hT : 0 ≤ T)
+    (hl : ∀ a b, ‖V a-V b‖ ≤ T*|a-b|) (K : ℝ) (hK : 0 < K) (N : ℕ) (hN : 0 < N) :
+    let h := 2*K/(N : ℝ)
+    let x := fun j : ℕ => -K+h*j
+    ‖(∑ j ∈ Finset.range N, (h*lchsDensity (x j)) • V (x j)) -
+      (∫ k in (-K)..K, lchsDensity k • V k)‖ ≤ h*(2/Real.pi+T) := by
+  (try dsimp only)
+  let h : ℝ := 2*K/(N : ℝ)
+  let x := fun j : ℕ => -K+h*j
+  let F := fun k : ℝ => lchsDensity k • V k
+  have hNR : (0 : ℝ) < N := by exact_mod_cast hN
+  have h0 : 0 ≤ h := by dsimp [h]; positivity
+  have hstep (j : ℕ) : x (j+1)-x j = h := by dsimp [x]; push_cast; ring
+  have horder (j : ℕ) : x j ≤ x (j+1) := by linarith [hstep j]
+  have hx0 : x 0 = -K := by simp [x]
+  have hxN : x N = K := by dsimp [x, h]; field_simp; ring
+  have hFc : Continuous F := lchsDensity_continuous.smul hV
+  have hpoint (j : ℕ) (k : ℝ) (hk : k ∈ Set.Ioc (x j) (x (j+1))) :
+      ‖F (x j)-F k‖ ≤ (lchsVariation (x (j+1))-lchsVariation (x j))+h*T*lchsDensity k := by
+    have he : F (x j)-F k = (lchsDensity (x j)-lchsDensity k) • V (x j) +
+        lchsDensity k • (V (x j)-V k) := by dsimp [F]; simp [sub_smul, smul_sub]
+    have hv := lchsDensity_cell_variation (x j) (x (j+1)) k hk.1.le hk.2
+    have hdist : |x j-k| ≤ h := by rw [abs_of_nonpos (by linarith [hk.1])]; linarith [hstep j, hk.2]
+    rw [he]
+    calc
+      _ ≤ ‖(lchsDensity (x j)-lchsDensity k) • V (x j)‖ +
+          ‖lchsDensity k • (V (x j)-V k)‖ := norm_add_le _ _
+      _ = |lchsDensity (x j)-lchsDensity k| * ‖V (x j)‖+
+          lchsDensity k*‖V (x j)-V k‖ := by
+        rw [norm_smul, norm_smul, Real.norm_eq_abs, Real.norm_of_nonneg (lchsDensity_nonneg k)]
+      _ ≤ |lchsDensity (x j)-lchsDensity k| * 1+lchsDensity k*(T*h) := by
+        gcongr
+        · exact hn _
+        · exact lchsDensity_nonneg k
+        · exact (hl _ _).trans (mul_le_mul_of_nonneg_left hdist hT)
+      _ ≤ _ := by nlinarith
+  let D := fun j : ℕ => ∫ k in x j..x (j+1), F (x j)-F k
+  have hcell (j : ℕ) : ‖D j‖ ≤ h*(lchsVariation (x (j+1))-lchsVariation (x j))+
+      (h*T)*(∫ k in x j..x (j+1), lchsDensity k) := by
+    have hi := intervalIntegral.norm_integral_le_of_norm_le (μ := volume) (horder j)
+      (f := fun k => F (x j)-F k)
+      (g := fun k => lchsVariation (x (j+1))-lchsVariation (x j)+(h*T)*lchsDensity k)
+      (Filter.Eventually.of_forall (fun k hk => hpoint j k hk))
+      ((continuous_const.add (continuous_const.mul lchsDensity_continuous)).intervalIntegrable _ _)
+    have hwint : IntervalIntegrable (fun k => (h*T)*lchsDensity k) volume (x j) (x (j+1)) :=
+      (continuous_const.mul lchsDensity_continuous).intervalIntegrable _ _
+    (try dsimp only at hi)
+    rw [intervalIntegral.integral_add intervalIntegrable_const hwint,
+      intervalIntegral.integral_const, intervalIntegral.integral_const_mul, hstep, smul_eq_mul] at hi
+    exact hi
+  have hD : (∑ j ∈ Finset.range N, (h*lchsDensity (x j)) • V (x j))-
+      (∫ k in (-K)..K, F k) = ∑ j ∈ Finset.range N, D j := by
+    have hd (j : ℕ) : D j = (h*lchsDensity (x j)) • V (x j)-
+        (∫ k in x j..x (j+1), F k) := by
+      dsimp [D]
+      rw [intervalIntegral.integral_sub intervalIntegrable_const (hFc.intervalIntegrable _ _),
+        intervalIntegral.integral_const, hstep]
+      dsimp [F]
+      rw [smul_smul]
+    simp_rw [hd]
+    rw [Finset.sum_sub_distrib, intervalIntegral.sum_integral_adjacent_intervals
+      (fun j _ => hFc.intervalIntegrable _ _), hx0, hxN]
+  change ‖(∑ j ∈ Finset.range N, (h*lchsDensity (x j)) • V (x j))-
+      (∫ k in (-K)..K, F k)‖ ≤ h*(2/Real.pi+T)
+  rw [hD]
+  calc
+    _ ≤ ∑ j ∈ Finset.range N, ‖D j‖ := norm_sum_le _ _
+    _ ≤ ∑ j ∈ Finset.range N, (h*(lchsVariation (x (j+1))-lchsVariation (x j))+
+        (h*T)*(∫ k in x j..x (j+1), lchsDensity k)) := Finset.sum_le_sum (fun j _ => hcell j)
+    _ = h*(lchsVariation K-lchsVariation (-K))+(h*T)*(∫ k in (-K)..K, lchsDensity k) := by
+      rw [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum,
+        Finset.sum_range_sub (fun j => lchsVariation (x j)) N, intervalIntegral.sum_integral_adjacent_intervals
+          (fun j _ => lchsDensity_continuous.intervalIntegrable _ _), hx0, hxN]
+    _ ≤ h*(2/Real.pi)+(h*T)*1 := by
+      apply add_le_add
+      · apply mul_le_mul_of_nonneg_left _ h0
+        simp only [lchsVariation, if_neg (by linarith : ¬K ≤ 0), if_pos (by linarith : -K ≤ 0)]
+        linarith [lchsDensity_nonneg K, lchsDensity_nonneg (-K)]
+      · exact mul_le_mul_of_nonneg_left (lchsDensity_interval_le_one _ _ (by linarith))
+          (mul_nonneg h0 hT)
+    _ = _ := by ring
+
+end Quadrature
+
+theorem static_noncommuting_lchs_quadrature_error (I : Type) [Fintype I] [DecidableEq I]
+    (L H : Matrix I I ℂ) (t : ℝ) (K N : ℕ) (hL : L.PosSemidef) (hH : H.IsHermitian)
+    (ht : 0 ≤ t) (hK : 0 < K) (hN : 0 < N) :
+    ‖staticLchsQuadrature L H t K N-staticNonunitaryEvolution L H t‖ ≤
+      2/(Real.pi*K)+(2*(K : ℝ)/N)*(2/Real.pi+t*‖L‖) := by
+  let V : ℝ → Matrix I I ℂ := fun k => hamiltonianEvolution (H+k • L) t
+  let h : ℝ := 2*(K : ℝ)/(N : ℝ)
+  let x := fun j : ℕ => -(K : ℝ)+h*j
+  have hKR : (0 : ℝ) < K := by exact_mod_cast hK
+  have hVc : Continuous V := by
+    letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
+    have hc : Continuous (fun k : ℝ => (-Complex.I * (t : ℂ)) • (H + k • L)) := by fun_prop
+    exact NormedSpace.exp_continuous.comp hc
+  have hVn (k : ℝ) : ‖V k‖ ≤ 1 := l2_norm_unitary_le_one
+    (hamiltonianEvolution_unitary (hH.add (hL.isHermitian.smul (R := ℝ) (IsSelfAdjoint.all k))) t)
+  have hVl (a b : ℝ) : ‖V a-V b‖ ≤ (t*‖L‖)*|a-b| := by
+    have hh := static_lchs_hamiltonian_evolution_stability (H+a • L) (H+b • L)
+      (hH.add (hL.isHermitian.smul (R := ℝ) (IsSelfAdjoint.all a)))
+      (hH.add (hL.isHermitian.smul (R := ℝ) (IsSelfAdjoint.all b))) t
+    have he : (H+a • L)-(H+b • L) = (a-b) • L := by simp [sub_smul]
+    rw [he, norm_smul, Real.norm_eq_abs, abs_of_nonneg ht] at hh
+    convert! hh using 1
+    ring
+  have hq : staticLchsQuadrature L H t K N =
+      ∑ j ∈ Finset.range N, (h*lchsDensity (x j)) • V (x j) := by
+    rw [staticLchsQuadrature, ← Fin.sum_univ_eq_sum_range]
+    apply Finset.sum_congr rfl
+    intro j _
+    have hx : staticLchsGrid K N j = x j.val := by dsimp [staticLchsGrid, x, h]; ring
+    have hc : staticLchsCoeff K N j = ((h*lchsDensity (x j.val) : ℝ) : ℂ) := by
+      rw [staticLchsCoeff, hx]
+      congr 1
+      dsimp [lchsDensity, h]
+      ring
+    rw [hc, Complex.coe_smul, hx]
+  have hg := lchs_weighted_grid_error V hVc hVn (t*‖L‖) (mul_nonneg ht (norm_nonneg L))
+    hVl (K : ℝ) hKR N hN
+  have htail := lchs_weighted_tail V hVc hVn (K : ℝ) hKR
+  have he := (static_noncommuting_lchs_cauchy_representation I L H t hL hH ht).2.1
+  change (∫ k : ℝ, lchsDensity k • V k) = staticNonunitaryEvolution L H t at he
+  rw [hq, ← he]
+  have hh := norm_sub_le_norm_sub_add_norm_sub
+    (∑ j ∈ Finset.range N, (h*lchsDensity (x j)) • V (x j))
+    (∫ k in -(K : ℝ)..(K : ℝ), lchsDensity k • V k) (∫ k : ℝ, lchsDensity k • V k)
+  rw [norm_sub_rev (∫ k in -(K : ℝ)..(K : ℝ), lchsDensity k • V k)] at hh
+  exact hh.trans ((add_le_add hg htail).trans_eq (by ring))
+
+end CauchyQuadrature
+
+theorem static_lchs_computed_quadrature_budget {I : Type} [Fintype I] [DecidableEq I]
+    (L : Matrix I I ℂ) (t ε : ℝ) (_ht : 0 ≤ t) (hε : 0 < ε) :
+    0 < staticLchsCutoff ε ∧ 0 < staticLchsNodes L t ε ∧
+    2/(Real.pi*(staticLchsCutoff ε : ℝ)) +
+      (2*(staticLchsCutoff ε : ℝ)/(staticLchsNodes L t ε : ℝ)) *
+        (2/Real.pi+t*‖L‖) ≤ ε := by
+  let K := staticLchsCutoff ε
+  let N := staticLchsNodes L t ε
+  have hK : 0 < K := lt_of_lt_of_le Nat.zero_lt_one (le_max_left _ _)
+  have hN : 0 < N := lt_of_lt_of_le Nat.zero_lt_one (le_max_left _ _)
+  have hKR : (0 : ℝ) < K := by exact_mod_cast hK
+  have hNR : (0 : ℝ) < N := by exact_mod_cast hN
+  have hceilK : 16/ε ≤ (K : ℝ) := (Nat.le_ceil _).trans (by
+    exact_mod_cast (le_max_right 1 (Nat.ceil (16/ε))))
+  have hNceil : Nat.ceil (16*(K : ℝ)*(2+t*‖L‖)/ε) ≤ N := le_max_right _ _
+  have hceilN : 16*(K : ℝ)*(2+t*‖L‖)/ε ≤ (N : ℝ) := (Nat.le_ceil _).trans (by
+    exact_mod_cast hNceil)
+  have hmulK : 16 ≤ ε*(K : ℝ) := by
+    have hh := (div_le_iff₀ hε).mp hceilK
+    nlinarith
+  have hmulN : 16*(K : ℝ)*(2+t*‖L‖) ≤ ε*(N : ℝ) := by
+    have hh := (div_le_iff₀ hε).mp hceilN
+    nlinarith
+  have hpi : 1 ≤ Real.pi := by linarith [Real.pi_gt_three]
+  have hpiK : 16 ≤ ε*(Real.pi*(K : ℝ)) := by
+    nlinarith [mul_nonneg (sub_nonneg.mpr hpi) (mul_nonneg hε.le hKR.le)]
+  have htail : 2/(Real.pi*(K : ℝ)) ≤ ε/8 := by
+    rw [div_le_iff₀ (mul_pos Real.pi_pos hKR)]
+    nlinarith
+  have hdens : 2/Real.pi ≤ 2 := (div_le_iff₀ Real.pi_pos).mpr (by linarith)
+  have hmesh : (2*(K : ℝ)/(N : ℝ))*(2/Real.pi+t*‖L‖) ≤ ε/8 := by
+    rw [div_mul_eq_mul_div, div_le_iff₀ hNR]
+    have hh := mul_le_mul_of_nonneg_left hdens (show 0 ≤ (K : ℝ) by positivity)
+    nlinarith
+  refine ⟨hK, hN, ?_⟩
+  change 2/(Real.pi*(K : ℝ)) + (2*(K : ℝ)/(N : ℝ))*(2/Real.pi+t*‖L‖) ≤ ε
+  linarith
+
+theorem static_lchs_coefficient_mass_pos (K N : ℕ) (hK : 0 < K) (hN : 0 < N) :
+    0 < coefficientMass (staticLchsCoeff K N) := by
+  have hc (j : Fin N) : 0 < ‖staticLchsCoeff K N j‖ := by
+    have hs : 0 < (2*(K : ℝ)/N)/(Real.pi*(1+(staticLchsGrid K N j)^2)) := by
+      have hKR : (0 : ℝ) < K := by exact_mod_cast hK
+      have hNR : (0 : ℝ) < N := by exact_mod_cast hN
+      positivity
+    simpa only [staticLchsCoeff, Complex.norm_real, Real.norm_of_nonneg hs.le] using! hs
+  exact Finset.sum_pos' (fun j _ => norm_nonneg _) ⟨⟨0, hN⟩, Finset.mem_univ _, hc _⟩
+
+theorem static_lchs_grid_coefficient_mass_le_two (K N : ℕ) (hN : 0 < N)
+    (hh : 2*(K : ℝ)/(N : ℝ) ≤ 1/2) :
+    coefficientMass (staticLchsCoeff K N) ≤ 2 := by
+  let h : ℝ := 2*(K : ℝ)/(N : ℝ)
+  let x := fun j : ℕ => -(K : ℝ)+h*j
+  let w := fun k : ℝ => 1/(Real.pi*(1+k^2))
+  have hNR : (0 : ℝ) < N := by exact_mod_cast hN
+  have h0 : 0 ≤ h := by dsimp [h]; positivity
+  have hw0 (k : ℝ) : 0 ≤ w k := by dsimp [w]; positivity
+  have hwc : Continuous w := by
+    apply Continuous.div continuous_const
+    · fun_prop
+    · intro k; positivity
+  have hwi : MeasureTheory.Integrable w := by
+    simpa [w, div_eq_mul_inv, _root_.mul_inv_rev, mul_comm] using!
+      integrable_inv_one_add_sq.const_mul Real.pi⁻¹
+  have hstep (j : ℕ) : x (j+1)-x j = h := by dsimp [x]; push_cast; ring
+  have horder (j : ℕ) : x j ≤ x (j+1) := by linarith [hstep j]
+  have hbound (j : ℕ) (k : ℝ) (hk : k ∈ Set.Icc (x j) (x (j+1))) :
+      w (x j) ≤ 2*w k := by
+    have hd : 0 ≤ k-x j ∧ k-x j ≤ 1/2 := by
+      constructor
+      · linarith [hk.1]
+      · have := hstep j; change h ≤ 1/2 at hh; linarith [hk.2]
+    have hs : 1+k^2 ≤ 2*(1+(x j)^2) := by
+      nlinarith [sq_nonneg (k-2*x j), sq_nonneg (k-x j),
+        mul_nonneg hd.1 (sub_nonneg.mpr hd.2)]
+    dsimp only [w]
+    rw [← mul_div_assoc, mul_one, div_le_div_iff₀ (by positivity : 0 < Real.pi*(1+(x j)^2))
+      (by positivity : 0 < Real.pi*(1+k^2))]
+    nlinarith [mul_le_mul_of_nonneg_left hs Real.pi_pos.le]
+  have hcell (j : ℕ) : h*w (x j) ≤ ∫ k in x j..x (j+1), 2*w k := by
+    have hc := intervalIntegral.integral_mono_on (μ := MeasureTheory.volume) (horder j)
+      (f := fun _ => w (x j)) (g := fun k => 2*w k)
+      intervalIntegrable_const ((continuous_const.mul hwc).intervalIntegrable _ _)
+      (fun k hk => hbound j k hk)
+    simpa only [intervalIntegral.integral_const, smul_eq_mul, hstep] using! hc
+  have hm : coefficientMass (staticLchsCoeff K N) =
+      ∑ j ∈ Finset.range N, h*w (x j) := by
+    rw [coefficientMass, ← Fin.sum_univ_eq_sum_range]
+    apply Finset.sum_congr rfl
+    intro j _
+    have hj : staticLchsGrid K N j = x j.val := by
+      dsimp [staticLchsGrid, x, h]; ring
+    rw [staticLchsCoeff, hj, Complex.norm_real, Real.norm_of_nonneg (by positivity)]
+    dsimp [w, h]
+    ring
+  rw [hm]
+  calc
+    _ ≤ ∑ j ∈ Finset.range N, ∫ k in x j..x (j+1), 2*w k :=
+      Finset.sum_le_sum (fun j _ => hcell j)
+    _ = ∫ k in x 0..x N, 2*w k :=
+      intervalIntegral.sum_integral_adjacent_intervals
+        (fun j _ => (continuous_const.mul hwc).intervalIntegrable _ _)
+    _ = 2*(∫ k in -(K : ℝ)..(K : ℝ), w k) := by
+      have hx0 : x 0 = -(K : ℝ) := by simp [x]
+      have hxN : x N = (K : ℝ) := by dsimp [x, h]; field_simp; ring
+      rw [hx0, hxN, intervalIntegral.integral_const_mul]
+    _ ≤ 2*(∫ k : ℝ, w k) := by
+      gcongr
+      rw [intervalIntegral.integral_of_le (by linarith [Nat.cast_nonneg (α := ℝ) K] : -(K : ℝ) ≤ (K : ℝ))]
+      exact MeasureTheory.setIntegral_le_integral hwi (Filter.Eventually.of_forall hw0)
+    _ = 2 := by rw [show (∫ k : ℝ, w k) = 1 from static_lchs_cauchy_density_integral]; ring
+
+theorem static_lchs_computed_coefficient_mass {I : Type} [Fintype I] [DecidableEq I]
+    (L : Matrix I I ℂ) (t ε : ℝ) (ht : 0 ≤ t) (hε : 0 < ε) (hε1 : ε ≤ 1) :
+    0 < coefficientMass (staticLchsCoeff (staticLchsCutoff ε) (staticLchsNodes L t ε)) ∧
+      coefficientMass (staticLchsCoeff (staticLchsCutoff ε) (staticLchsNodes L t ε)) ≤ 2 := by
+  obtain ⟨hK, hN, _⟩ := static_lchs_computed_quadrature_budget L t ε ht hε
+  refine ⟨static_lchs_coefficient_mass_pos _ _ hK hN, ?_⟩
+  apply static_lchs_grid_coefficient_mass_le_two _ _ hN
+  have hNR : (0 : ℝ) < staticLchsNodes L t ε := by exact_mod_cast hN
+  have hceil : Nat.ceil (16*(staticLchsCutoff ε : ℝ)*(2+t*‖L‖)/ε) ≤
+      staticLchsNodes L t ε := le_max_right _ _
+  have hc : 16*(staticLchsCutoff ε : ℝ)*(2+t*‖L‖)/ε ≤ (staticLchsNodes L t ε : ℝ) :=
+    (Nat.le_ceil _).trans (by exact_mod_cast hceil)
+  have hm := (div_le_iff₀ hε).mp hc
+  have heN := mul_le_mul_of_nonneg_right hε1 hNR.le
+  have hk0 : (0 : ℝ) ≤ staticLchsCutoff ε := Nat.cast_nonneg _
+  have htL := mul_nonneg ht (norm_nonneg L)
+  rw [div_le_iff₀ hNR]
+  nlinarith [mul_nonneg hk0 htL]
+
+attribute [local irreducible] ApplyGate Run Matrix.conjTranspose
+
+private theorem staticLchs_repeat_map {α β : Type} (f : α → β) (xs : List α) (k : ℕ) :
+    ((List.replicate k xs).flatten).map f =
+      (List.replicate k (xs.map f)).flatten := by
+  induction k with
+  | zero => rfl
+  | succ k ih => simp only [List.replicate_succ, List.flatten_cons, List.map_append, ih]
+
+private theorem staticLchs_repeat_circuit {I : Type} [Fintype I] [DecidableEq I]
+    (C : Circuit I) (k : ℕ) : (List.replicate k C).flatten = RepeatCircuit C k := by
+  induction k with
+  | zero => rfl
+  | succ k ih => simp only [List.replicate_succ, List.flatten_cons, RepeatCircuit, ih]
+
+private theorem staticLchs_compile_expansion {I : Type} [Fintype I] [DecidableEq I]
+    {N : ℕ} (c : Fin N → ℂ) (V : Fin N → Matrix I I ℂ) (B : Matrix I I ℂ)
+    (j₀ : Fin N) (i₀ : I) (k : ℕ) :
+    let W : Matrix (Fin N × I) (Fin N × I) ℂ := prepareRegister (coefficientPrepare c j₀)
+    let U := select (phaseAbsorbed c V)
+    let T := TensorGate (1 : Matrix (Fin N) (Fin N) ℂ) B
+    staticLchsCompile c V B j₀ i₀ k =
+      [.gate T, .gate W, .gate U, .gate Wᴴ] ++
+        RepeatCircuit [.query, .gate W, .gate Uᴴ, .gate Wᴴ, .gate Tᴴ,
+          .gate (ReflectionAbout (outerProduct (Qatlib.Foundations.PureStateMath.Ket (j₀,i₀)))),
+          .gate T, .gate W, .gate U, .gate Wᴴ] k := by
+  simp only [staticLchsCompile, staticLchsWord, List.map_append,
+    staticLchs_repeat_map, List.map_cons, List.map_nil, staticLchs_repeat_circuit]
+  simp only [TensorGate, Matrix.conjTranspose_kronecker, Matrix.conjTranspose_one]
+
+private theorem staticLchs_merge_gates {I : Type} [Fintype I] [DecidableEq I]
+    (O X Y : Matrix I I ℂ) (C : Circuit I) (ψ : QState I) :
+    Run O (.gate X :: .gate Y :: C) ψ = Run O (.gate (Y * X) :: C) ψ := by
+  simp only [run_gate]
+  exact congrArg (Run O C) (applyGate_mul Y X ψ).symm
+
+private theorem staticLchs_four_gate_run {I : Type} [Fintype I] [DecidableEq I]
+    (O W U T : Matrix I I ℂ) (ψ : QState I) :
+    Run O [.gate T, .gate W, .gate U, .gate Wᴴ] ψ =
+      Run O [.gate (Wᴴ * U * W * T)] ψ := by
+  rw [staticLchs_merge_gates O T W, staticLchs_merge_gates O (W*T) U,
+    staticLchs_merge_gates O (U*(W*T)) Wᴴ]
+  simp only [Matrix.mul_assoc]
+
+private theorem staticLchs_expanded_run {I : Type} [Fintype I] [DecidableEq I]
+    (W U T R O : Matrix I I ℂ) (k : ℕ) (ψ : QState I) :
+    Run O ([.gate T, .gate W, .gate U, .gate Wᴴ] ++
+      RepeatCircuit [.query, .gate W, .gate Uᴴ, .gate Wᴴ, .gate Tᴴ,
+        .gate R, .gate T, .gate W, .gate U, .gate Wᴴ] k) ψ =
+    Run O ([.gate (Wᴴ * U * W * T)] ++
+      RepeatCircuit [.query, .gate (Wᴴ * U * W * T)ᴴ, .gate R,
+        .gate (Wᴴ * U * W * T)] k) ψ := by
+  let C : Circuit I := [.query, .gate W, .gate Uᴴ, .gate Wᴴ, .gate Tᴴ,
+    .gate R, .gate T, .gate W, .gate U, .gate Wᴴ]
+  let D : Circuit I := [.query, .gate (Wᴴ * U * W * T)ᴴ, .gate R,
+    .gate (Wᴴ * U * W * T)]
+  have hblock (φ : QState I) : Run O C φ = Run O D φ := by
+    dsimp only [C, D]
+    rw [run_query, run_query]
+    simp only [Matrix.conjTranspose_mul, Matrix.conjTranspose_conjTranspose]
+    rw [staticLchs_merge_gates O W Uᴴ,
+      staticLchs_merge_gates O (Uᴴ * W) Wᴴ,
+      staticLchs_merge_gates O (Wᴴ * (Uᴴ * W)) Tᴴ]
+    conv_lhs => rw [run_gate, run_gate]
+    conv_rhs => rw [run_gate, run_gate]
+    exact staticLchs_four_gate_run O W U T _
+  have hround : ∀ (n : ℕ) (φ : QState I),
+      Run O (RepeatCircuit C n) φ = Run O (RepeatCircuit D n) φ := by
+    intro n
+    induction n with
+    | zero => intro φ; rfl
+    | succ n ih =>
+        intro φ
+        change Run O (C ++ RepeatCircuit C n) φ = Run O (D ++ RepeatCircuit D n) φ
+        rw [run_append, run_append, hblock]
+        exact ih _
+  rw [run_append, run_append]
+  rw [staticLchs_four_gate_run]
+  exact hround k _
+
+private theorem staticLchs_repeat_counts (k : ℕ) (g : StaticLchsInstruction)
+    (xs : List StaticLchsInstruction) :
+    ((List.replicate k xs).flatten).count g = k * xs.count g := by
+  induction k with
+  | zero => simp
+  | succ k ih => simp only [List.replicate_succ, List.flatten_cons, List.count_append, ih, Nat.add_mul, Nat.one_mul]; omega
+
+private theorem staticLchs_repeat_length (k : ℕ) (xs : List StaticLchsInstruction) :
+    ((List.replicate k xs).flatten).length = k * xs.length := by
+  induction k with
+  | zero => simp
+  | succ k ih => simp only [List.replicate_succ, List.flatten_cons, List.length_append, ih, Nat.add_mul, Nat.one_mul]; omega
+
+theorem static_lchs_actual_expanded_prepare_select_amplification
+    (I : Type) [Fintype I] [DecidableEq I] (N : ℕ) (c : Fin N → ℂ)
+    (V : Fin N → Matrix I I ℂ) (B : Matrix I I ℂ) (j₀ : Fin N) (i₀ : I) (k : ℕ)
+    (hα : 0 < coefficientMass c) (hV : ∀ j, V j ∈ unitaryGroup I ℂ)
+    (hB : B ∈ unitaryGroup I ℂ) :
+    let A := coefficientLCUUnitary c V j₀ * TensorGate (1 : Matrix (Fin N) (Fin N) ℂ) B
+    let S := Finset.univ.filter (fun x : Fin N × I => x.1 = j₀)
+    IsUnitaryCircuit (staticLchsCompile c V B j₀ i₀ k) ∧
+    Run (preparedMark S) (staticLchsCompile c V B j₀ i₀ k) (Qatlib.Foundations.PureStateMath.Ket (j₀,i₀)) =
+      Run (preparedMark S) (preparedAACircuit A (j₀,i₀) k) (Qatlib.Foundations.PureStateMath.Ket (j₀,i₀)) ∧
+    (staticLchsWord k).count .selectF = k+1 ∧ (staticLchsWord k).count .selectB = k ∧
+    (staticLchsWord k).count .inputF = k+1 ∧ (staticLchsWord k).count .inputB = k ∧
+    (staticLchsWord k).count .coefF = 2*k+1 ∧ (staticLchsWord k).count .coefB = 2*k+1 ∧
+    QueryCount (staticLchsCompile c V B j₀ i₀ k) = k ∧ (staticLchsWord k).length = 10*k+4 := by
+  (try dsimp only)
+  let W : Matrix (Fin N × I) (Fin N × I) ℂ := prepareRegister (coefficientPrepare c j₀)
+  let U := select (phaseAbsorbed c V)
+  let T := TensorGate (1 : Matrix (Fin N) (Fin N) ℂ) B
+  have hW : W ∈ unitaryGroup (Fin N × I) ℂ :=
+    prepareRegister_unitary (coefficientPrepare_unitary c j₀ hα)
+  have hU : U ∈ unitaryGroup (Fin N × I) ℂ :=
+    select_unitary _ (phaseAbsorbed_unitary c V hV)
+  have hT : T ∈ unitaryGroup (Fin N × I) ℂ :=
+    tensorGate_unitary (unitaryGroup (Fin N) ℂ).one_mem hB
+  have hR := outerProduct_reflection_unitary (normalized_ket (j₀,i₀))
+  have hblock : IsUnitaryCircuit
+      [.query, .gate W, .gate Uᴴ, .gate Wᴴ, .gate Tᴴ,
+        .gate (ReflectionAbout (outerProduct (Qatlib.Foundations.PureStateMath.Ket (j₀,i₀)))),
+        .gate T, .gate W, .gate U, .gate Wᴴ] := by
+    simp only [isUnitaryCircuit_query, isUnitaryCircuit_gate, isUnitaryCircuit_nil, and_true]
+    exact ⟨hW, adjoint_unitary hU, adjoint_unitary hW, adjoint_unitary hT,
+      hR, hT, hW, hU, adjoint_unitary hW⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [staticLchs_compile_expansion, isUnitaryCircuit_append]
+    refine ⟨?_, hblock.repeatCircuit k⟩
+    simp only [isUnitaryCircuit_gate, isUnitaryCircuit_nil, and_true]
+    exact ⟨hT, hW, hU, adjoint_unitary hW⟩
+  · rw [staticLchs_compile_expansion]
+    exact staticLchs_expanded_run W U T _ _ k _
+  · simp [staticLchsWord, staticLchs_repeat_counts]
+  · simp [staticLchsWord, staticLchs_repeat_counts]
+  · simp [staticLchsWord, staticLchs_repeat_counts]
+  · simp [staticLchsWord, staticLchs_repeat_counts]
+  · simp [staticLchsWord, staticLchs_repeat_counts]; omega
+  · simp [staticLchsWord, staticLchs_repeat_counts]; omega
+  · rw [staticLchs_compile_expansion, queryCount_append, queryCount_repeatCircuit]
+    simp
+  · simp [staticLchsWord]; omega
+
+end Qatlib.Concepts.LchsSimulation.StaticLchs

@@ -1,0 +1,58 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.LowEnergyProd24.ProductError.LieCoefficients
+set_option warningAsError false
+
+set_option autoImplicit false
+set_option maxHeartbeats 300000
+noncomputable section
+open Matrix
+open scoped Classical BigOperators Matrix.Norms.L2Operator MatrixOrder ComplexOrder
+namespace Qatlib.Papers.LowEnergyProd24.ProductError
+open Qatlib.Papers.LowEnergyProd24.LocalModel
+open Qatlib.Papers.LowEnergyProd24.ImaginaryLeak
+open Qatlib.Foundations.MatrixAlgebra.CommutatorExp
+open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
+variable {N R M k d : ℕ} {J : ℝ}
+local instance : NormedAlgebra ℝ (Matrix (Register N) (Register N) ℂ) := .restrictScalars ℝ ℂ _
+
+def computedCoefficient (h : Hamiltonian N R M k d J) (stages : List (ℝ × Fin M)) (n : ℕ) :=
+  ((lieTerms stages n).map (LieTerm.evaluate h)).sum
+
+theorem coefficient_weighted_mass (h : Hamiltonian N R M k d J)
+    (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
+    (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M)) (n : ℕ) :
+    ‖weighted h.total (computedCoefficient h stages n) (1/(2*J*k*d))‖ ≤
+      lieMass stages n*((L : ℝ)*((k*d)^n*n.factorial : ℕ)*(2*J)^(n+1)) := by
+  rw [computedCoefficient, weighted_list_sum]
+  calc
+    _ ≤ ((lieTerms stages n).map (fun term => ‖weighted h.total (term.evaluate h) (1/(2*J*k*d))‖)).sum :=
+      Hamiltonian.norm_map_sum_le _ _
+    _ ≤ ((lieTerms stages n).map (fun term =>
+        ‖term.coefficient‖*((L : ℝ)*((k*d)^n*n.factorial : ℕ)*(2*J)^(n+1)))).sum :=
+      List.sum_le_sum (fun term ht => by
+        simpa only [lieTerms_degree stages n term ht] using
+            term.actual_weighted_bound h hJ hk hd L (hL term.seed))
+    _ = _ := List.sum_map_mul_right _ _ _
+
+theorem actual_coefficient_weighted_bound (h : Hamiltonian N R M k d J)
+    (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
+    (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M)) (n : ℕ) :
+    ‖weighted h.total (computedCoefficient h stages n) (1/(2*J*k*d))‖ ≤
+      (L : ℝ)*(2*J)*timeBudget stages*(2*J*k*d*timeBudget stages)^n := by
+  calc
+    _ ≤ lieMass stages n*((L : ℝ)*((k*d)^n*n.factorial : ℕ)*(2*J)^(n+1)) :=
+      coefficient_weighted_mass h hJ hk hd L hL stages n
+    _ ≤ (timeBudget stages*timeBudget stages^n/(n.factorial : ℝ))*
+        ((L : ℝ)*((k*d)^n*n.factorial : ℕ)*(2*J)^(n+1)) :=
+      mul_le_mul_of_nonneg_right (lieMass_bound stages n) (by positivity)
+    _ = _ := by
+      have hn : (n.factorial : ℝ) ≠ 0 := by exact_mod_cast Nat.factorial_ne_zero n
+      push_cast
+      simp only [mul_pow, pow_succ]
+      field_simp
+end Qatlib.Papers.LowEnergyProd24.ProductError

@@ -1,0 +1,347 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.PrincIdeal09.MainResults.Framework
+import Qatlib.Papers.PrincIdeal09.MainResults.Periodicity
+import Qatlib.Papers.PrincIdeal09.MainResults.NumericBounds
+import Qatlib.Papers.PrincIdeal09.MainResults.RegulatorDual
+set_option warningAsError false
+
+set_option autoImplicit false
+set_option linter.unusedVariables false
+noncomputable section
+open Classical
+
+namespace Qatlib.Papers.PrincIdeal09.MainResults
+
+def PeriodLatticeMember (M : PIPPeriodModel) (x1 x2 : ℤ) : Prop :=
+  ∃ a b : ℤ, (x1 : ℝ) = (a : ℝ) * (M.n : ℝ) ∧
+    (x2 : ℝ) = (a : ℝ) * (-M.S) + (b : ℝ) * M.R
+
+theorem base_shift (M : PIPPeriodModel) (x a : ℤ) :
+    M.base (x + a * M.n) = M.base x - (a : ℝ) * (M.S / 4) := by
+  induction a using Int.induction_on with
+  | zero => simp
+  | succ i ih =>
+      have hstep : M.base (x + ((i : ℤ) + 1) * M.n)
+          = M.base (x + (i : ℤ) * M.n) - M.S / 4 := by
+        have hp := M.base_period (x + (i : ℤ) * M.n)
+        have heq : (x + (i : ℤ) * M.n) + M.n = x + ((i : ℤ) + 1) * M.n := by ring
+        rwa [heq] at hp
+      rw [hstep, ih]
+      push_cast
+      ring
+  | pred i ih =>
+      have hstep : M.base (x + (-(i : ℤ) - 1) * M.n)
+          = M.base (x + (-(i : ℤ)) * M.n) + M.S / 4 := by
+        have hp := M.base_period (x + (-(i : ℤ) - 1) * M.n)
+        have heq : (x + (-(i : ℤ) - 1) * M.n) + M.n = x + (-(i : ℤ)) * M.n := by ring
+        rw [heq] at hp
+        linarith
+      rw [hstep, ih]
+      push_cast
+      ring
+
+theorem pip_add_n (M : PIPPeriodModel) (a c : ℤ)
+    (hc : (c : ℝ) = (a : ℝ) * M.S) (x1 x2 : ℤ) :
+    M.pip (x1 + a * M.n) (x2 - c) = M.pip x1 x2 := by
+  have hbase : M.base (x1 + a * M.n) = M.base x1 - (c : ℝ) / 4 := by
+    rw [base_shift, hc]
+    ring
+  have hiff : ∀ g : M.Form,
+      (M.pip (x1 + a * M.n) (x2 - c) = g ↔ M.pip x1 x2 = g) := by
+    intro g
+    rw [M.pip_spec, M.pip_spec]
+    have hcast : (((x2 - c : ℤ)) : ℝ) = (x2 : ℝ) - (c : ℝ) := by push_cast; ring
+    constructor
+    · rintro ⟨k, h1, h2⟩
+      rw [hbase] at h1 h2
+      rw [hcast] at h1 h2
+      refine ⟨k, ?_, ?_⟩
+      · linarith
+      · linarith
+    · rintro ⟨k, h1, h2⟩
+      refine ⟨k, ?_, ?_⟩
+      · rw [hbase, hcast]; linarith
+      · rw [hbase, hcast]; linarith
+  exact (hiff (M.pip x1 x2)).mpr rfl
+
+theorem pip_add_R (M : PIPPeriodModel) (b r : ℤ)
+    (hr : (r : ℝ) = (b : ℝ) * (4 * M.R)) (x1 x2 : ℤ) :
+    M.pip x1 (x2 + r) = M.pip x1 x2 := by
+  have hiff : ∀ g : M.Form, (M.pip x1 (x2 + r) = g ↔ M.pip x1 x2 = g) := by
+    intro g
+    rw [M.pip_spec, M.pip_spec]
+    have hcast : (((x2 + r : ℤ)) : ℝ) = (x2 : ℝ) + (r : ℝ) := by push_cast; ring
+    have h4 : ((x2 : ℝ) + (r : ℝ)) / 4 = (x2 : ℝ) / 4 + (b : ℝ) * M.R := by
+      rw [hr]; ring
+    have hk : ∀ k : ℤ, ((k : ℝ) + (b : ℝ)) * M.R = (k : ℝ) * M.R + (b : ℝ) * M.R := by
+      intro k; ring
+    constructor
+    · rintro ⟨k, h1, h2⟩
+      rw [hcast, h4] at h1 h2
+      refine ⟨k - b, ?_, ?_⟩
+      · have hkc : ((k - b : ℤ) : ℝ) = (k : ℝ) - (b : ℝ) := by push_cast; ring
+        rw [hkc]; linarith
+      · have hkc : ((k - b : ℤ) : ℝ) = (k : ℝ) - (b : ℝ) := by push_cast; ring
+        rw [hkc]; linarith
+    · rintro ⟨k, h1, h2⟩
+      refine ⟨k + b, ?_, ?_⟩
+      · have hkc : ((k + b : ℤ) : ℝ) = (k : ℝ) + (b : ℝ) := by push_cast; ring
+        rw [hkc, hcast, h4]; linarith
+      · have hkc : ((k + b : ℤ) : ℝ) = (k : ℝ) + (b : ℝ) := by push_cast; ring
+        rw [hkc, hcast, h4]; linarith
+  exact (hiff (M.pip x1 x2)).mpr rfl
+
+theorem lemma4_pip_periodicity (M : PIPPeriodModel) (x1 x2 x1' x2' c r : ℤ)
+    (hc : (c : ℝ) = (x1 : ℝ) * M.S)
+    (hr : (r : ℝ) = (x2 : ℝ) * (4 * M.R)) :
+    M.pip (x1' + x1 * M.n) (x2' - c + r) = M.pip x1' x2' := by
+  have h1 : M.pip (x1' + x1 * M.n) (x2' - c + r) = M.pip x1' (x2' + r) := by
+    have h := pip_add_n M x1 c hc x1' (x2' + r)
+    have harg : (x2' + r) - c = x2' - c + r := by ring
+    rwa [harg] at h
+  rw [h1]
+  exact pip_add_R M x2 r hr x1' x2'
+
+def PIPPeriodModel.toReg (M : PIPPeriodModel) (x1 : ℤ) : RegPeriodModel where
+  Form := M.Form
+  instDecEq := M.instDecEq
+  succ := M.succ
+  pred := M.pred
+  succ_pred := M.succ_pred
+  pred_succ := M.pred_succ
+  d := fun g => M.d g + M.base x1
+  delta := fun g => M.delta g + M.base x1
+  R := M.R
+  R_pos := M.R_pos
+  approx := by
+    intro g
+    simpa using M.approx g
+  succ_gap := by
+    intro g
+    have h := M.succ_gap g
+    linarith
+  reg := fun x => M.pip x1 x
+  reg_spec := by
+    intro x g
+    simpa [add_comm, add_left_comm, add_assoc] using M.pip_spec x1 x g
+
+def pipWindowStart (M : PIPPeriodModel) (x1 : ℤ) (g : M.Form) (k : ℤ) : ℤ :=
+  ⌈4 * (M.d g + (k : ℝ) * M.R + M.base x1)⌉
+
+def pipWindowRun (M : PIPPeriodModel) (x1 : ℤ) (g : M.Form) (k : ℤ) : ℤ :=
+  ⌈4 * (M.d (M.succ g) + (k : ℝ) * M.R + M.base x1) -
+    ((pipWindowStart M x1 g k : ℤ) : ℝ)⌉ - 1
+
+theorem lemma4_run (M : PIPPeriodModel) (Δ : ℝ) (hΔ : 0 < Δ)
+    (hR : 5 * Real.log Δ < M.R) (x1 : ℤ) (g : M.Form) (k : ℤ)
+    (hwin : (1 / 2 : ℝ) < M.d (M.succ g) - M.d g)
+    (hcount : 4 * (M.d (M.succ g) - M.d g) ≤ Real.log Δ + 3) :
+    1 ≤ pipWindowRun M x1 g k ∧ (pipWindowRun M x1 g k : ℝ) < Real.log Δ + 3 ∧
+      M.pip x1 (pipWindowStart M x1 g k + pipWindowRun M x1 g k + 1) = M.succ g ∧
+      (∀ j : ℤ, 0 ≤ j → j ≤ pipWindowRun M x1 g k →
+        M.pip x1 (pipWindowStart M x1 g k + j) = g) ∧
+      (∀ k' : ℤ, |pipWindowRun M x1 g k - pipWindowRun M x1 g k'| ≤ 4) := by
+  have hwin' : (1 / 2 : ℝ) <
+      (M.toReg x1).d ((M.toReg x1).succ g) - (M.toReg x1).d g := by
+    simp only [PIPPeriodModel.toReg]
+    linarith [hwin]
+  have hcount' : 4 * ((M.toReg x1).d ((M.toReg x1).succ g) - (M.toReg x1).d g)
+      ≤ Real.log Δ + 3 := by
+    simp only [PIPPeriodModel.toReg]
+    linarith [hcount]
+  have h := lemma2_run (M.toReg x1) Δ hΔ (by simpa using! hR) g k hwin' hcount'
+  simpa [pipWindowRun, pipWindowStart, windowStart, windowRun, PIPPeriodModel.toReg,
+    RegPeriodModel.d, add_comm, add_left_comm, add_assoc] using h
+
+structure PIPDualModel where
+
+  Δ : ℝ
+  Δ_gt_one : 1 < Δ
+
+  R : ℝ
+  R_pos : 0 < R
+
+  q : ℝ
+  q_pos : 0 < q
+  q_pow_two : ∃ t : ℕ, q = (2 : ℝ) ^ t
+  q_upper : 2 * q < Δ * (Real.log Δ) ^ 2
+
+  n : ℤ
+  n_pos : 0 < n
+
+  mmin : ℕ
+  mmax : ℕ
+  mmin_ge_one : 1 ≤ mmin
+  mrange : mmax ≤ mmin + 4
+
+  p : ℕ
+  p_lower : (q / (n : ℝ)) * (q / (8 * R)) * ((mmin : ℝ) + 1) ≤ (p : ℝ)
+
+  cardY : ℕ
+  cardY_lower : (n : ℝ) * R / (8 * ((mmax : ℝ) + 2)) ≤ (cardY : ℝ)
+
+  perY : ℝ
+  perY_lower : (p : ℝ) / (128 * q ^ 2) ≤ perY
+
+  successProb : ℝ
+  successProb_eq : successProb = (cardY : ℝ) * perY
+
+  a : ℝ
+  b : ℝ
+  a_pos : 0 < a
+  b_pos : 0 < b
+  a_le_sqrt : a ≤ Real.sqrt Δ
+  b_le_sqrt : b ≤ Real.sqrt Δ
+
+  qbits1 : ℝ
+  qbits2 : ℝ
+  formBits : ℝ
+  N : ℝ
+  qbits1_eq : qbits1 = Real.logb 2 q
+  qbits2_eq : qbits2 = Real.logb 2 q
+  formBits_eq : formBits = Real.logb 2 a + Real.logb 2 b
+  qubits : ℝ
+  qubits_eq : qubits = qbits1 + qbits2 + formBits + N
+
+namespace PIPDualModel
+
+theorem q_le (M : PIPDualModel) : M.q ≤ M.Δ * (Real.log M.Δ) ^ 2 / 2 := by
+  have := M.q_upper
+  linarith
+
+theorem success_ge (M : PIPDualModel) :
+    (2 : ℝ) ^ (-16 : ℤ) ≤ M.successProb := by
+  have hn0 : (M.n : ℝ) ≠ 0 := by exact_mod_cast ne_of_gt M.n_pos
+  have hstep1 :
+      ((M.n : ℝ) * M.R / (8 * ((M.mmax : ℝ) + 2))) * ((M.p : ℝ) / (128 * M.q ^ 2))
+        ≤ M.successProb := by
+    rw [M.successProb_eq]
+    refine mul_le_mul M.cardY_lower M.perY_lower ?_ ?_
+    · positivity
+    · positivity
+  have hcore :
+      ((M.mmin : ℝ) + 1) / (2 ^ 13 * ((M.mmax : ℝ) + 2)) ≤
+        ((M.n : ℝ) * M.R / (8 * ((M.mmax : ℝ) + 2))) * ((M.p : ℝ) / (128 * M.q ^ 2)) := by
+    have hnpos : (0 : ℝ) < (M.n : ℝ) := by exact_mod_cast M.n_pos
+    have hk_nonneg : (0 : ℝ) ≤
+        (M.n : ℝ) * M.R / (8 * ((M.mmax : ℝ) + 2)) * (1 / (128 * M.q ^ 2)) := by
+      apply mul_nonneg
+      · apply div_nonneg
+        · exact mul_nonneg hnpos.le M.R_pos.le
+        · positivity
+      · positivity
+    have hprod := mul_le_mul_of_nonneg_left M.p_lower hk_nonneg
+    have hleft :
+        (M.n : ℝ) * M.R / (8 * ((M.mmax : ℝ) + 2)) * (1 / (128 * M.q ^ 2)) *
+            ((M.q / (M.n : ℝ)) * (M.q / (8 * M.R)) * ((M.mmin : ℝ) + 1)) =
+          ((M.mmin : ℝ) + 1) / (2 ^ 13 * ((M.mmax : ℝ) + 2)) := by
+      field_simp [M.R_pos.ne', M.q_pos.ne', hn0]
+      ring
+    have hright :
+        (M.n : ℝ) * M.R / (8 * ((M.mmax : ℝ) + 2)) * (1 / (128 * M.q ^ 2)) * (M.p : ℝ) =
+          (M.n : ℝ) * M.R / (8 * ((M.mmax : ℝ) + 2)) * ((M.p : ℝ) / (128 * M.q ^ 2)) := by
+      field_simp [M.R_pos.ne', M.q_pos.ne']
+    rw [← hleft, ← hright]
+    exact hprod
+  exact le_trans (pip_dual_count_bound M.mmin_ge_one M.mrange) (le_trans hcore hstep1)
+
+theorem qubits_le (M : PIPDualModel) :
+    M.qubits ≤ 3 * Real.logb 2 M.Δ + 4 * Real.logb 2 (Real.log M.Δ) + M.N := by
+  have hΔpos : (0 : ℝ) < M.Δ := by linarith [M.Δ_gt_one]
+  have hb1 : M.qbits1 ≤ Real.logb 2 M.Δ + 2 * Real.logb 2 (Real.log M.Δ) := by
+    rw [M.qbits1_eq]
+    exact pip_register_bits_bound M.Δ_gt_one M.q_pos M.q_le
+  have hb2 : M.qbits2 ≤ Real.logb 2 M.Δ + 2 * Real.logb 2 (Real.log M.Δ) := by
+    rw [M.qbits2_eq]
+    exact pip_register_bits_bound M.Δ_gt_one M.q_pos M.q_le
+  have hfb : M.formBits ≤ Real.logb 2 M.Δ := by
+    rw [M.formBits_eq]
+    have h := form_register_bits_bound hΔpos M.a_pos M.b_pos M.a_le_sqrt M.b_le_sqrt
+    linarith
+  rw [M.qubits_eq]
+  linarith
+
+end PIPDualModel
+
+theorem theorem3_pip_dual (M : PIPDualModel) :
+    (2 : ℝ) ^ (-16 : ℤ) ≤ M.successProb ∧
+      M.qubits ≤ 3 * Real.logb 2 M.Δ + 4 * Real.logb 2 (Real.log M.Δ) + M.N :=
+  ⟨M.success_ge, M.qubits_le⟩
+
+structure PIPModel where
+
+  Δ : ℝ
+  Δ_gt_one : 1 < Δ
+
+  R : ℝ
+  R_pos : 0 < R
+
+  q : ℝ
+  q_pos : 0 < q
+  q_upper : 2 * q < Δ * (Real.log Δ) ^ 2
+
+  successProb : ℝ
+  prob_eq : successProb = (6 / Real.pi ^ 2) * (2 : ℝ) ^ (-35 : ℤ)
+
+  qbits : ℝ
+  qbits_eq : qbits = Real.logb 2 q
+  aA : ℝ
+  bA : ℝ
+  aA_pos : 0 < aA
+  bA_pos : 0 < bA
+  aA_le_sqrt : aA ≤ Real.sqrt Δ
+  bA_le_sqrt : bA ≤ Real.sqrt Δ
+  aB : ℝ
+  bB : ℝ
+  aB_pos : 0 < aB
+  bB_pos : 0 < bB
+  aB_le_sqrt : aB ≤ Real.sqrt Δ
+  bB_le_sqrt : bB ≤ Real.sqrt Δ
+  formA : ℝ
+  formB : ℝ
+  formA_eq : formA = Real.logb 2 aA + Real.logb 2 bA
+  formB_eq : formB = Real.logb 2 aB + Real.logb 2 bB
+  N : ℝ
+  qubits : ℝ
+  qubits_eq : qubits = qbits + formA + formB + N
+
+theorem pip_reconstruction (q R S p ω : ℝ) (m : ℤ) (hR : 0 < R)
+    (hω : |ω| < 1 / R) (h : p / (8 * q) = (m : ℝ) + S / R + ω) :
+    |p * R / (8 * q) - S - (m : ℝ) * R| < 1 := by
+  have hR0 : R ≠ 0 := hR.ne'
+  have hmul : p * R / (8 * q) - S - (m : ℝ) * R = R * ω := by
+    have h' : p / (8 * q) * R = ((m : ℝ) + S / R + ω) * R := by rw [h]
+    field_simp [hR0] at h' ⊢
+    linarith
+  rw [hmul, abs_mul, abs_of_pos hR]
+  have hlt : R * |ω| < R * (1 / R) := mul_lt_mul_of_pos_left hω hR
+  rwa [one_div, mul_inv_cancel₀ hR0] at hlt
+
+theorem theorem4_pip (M : PIPModel) :
+    (2 : ℝ) ^ (-37 : ℤ) ≤ M.successProb ∧
+      M.qubits ≤ 3 * Real.logb 2 M.Δ + 2 * Real.logb 2 (Real.log M.Δ) + M.N := by
+  refine ⟨?_, ?_⟩
+  · rw [M.prob_eq]
+    exact thm4_prob_bound
+  · have hΔpos : (0 : ℝ) < M.Δ := by linarith [M.Δ_gt_one]
+    have hqle : M.q ≤ M.Δ * (Real.log M.Δ) ^ 2 / 2 := by linarith [M.q_upper]
+    have hqb : M.qbits ≤ Real.logb 2 M.Δ + 2 * Real.logb 2 (Real.log M.Δ) := by
+      rw [M.qbits_eq]
+      exact pip_register_bits_bound M.Δ_gt_one M.q_pos hqle
+    have hfA : M.formA ≤ Real.logb 2 M.Δ := by
+      rw [M.formA_eq]
+      have h := form_register_bits_bound hΔpos M.aA_pos M.bA_pos M.aA_le_sqrt M.bA_le_sqrt
+      linarith
+    have hfB : M.formB ≤ Real.logb 2 M.Δ := by
+      rw [M.formB_eq]
+      have h := form_register_bits_bound hΔpos M.aB_pos M.bB_pos M.aB_le_sqrt M.bB_le_sqrt
+      linarith
+    rw [M.qubits_eq]
+    linarith
+
+end Qatlib.Papers.PrincIdeal09.MainResults

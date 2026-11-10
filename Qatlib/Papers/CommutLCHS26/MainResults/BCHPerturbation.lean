@@ -1,0 +1,174 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.CommutLCHS26.MainResults.BCHOddEvaluation
+import Qatlib.Papers.CommutLCHS26.MainResults.BCHCommMass
+set_option backward.isDefEq.respectTransparency false
+
+set_option autoImplicit false
+noncomputable section
+
+namespace Qatlib.Papers.CommutLCHS26.MainResults.BCHPerturbation
+
+open Matrix
+open scoped BigOperators Classical Matrix.Norms.L2Operator NNReal ENNReal
+open BCHFormal BCHConvergence BCHControlled BCHHalfBudget BCHOddEvaluation BCHCommMass
+open Qatlib.Concepts.TrotterFormula.RecursiveSuzuki
+open Qatlib.Concepts.TrotterFormula.SuzukiFourth
+set_option warningAsError false
+
+variable {I : Type} [Fintype I] [DecidableEq I]
+local instance : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
+
+def coefficient (xs : List (Matrix I I ℂ)) (n : ℕ) : Matrix I I ℂ :=
+  logCoefficient (SubdivisionPolynomial.wordSeries
+    (recursiveSuzukiGenerators (xs.map (fun A => (-Complex.I) • A)) 0)) n
+
+def perturbation (xs : List (Matrix I I ℂ)) (q : ℕ) (t : ℝ) : Matrix I I ℂ :=
+  (q : ℝ) • evaluate (logSeries (SubdivisionPolynomial.wordSeries
+    (recursiveSuzukiGenerators (xs.map (fun A => (-Complex.I) • A)) 0))) ((t / q : ℝ) : ℂ) -
+      t • ((-Complex.I) • xs.sum)
+
+def perturbationTerm (xs : List (Matrix I I ℂ)) (q : ℕ) (t : ℝ) (j : ℕ) : Matrix I I ℂ :=
+  (t ^ (2 * j + 3) / (q : ℝ) ^ (2 * j + 2)) • coefficient xs (2 * j + 3)
+
+omit [Fintype I] [DecidableEq I] in
+
+theorem phase_sum (xs : List (Matrix I I ℂ)) :
+    (xs.map (fun A => (-Complex.I) • A)).sum = (-Complex.I) • xs.sum := by
+  induction xs with
+  | nil => simp
+  | cons A xs ih => simp only [List.map_cons, List.sum_cons, ih, smul_add]
+
+theorem divided_time_le (t : ℝ) (q : ℕ) (hq : 0 < q) : |t / q| ≤ |t| := by
+  rw [abs_div, abs_of_pos (by exact_mod_cast hq : (0 : ℝ) < q)]
+  exact div_le_self (abs_nonneg _) (by exact_mod_cast hq)
+
+theorem coefficient_norm (xs : List (Matrix I I ℂ)) (n : ℕ) (hn : 0 < n) :
+    ‖coefficient xs n‖ ≤
+      Qatlib.Concepts.TrotterFormula.GeneralOrder.pfCommAlphaSelf xs n / (n : ℝ) ^ 2 :=
+  norm_unitary_half_log_le xs n hn
+
+theorem term_eq_scaled (xs : List (Matrix I I ℂ)) (q : ℕ) (hq : 0 < q)
+    (t : ℝ) (j : ℕ) :
+    perturbationTerm xs q t j =
+      (q : ℝ) • ((t / q) ^ (2 * j + 3) • coefficient xs (2 * j + 3)) := by
+  rw [smul_smul, repetition_scalar t q hq j]
+  rfl
+
+theorem perturbation_hasSum (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (J : ℕ)
+    (hc : OddControl xs r J) (q : ℕ) (hq : 0 < q) (t : ℝ) (ht : |t| ≤ r) :
+    HasSum (perturbationTerm xs q t) (perturbation xs q t) := by
+  have h := (real_tail_hasSum (xs.map (fun A => (-Complex.I) • A)) r J
+    ((oddControl_neg_I xs r J).mpr hc) (t / q) ((divided_time_le t q hq).trans ht)).const_smul
+      (q : ℝ)
+  have hqt : (q : ℝ) * (t / q) = t := by
+    have hq0 : (q : ℝ) ≠ 0 := by exact_mod_cast Nat.ne_of_gt hq
+    field_simp
+  simp only [smul_sub, smul_smul, hqt, phase_sum] at h
+  change HasSum (fun j : ℕ => ((q : ℝ) * (t / q) ^ (2 * j + 3)) •
+    coefficient xs (2 * j + 3)) (perturbation xs q t) at h
+  simpa only [repetition_scalar t q hq, perturbationTerm] using! h
+
+theorem term_norm_le (xs : List (Matrix I I ℂ)) (q : ℕ) (hq : 0 < q) (t : ℝ) (j : ℕ) :
+    ‖perturbationTerm xs q t j‖ ≤ (q : ℝ) * massTerm xs (t / q) j := by
+  rw [term_eq_scaled xs q hq, norm_smul, norm_smul, Real.norm_eq_abs,
+    Real.norm_eq_abs, abs_pow, abs_of_nonneg (Nat.cast_nonneg q)]
+  apply mul_le_mul_of_nonneg_left _ (Nat.cast_nonneg q)
+  calc
+    _ ≤ |t / q| ^ (2 * j + 3) *
+        (Qatlib.Concepts.TrotterFormula.GeneralOrder.pfCommAlphaSelf xs (2 * j + 3) /
+          ((2 * j + 3 : ℕ) : ℝ) ^ 2) :=
+      mul_le_mul_of_nonneg_left (coefficient_norm xs _ (by omega)) (pow_nonneg (abs_nonneg _) _)
+    _ = _ := by unfold massTerm; ring
+
+theorem perturbation_norm_summable (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (J : ℕ)
+    (hc : OddControl xs r J) (q : ℕ) (hq : 0 < q) (t : ℝ) (ht : |t| ≤ r) :
+    Summable (fun j => ‖perturbationTerm xs q t j‖) :=
+  ((massTerm_summable xs r J hc (t / q) ((divided_time_le t q hq).trans ht)).mul_left
+    (q : ℝ)).of_nonneg_of_le (fun _ => norm_nonneg _) (term_norm_le xs q hq t)
+
+theorem perturbation_norm_le_step (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (J : ℕ)
+    (hc : OddControl xs r J) (q : ℕ) (hq : 0 < q) (t : ℝ) (ht : |t| ≤ r) :
+    ‖perturbation xs q t‖ ≤ (q : ℝ) * commutatorMass xs (t / q) := by
+  rw [← (perturbation_hasSum xs r J hc q hq t ht).tsum_eq]
+  apply (norm_tsum_le_tsum_norm (perturbation_norm_summable xs r J hc q hq t ht)).trans
+  have hs := massTerm_summable xs r J hc (t / q) ((divided_time_le t q hq).trans ht)
+  rw [commutatorMass, ← tsum_mul_left]
+  exact Summable.tsum_le_tsum (term_norm_le xs q hq t)
+    (perturbation_norm_summable xs r J hc q hq t ht) (hs.mul_left _)
+
+theorem perturbation_norm_le (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (J : ℕ)
+    (hc : OddControl xs r J) (q : ℕ) (hq : 0 < q) (t : ℝ) (ht : |t| ≤ r) :
+    ‖perturbation xs q t‖ ≤ commutatorMass xs t / (q : ℝ) ^ 2 :=
+  (perturbation_norm_le_step xs r J hc q hq t ht).trans (repeated_mass_le xs r J hc t ht q hq)
+
+theorem target_skew (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A) (t : ℝ) :
+    (t • ((-Complex.I) • xs.sum))ᴴ = -(t • ((-Complex.I) • xs.sum)) := by
+  have h := unitary_half_log_skew xs hxs 1
+  rw [frozen_half_log_one, phase_sum] at h
+  simp only [Matrix.conjTranspose_smul, star_trivial, h, smul_neg]
+
+theorem perturbation_skew (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
+    (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J)
+    (q : ℕ) (hq : 0 < q) (t : ℝ) (ht : |t| ≤ r) :
+    (perturbation xs q t)ᴴ = -perturbation xs q t := by
+  have hl := (real_unitary_log_skew xs hxs r J hc (t / q)
+    ((divided_time_le t q hq).trans ht)).2
+  have hA := target_skew xs hxs t
+  unfold perturbation
+  rw [Matrix.conjTranspose_sub, hA]
+  simp only [Matrix.conjTranspose_smul, star_trivial, hl, smul_neg]
+  abel
+
+theorem repetitions_eq_exp (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (J : ℕ)
+    (hc : OddControl xs r J) (q : ℕ) (hq : 0 < q) (t : ℝ) (ht : |t| ≤ r) :
+    suzukiExponentialWord (recursiveSuzukiGenerators (xs.map (fun A => (-Complex.I) • A)) 0)
+      (t / q) ^ q = NormedSpace.exp (t • ((-Complex.I) • xs.sum) + perturbation xs q t) := by
+  have hz : ‖((t / q : ℝ) : ℂ)‖ ≤ r := by
+    simpa only [Complex.norm_real, Real.norm_eq_abs] using! (divided_time_le t q hq).trans ht
+  have he := exp_log_closed (xs.map (fun A => (-Complex.I) • A)) r J
+    ((oddControl_neg_I xs r J).mpr hc) ((t / q : ℝ) : ℂ) hz
+  have hw : complexWord (recursiveSuzukiGenerators (xs.map (fun A => (-Complex.I) • A)) 0)
+      ((t / q : ℝ) : ℂ) = suzukiExponentialWord
+        (recursiveSuzukiGenerators (xs.map (fun A => (-Complex.I) • A)) 0) (t / q) := by
+    simp only [complexWord, suzukiExponentialWord, Complex.coe_smul]
+  rw [hw] at he
+  calc
+    _ = NormedSpace.exp (evaluate (logSeries (SubdivisionPolynomial.wordSeries
+        (recursiveSuzukiGenerators (xs.map (fun A => (-Complex.I) • A)) 0)))
+          ((t / q : ℝ) : ℂ)) ^ q := (congrArg (fun A : Matrix I I ℂ => A ^ q) he).symm
+    _ = NormedSpace.exp (q • evaluate (logSeries (SubdivisionPolynomial.wordSeries
+        (recursiveSuzukiGenerators (xs.map (fun A => (-Complex.I) • A)) 0)))
+          ((t / q : ℝ) : ℂ)) := (NormedSpace.exp_nsmul q _).symm
+    _ = _ := by
+      congr 1
+      rw [← Nat.cast_smul_eq_nsmul ℝ]
+      unfold perturbation
+      abel
+
+theorem repetition_expansion (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
+    (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J)
+    (q : ℕ) (hq : 0 < q) (t : ℝ) (ht : |t| ≤ r) (p : ℕ) (hp : 0 < p) :
+    let A := t • ((-Complex.I) • xs.sum)
+    let B := perturbation xs q t
+    suzukiExponentialWord (recursiveSuzukiGenerators (xs.map (fun X => (-Complex.I) • X)) 0)
+      (t / q) ^ q = NormedSpace.exp A +
+        (∑ j ∈ Finset.range (p - 1), PerturbationDyson.term A B (j + 1) 1) +
+          PerturbationDyson.remainder A B p 1 ∧
+      ‖PerturbationDyson.remainder A B p 1‖ ≤
+        (commutatorMass xs t / (q : ℝ) ^ 2) ^ p / (p.factorial : ℝ) := by
+  have h := PerturbationDyson.unit_interval_expansion _ _ (target_skew xs hxs t)
+    (perturbation_skew xs hxs r J hc q hq t ht) p hp
+  (try dsimp only)
+  constructor
+  · rw [repetitions_eq_exp xs r J hc q hq t ht]
+    exact h.1
+  · exact h.2.trans (div_le_div_of_nonneg_right
+      (pow_le_pow_left₀ (norm_nonneg _) (perturbation_norm_le xs r J hc q hq t ht) p)
+      (Nat.cast_nonneg _))
+
+end Qatlib.Papers.CommutLCHS26.MainResults.BCHPerturbation

@@ -1,0 +1,182 @@
+/-
+Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Chris Birkbeck, Qatlib Contributors
+-/
+
+import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+import Mathlib.Analysis.Complex.Basic
+import Mathlib.Tactic.Module
+set_option backward.isDefEq.respectTransparency false
+set_option warningAsError false
+
+namespace Qatlib.Foundations.CbmdAnalysis.Residue
+
+section
+
+noncomputable section
+
+namespace TauCeti.Contour
+
+open Complex
+
+private def orthogonalProjectionComplex (w L : ℂ) : ℂ :=
+  ((w * starRingEnd ℂ L).re / Complex.normSq L : ℝ) • L
+
+def tangentDeviation (w L : ℂ) : ℂ :=
+  w - orthogonalProjectionComplex w L
+
+@[simp]
+theorem tangentDeviation_add (a b L : ℂ) :
+    tangentDeviation (a + b) L = tangentDeviation a L + tangentDeviation b L := by
+  simp only [tangentDeviation, orthogonalProjectionComplex, add_mul, Complex.add_re, add_div,
+    add_smul]
+  abel
+
+@[simp]
+theorem tangentDeviation_zero (L : ℂ) : tangentDeviation 0 L = 0 := by
+  simp [tangentDeviation, orthogonalProjectionComplex]
+
+@[simp]
+theorem tangentDeviation_sub (a b L : ℂ) :
+    tangentDeviation (a - b) L = tangentDeviation a L - tangentDeviation b L := by
+  simp only [tangentDeviation, orthogonalProjectionComplex, sub_mul, Complex.sub_re, sub_div,
+    sub_smul]
+  abel
+
+@[simp]
+theorem tangentDeviation_neg (w L : ℂ) :
+    tangentDeviation (-w) L = -tangentDeviation w L := by
+  simp only [tangentDeviation, orthogonalProjectionComplex, neg_mul, Complex.neg_re, neg_div,
+    neg_smul]
+  abel
+
+theorem tangentDeviation_real_smul (c : ℝ) (w L : ℂ) :
+    tangentDeviation (c • w) L = c • tangentDeviation w L := by
+  have hopc : orthogonalProjectionComplex (c • w) L = c • orthogonalProjectionComplex w L := by
+    simp only [orthogonalProjectionComplex, smul_smul, smul_mul_assoc, Complex.smul_re,
+      smul_eq_mul, mul_div_assoc]
+  simp only [tangentDeviation, hopc, smul_sub]
+
+@[simp]
+theorem tangentDeviation_ofReal_mul (c : ℝ) (w L : ℂ) :
+    tangentDeviation ((c : ℂ) * w) L = (c : ℂ) * tangentDeviation w L := by
+  simpa only [Complex.real_smul] using tangentDeviation_real_smul c w L
+
+theorem norm_tangentDeviation {L : ℂ} (hL : L ≠ 0) (w : ℂ) :
+    ‖tangentDeviation w L‖ = |(w * starRingEnd ℂ L).im| / ‖L‖ := by
+  have hN : (Complex.normSq L : ℂ) ≠ 0 := by exact_mod_cast (Complex.normSq_pos.mpr hL).ne'
+  have hkey : tangentDeviation w L * starRingEnd ℂ L
+      = ((w * starRingEnd ℂ L).im : ℂ) * Complex.I := by
+    rw [tangentDeviation, orthogonalProjectionComplex, Complex.real_smul, sub_mul, mul_assoc,
+      Complex.mul_conj, Complex.ofReal_div, div_mul_cancel₀ _ hN]
+    apply Complex.ext <;> simp
+  rw [eq_div_iff (norm_ne_zero_iff.mpr hL), ← RCLike.norm_conj L, ← norm_mul, hkey, norm_mul,
+    Complex.norm_I, mul_one, Complex.norm_real, Real.norm_eq_abs]
+
+@[simp]
+theorem tangentDeviation_self (L : ℂ) : tangentDeviation L L = 0 := by
+  rcases eq_or_ne L 0 with rfl | hL
+  · simp [tangentDeviation, orthogonalProjectionComplex]
+  simp [tangentDeviation, orthogonalProjectionComplex, Complex.mul_conj, hL]
+
+theorem tangentDeviation_real_smul_self (r : ℝ) (L : ℂ) : tangentDeviation (r • L) L = 0 := by
+  rw [tangentDeviation_real_smul, tangentDeviation_self, smul_zero]
+
+@[simp]
+theorem tangentDeviation_neg_right (w L : ℂ) : tangentDeviation w (-L) = tangentDeviation w L := by
+  simp only [tangentDeviation, orthogonalProjectionComplex, map_neg, mul_neg, Complex.neg_re,
+    Complex.normSq_neg, neg_div, neg_smul, smul_neg, neg_neg]
+
+theorem tangentDeviation_real_smul_right {c : ℝ} (hc : c ≠ 0) (w L : ℂ) :
+    tangentDeviation w (c • L) = tangentDeviation w L := by
+  rw [tangentDeviation, tangentDeviation, orthogonalProjectionComplex,
+    orthogonalProjectionComplex, smul_smul]
+  rcases eq_or_ne L 0 with rfl | hL
+  · simp
+  have hN := (Complex.normSq_pos.mpr hL).ne'
+  congr 2
+  simp only [Complex.real_smul, map_mul, Complex.conj_ofReal, Complex.normSq_ofReal,
+    mul_left_comm w, Complex.re_ofReal_mul]
+  field_simp
+
+@[simp]
+theorem tangentDeviation_ofReal_mul_right {c : ℝ} (hc : c ≠ 0) (w L : ℂ) :
+    tangentDeviation w ((c : ℂ) * L) = tangentDeviation w L := by
+  simpa only [Complex.real_smul] using tangentDeviation_real_smul_right hc w L
+
+theorem im_mul_conj_eq_zero_iff_exists_real_smul {L v : ℂ} (hv : v ≠ 0) :
+    (L * starRingEnd ℂ v).im = 0 ↔ ∃ c : ℝ, L = c • v := by
+  refine ⟨fun h => ⟨(L * starRingEnd ℂ v).re / Complex.normSq v, ?_⟩, ?_⟩
+  · have hLv : L * starRingEnd ℂ v = ((L * starRingEnd ℂ v).re : ℂ) :=
+      Complex.ext (by simp) (by simpa using h)
+    have hv' : starRingEnd ℂ v ≠ 0 := by simpa using hv
+    rw [Complex.real_smul, Complex.ofReal_div, ← hLv, ← Complex.mul_conj]
+    field_simp
+  · rintro ⟨c, rfl⟩
+    simp [Complex.real_smul, mul_assoc, Complex.mul_conj]
+
+private theorem proj_sq_add_dev_sq (w L : ℂ) :
+    ‖orthogonalProjectionComplex w L‖ ^ 2 + ‖tangentDeviation w L‖ ^ 2 = ‖w‖ ^ 2 := by
+  rcases eq_or_ne L 0 with rfl | hL
+  · simp [orthogonalProjectionComplex, tangentDeviation]
+  have hN := (Complex.normSq_pos.mpr hL).ne'
+  simp only [tangentDeviation, orthogonalProjectionComplex, Complex.sq_norm, Complex.real_smul,
+    Complex.normSq_sub, map_mul, Complex.normSq_ofReal, Complex.conj_ofReal, mul_left_comm w,
+    Complex.re_ofReal_mul]
+  field_simp
+  ring
+
+private theorem norm_orthogonalProjectionComplex_le (w L : ℂ) :
+    ‖orthogonalProjectionComplex w L‖ ≤ ‖w‖ :=
+  (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).1
+    (by nlinarith [proj_sq_add_dev_sq w L, sq_nonneg ‖tangentDeviation w L‖])
+
+theorem norm_tangentDeviation_le (w L : ℂ) :
+    ‖tangentDeviation w L‖ ≤ ‖w‖ :=
+  (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).1
+    (by nlinarith [proj_sq_add_dev_sq w L, sq_nonneg ‖orthogonalProjectionComplex w L‖])
+
+theorem norm_tangentDeviation_le_norm_sub_smul (w L : ℂ) (r : ℝ) :
+    ‖tangentDeviation w L‖ ≤ ‖w - r • L‖ := by
+  calc ‖tangentDeviation w L‖ = ‖tangentDeviation (w - r • L) L‖ := by
+        rw [tangentDeviation_sub, tangentDeviation_real_smul_self, sub_zero]
+    _ ≤ ‖w - r • L‖ := norm_tangentDeviation_le _ _
+
+private theorem norm_sub_norm_orthogonalProjectionComplex_le (w L : ℂ) :
+    ‖w‖ - ‖orthogonalProjectionComplex w L‖ ≤ ‖tangentDeviation w L‖ ^ 2 / ‖w‖ := by
+  rcases (norm_nonneg w).eq_or_lt with hw | hw
+  · simp [← hw]
+  rw [le_div_iff₀ hw]
+  nlinarith [proj_sq_add_dev_sq w L, mul_nonneg (norm_nonneg (orthogonalProjectionComplex w L))
+    (sub_nonneg.2 (norm_orthogonalProjectionComplex_le w L))]
+
+theorem norm_chord_to_tangent_target_le {w L : ℂ} (h_pos : 0 ≤ (w * starRingEnd ℂ L).re) :
+    ‖w - (‖w‖ / ‖L‖ : ℝ) • L‖ ≤
+      ‖tangentDeviation w L‖ + ‖tangentDeviation w L‖ ^ 2 / ‖w‖ := by
+  set c := (w * starRingEnd ℂ L).re / Complex.normSq L
+  have hP : orthogonalProjectionComplex w L = c • L := rfl
+
+  have h_target : ‖(c - ‖w‖ / ‖L‖) • L‖ ≤ ‖w‖ - ‖orthogonalProjectionComplex w L‖ := by
+    rcases eq_or_ne L 0 with rfl | hL
+    · simp [norm_orthogonalProjectionComplex_le]
+    have hc : 0 ≤ c := div_nonneg h_pos (Complex.normSq_nonneg L)
+    have hPn : ‖orthogonalProjectionComplex w L‖ = c * ‖L‖ := by
+      rw [hP, norm_smul, Real.norm_of_nonneg hc]
+    have hcw : c ≤ ‖w‖ / ‖L‖ := by
+      rw [le_div_iff₀ (norm_pos_iff.2 hL), ← hPn]
+      exact norm_orthogonalProjectionComplex_le w L
+    rw [norm_smul, Real.norm_of_nonpos (sub_nonpos.2 hcw), hPn, neg_sub, sub_mul,
+      div_mul_cancel₀ _ (norm_ne_zero_iff.2 hL)]
+  calc ‖w - (‖w‖ / ‖L‖ : ℝ) • L‖ = ‖(c - ‖w‖ / ‖L‖) • L + tangentDeviation w L‖ := by
+        rw [tangentDeviation, hP]; congr 1; module
+    _ ≤ ‖(c - ‖w‖ / ‖L‖) • L‖ + ‖tangentDeviation w L‖ := norm_add_le _ _
+    _ ≤ _ := by linarith [norm_sub_norm_orthogonalProjectionComplex_le w L]
+
+end TauCeti.Contour
+
+end
+
+end
+end Qatlib.Foundations.CbmdAnalysis.Residue

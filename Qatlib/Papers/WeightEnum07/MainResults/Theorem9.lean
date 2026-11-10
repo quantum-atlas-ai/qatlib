@@ -1,0 +1,217 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Mathlib.FieldTheory.Finite.Trace
+import Mathlib.FieldTheory.Finiteness
+import Mathlib.FieldTheory.Perfect
+import Mathlib.RingTheory.Trace.Basic
+import Mathlib.RingTheory.IntegralDomain
+import Mathlib.GroupTheory.Coset.Card
+import Mathlib.GroupTheory.OrderOfElement
+import Mathlib.Algebra.Algebra.Subalgebra.Lattice
+import Mathlib.Algebra.Group.Pointwise.Set.Basic
+
+set_option autoImplicit false
+noncomputable section
+
+namespace Qatlib.Papers.WeightEnum07.MainResults
+
+open scoped BigOperators Pointwise
+
+variable {F E : Type*} [Field F] [Field E] [Algebra F E]
+
+def traceWord (α : E) (N n : ℕ) (τ : E) : Fin n → F :=
+  fun i => Algebra.trace F E (τ * α ^ (i.val * N))
+
+def traceCode (α : E) (N n : ℕ) : Set (Fin n → F) := Set.range (traceWord (F := F) α N n)
+
+def traceMul (τ : E) : E →ₗ[F] F :=
+  (Algebra.trace F E).comp (Algebra.lmul F E τ)
+
+@[simp]
+lemma traceMul_apply (τ x : E) : traceMul (F := F) τ x = Algebra.trace F E (τ * x) := rfl
+
+def unitSet (v : Eˣ) : Set E := (fun x : Eˣ => (x : E)) '' (Subgroup.zpowers v : Set Eˣ)
+
+lemma adjoin_powers_eq_top
+    [Fintype F] [Finite E] [FiniteDimensional F E]
+    (α : E) (hα : α ≠ 0)
+    (n N : ℕ) (hn : 0 < n) (hN : 0 < N)
+    (hmul : n * N = Nat.card E - 1)
+    (hord : orderOf (Units.mk0 α hα) = n * N)
+    (hmin : ∀ j, 0 < j → j < Module.finrank F E → ¬ n ∣ Nat.card F ^ j - 1) :
+    Submodule.span F (unitSet ((Units.mk0 α hα) ^ N)) = ⊤ := by
+  classical
+  set u : Eˣ := Units.mk0 α hα with hu
+  set v : Eˣ := u ^ N with hv
+  set s : Set E := unitSet v with hs
+
+  have hordv : orderOf v = n := by
+    rw [hv, orderOf_pow, hu, hord]
+    have hNn : N ∣ n * N := ⟨n, by ring⟩
+    rw [Nat.gcd_eq_right hNn, Nat.mul_div_left n hN]
+
+  have hmul_s : s * s ⊆ s := by
+    rintro _ ⟨a, ha, b, hb, rfl⟩
+    rcases ha with ⟨x, hx, rfl⟩
+    rcases hb with ⟨y, hy, rfl⟩
+    exact ⟨x * y, (Subgroup.zpowers v).mul_mem hx hy, rfl⟩
+  have hone_s : (1 : E) ∈ s := ⟨1, (Subgroup.zpowers v).one_mem, rfl⟩
+
+  have hspan_mul : Submodule.span F s * Submodule.span F s ≤ Submodule.span F s := by
+    rw [Submodule.span_mul_span]
+    exact Submodule.span_mono hmul_s
+
+  let M : Submonoid E :=
+    { carrier := (Submodule.span F s : Set E)
+      one_mem' := Submodule.subset_span hone_s
+      mul_mem' := fun ha hb =>
+        hspan_mul (Submodule.mul_mem_mul (M := Submodule.span F s)
+          (N := Submodule.span F s) ha hb) }
+  have hcl : (↑(Submonoid.closure s) : Set E) ⊆ (Submodule.span F s : Set E) := by
+    intro x hx
+    have hle : Submonoid.closure s ≤ M :=
+      Submonoid.closure_le.2 (fun y hy => Submodule.subset_span hy)
+    exact hle hx
+
+  set S : Subalgebra F E := Algebra.adjoin F s with hS
+  have hSspan : Subalgebra.toSubmodule S = Submodule.span F s :=
+    Algebra.adjoin_eq_span_of_subset F hcl
+
+  haveI : Finite ↥S := Finite.of_injective (Subtype.val) Subtype.val_injective
+  haveI : IsDomain ↥S := inferInstance
+  letI : Field ↥S := IsField.toField (Finite.isField_of_domain ↥S)
+
+  have hvS : (v : E) ∈ (S : Set E) := by
+    have : (v : E) ∈ s := ⟨v, Subgroup.mem_zpowers v, rfl⟩
+    exact Algebra.subset_adjoin this
+  let vS : ↥S := ⟨(v : E), hvS⟩
+  have hvS_ne : vS ≠ 0 := by
+    intro h
+    have h0 : (v : E) = 0 := by simpa [vS] using congrArg (Subtype.val) h
+    exact Units.ne_zero v h0
+  let w : (↥S)ˣ := Units.mk0 vS hvS_ne
+  have hordw : orderOf w = n := by
+
+    let ψ : (↥S)ˣ →* Eˣ := Units.map (Subalgebra.val S).toMonoidHom
+    have hψinj : Function.Injective ψ := by
+      intro a b hab
+      apply Units.ext
+      apply Subtype.ext
+      have h := congrArg (fun z : Eˣ => (z : E)) hab
+      simpa [ψ, Units.coe_map] using h
+    have hψw : ψ w = v := by
+      apply Units.ext
+      have hmap : (ψ w : Eˣ) = Units.map (Subalgebra.val S).toMonoidHom w := rfl
+      show ((ψ w : Eˣ) : E) = ((v : Eˣ) : E)
+      rw [hmap, Units.coe_map]
+      show ((w : ↥S) : E) = ((v : Eˣ) : E)
+      simp [w, vS]
+    rw [← orderOf_injective ψ hψinj w, hψw, hordv]
+
+  have hdvd_card : n ∣ Nat.card ↥S - 1 := by
+    have h := orderOf_dvd_natCard w
+    rw [Nat.card_units] at h
+    rwa [hordw] at h
+
+  haveI : Module.Finite F ↥S := inferInstance
+  have hcardS : Nat.card ↥S = Nat.card F ^ Module.finrank F ↥S :=
+    Module.natCard_eq_pow_finrank
+
+  have hfin_le : Module.finrank F ↥S ≤ Module.finrank F E :=
+    (Submodule.finrank_le S.toSubmodule)
+  have hfin_pos : 0 < Module.finrank F ↥S := by
+    have hne : S.toSubmodule ≠ ⊥ := by
+      intro hbot
+      have : (1 : E) ∈ (⊥ : Submodule F E) := by
+        rw [← hbot]
+        exact Subalgebra.one_mem S
+      simpa using this
+    exact Nat.pos_of_ne_zero (fun hz => hne (Submodule.finrank_eq_zero.mp hz))
+  have hfin_eq : Module.finrank F ↥S = Module.finrank F E := by
+    by_contra hne
+    have hlt : Module.finrank F ↥S < Module.finrank F E := lt_of_le_of_ne hfin_le hne
+    have hdvd : n ∣ Nat.card F ^ Module.finrank F ↥S - 1 := hcardS ▸ hdvd_card
+    exact hmin _ hfin_pos hlt hdvd
+
+  have hStop : S.toSubmodule = ⊤ := by
+    apply Submodule.eq_top_of_finrank_eq
+    rw [S.finrank_toSubmodule, hfin_eq]
+
+  rw [← hSspan]
+  exact hStop
+
+theorem traceWord_injective
+    [Fintype F] [Finite E] [FiniteDimensional F E] [Algebra.IsSeparable F E]
+    (α : E) (hα : α ≠ 0)
+    (n N : ℕ) (hn : 0 < n) (hN : 0 < N)
+    (hmul : n * N = Nat.card E - 1)
+    (hord : orderOf (Units.mk0 α hα) = n * N)
+    (hmin : ∀ j, 0 < j → j < Module.finrank F E → ¬ n ∣ Nat.card F ^ j - 1) :
+    Function.Injective (traceWord (F := F) α N n) := by
+  classical
+  set u : Eˣ := Units.mk0 α hα with hu
+  set v : Eˣ := u ^ N with hv
+  have hordv : orderOf v = n := by
+    rw [hv, orderOf_pow, hu, hord]
+    have hNn : N ∣ n * N := ⟨n, by ring⟩
+    rw [Nat.gcd_eq_right hNn, Nat.mul_div_left n hN]
+  have hs_top : Submodule.span F (unitSet v) = ⊤ :=
+    adjoin_powers_eq_top α hα n N hn hN hmul hord hmin
+  intro τ₁ τ₂ hτ
+  set τ : E := τ₁ - τ₂ with hτdef
+
+  have hzero : ∀ i : Fin n, Algebra.trace F E (τ * α ^ (i.val * N)) = 0 := by
+    intro i
+    have hi := congrFun hτ i
+    simp only [traceWord] at hi
+    rw [hτdef, sub_mul, map_sub, hi, sub_self]
+
+  have hL : traceMul (F := F) τ = 0 := by
+    ext x
+    have hx : x ∈ Submodule.span F (unitSet v) := by rw [hs_top]; trivial
+    have hs_mem : ∀ y ∈ unitSet v, traceMul (F := F) τ y = 0 := by
+      rintro y ⟨z, hz, rfl⟩
+      have hz' : z ∈ (Finset.range (orderOf v)).image (v ^ ·) :=
+        (isOfFinOrder_of_finite v).mem_zpowers_iff_mem_range_orderOf.mp hz
+      obtain ⟨i, hi, rfl⟩ := Finset.mem_image.mp hz'
+      have hiz : i < n := by simpa [hordv] using hi
+      have hvy : ((v ^ i : Eˣ) : E) = α ^ (i * N) := by
+        rw [hv, hu, Units.val_pow_eq_pow_val, Units.val_pow_eq_pow_val, Units.val_mk0]
+        ring_nf
+      rw [traceMul_apply]
+      show Algebra.trace F E (τ * ((v ^ i : Eˣ) : E)) = 0
+      rw [hvy]
+      exact hzero ⟨i, hiz⟩
+    refine Submodule.span_induction (p := fun y _ => traceMul (F := F) τ y = 0)
+      hs_mem ?_ ?_ ?_ hx
+    · simp
+    · intro a b _ _ ha hb
+      rw [map_add, ha, hb, add_zero]
+    · intro c a _ ha
+      rw [map_smul, ha, smul_zero]
+  have hτ0 : τ = 0 := by
+    refine (traceForm_nondegenerate F E).1 τ ?_
+    intro y
+    have h := congrArg (fun l : E →ₗ[F] F => l y) hL
+    simpa [traceMul_apply, Algebra.traceForm_apply] using h
+  exact sub_eq_zero.mp (hτdef ▸ hτ0)
+
+theorem traceCode_ncard
+    [Fintype F] [Finite E] [FiniteDimensional F E] [Algebra.IsSeparable F E]
+    (α : E) (hα : α ≠ 0)
+    (n N : ℕ) (hn : 0 < n) (hN : 0 < N)
+    (hmul : n * N = Nat.card E - 1)
+    (hord : orderOf (Units.mk0 α hα) = n * N)
+    (hmin : ∀ j, 0 < j → j < Module.finrank F E → ¬ n ∣ Nat.card F ^ j - 1) :
+    Nat.card (traceCode (F := F) α N n) = Nat.card E ∧
+      Nat.card E = Nat.card F ^ Module.finrank F E := by
+  refine ⟨?_, Module.natCard_eq_pow_finrank⟩
+  have hinj := traceWord_injective α hα n N hn hN hmul hord hmin
+  rw [traceCode]
+  exact Nat.card_congr (Equiv.ofInjective (traceWord (F := F) α N n) hinj).symm
+
+end Qatlib.Papers.WeightEnum07.MainResults

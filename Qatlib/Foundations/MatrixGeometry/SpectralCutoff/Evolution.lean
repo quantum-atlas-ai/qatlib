@@ -1,0 +1,71 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Compression
+import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+set_option warningAsError false
+
+set_option autoImplicit false
+set_option maxHeartbeats 900000
+noncomputable section
+open Matrix Unitary
+open scoped Classical BigOperators Matrix.Norms.L2Operator MatrixOrder ComplexOrder
+namespace Qatlib.Foundations.MatrixGeometry.SpectralCutoff
+variable {I : Type*} [Fintype I] [DecidableEq I]
+local instance : CStarAlgebra (Matrix I I ℂ) where
+local instance : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ (Matrix I I ℂ)
+
+theorem exp_spectral (H : Matrix I I ℂ) (hH : H.IsHermitian) (z : ℂ) :
+    NormedSpace.exp (z • H)=conjStarAlgAut ℂ (Matrix I I ℂ) hH.eigenvectorUnitary
+      (diagonal (fun i=>Complex.exp (z*(hH.eigenvalues i:ℂ)))) := by
+  let C : Matrix I I ℂ ≃⋆ₐ[ℂ] Matrix I I ℂ :=conjStarAlgAut ℂ (Matrix I I ℂ) hH.eigenvectorUnitary
+  let D : Matrix I I ℂ := diagonal (fun i=>z*(hH.eigenvalues i:ℂ))
+  have hc : Continuous C := (StarAlgEquiv.isometry (A:=Matrix I I ℂ) (B:=Matrix I I ℂ) C).continuous
+  have he : z • H=C D := by
+    have hh:=congrArg (fun A : Matrix I I ℂ=>z • A) hH.spectral_theorem
+    change z • H=z • C (diagonal (fun i=>(hH.eigenvalues i:ℂ))) at hh
+    rw [← map_smul] at hh
+    simpa only [← Matrix.diagonal_smul,Pi.smul_apply,smul_eq_mul] using! hh
+  rw [he]
+  calc
+    _ = C (NormedSpace.exp D) := (NormedSpace.map_exp (𝔸:=Matrix I I ℂ) (𝔹:=Matrix I I ℂ) C hc D).symm
+    _ = _ := ?_
+  rw [Matrix.exp_diagonal]
+  apply congrArg C
+  apply congrArg Matrix.diagonal
+  funext i
+  rw [Pi.coe_exp,← Complex.exp_eq_exp_ℂ]
+
+def evolve (H : Matrix I I ℂ) (t : ℝ) : Matrix I I ℂ := NormedSpace.exp (((-t:ℂ)*Complex.I) • H)
+
+theorem evolve_unitary (H : Matrix I I ℂ) (hH : H.IsHermitian) (t : ℝ) :
+    evolve H t∈unitary (Matrix I I ℂ) := by
+  apply NormedSpace.exp_mem_unitary_of_mem_skewAdjoint
+  change star (((-t:ℂ)*Complex.I) • H)=-(((-t:ℂ)*Complex.I) • H)
+  have hh : star H=H := hH
+  have hc : star (((-t:ℂ)*Complex.I))=-(((-t:ℂ)*Complex.I)) := by simp
+  rw [star_smul,hh,hc,neg_smul]
+
+theorem evolve_low_commute (H : Matrix I I ℂ) (hH : H.IsHermitian) (t Δ : ℝ) :
+    Commute (evolve H t) (low H hH Δ) := by
+  unfold evolve low
+  rw [exp_spectral H hH (((-t:ℂ)*Complex.I))]
+  change _*_= _*_
+  rw [← map_mul,← map_mul]
+  apply congrArg
+  rw [mask,Matrix.diagonal_mul_diagonal,Matrix.diagonal_mul_diagonal]
+  apply congrArg Matrix.diagonal
+  funext i
+  exact mul_comm _ _
+
+theorem evolve_no_leak (H : Matrix I I ℂ) (hH : H.IsHermitian) (t Δ Λ : ℝ) (hΔ : Δ ≤ Λ) :
+    high H hH Λ*evolve H t*low H hH Δ=0 := by
+  rw [mul_assoc,(evolve_low_commute H hH t Δ).eq,← mul_assoc,separated_orthogonal H hH Δ Λ hΔ,zero_mul]
+
+theorem evolve_norm_mul (H : Matrix I I ℂ) (hH : H.IsHermitian) (t : ℝ) (A : Matrix I I ℂ) :
+    ‖evolve H t*A‖=‖A‖ := CStarRing.norm_mem_unitary_mul A (evolve_unitary H hH t)
+
+end Qatlib.Foundations.MatrixGeometry.SpectralCutoff

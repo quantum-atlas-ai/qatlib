@@ -1,0 +1,57 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.QspSimulation.Achievability.ExponentialPolynomial
+import Qatlib.Concepts.BlockEncoding.Basic
+import Mathlib.Analysis.Normed.Algebra.Exponential
+set_option warningAsError false
+
+open Qatlib.Concepts.BlockEncoding
+
+namespace Qatlib.Concepts.QspSimulation.Achievability
+
+open Matrix Polynomial Filter
+open scoped Matrix.Norms.L2Operator Topology
+
+variable {I : Type*} [Fintype I] [DecidableEq I]
+
+noncomputable def hamiltonianEvolution (A : Matrix I I ℂ) (t : ℝ) : Matrix I I ℂ :=
+  NormedSpace.exp ((-Complex.I * (t : ℂ)) • A : Matrix I I ℂ)
+
+theorem aeval_exponentialTaylorPolynomial (A : Matrix I I ℂ) (t : ℝ) (n : ℕ) :
+    aeval A (exponentialTaylorPolynomial t n) =
+      ∑ k ∈ Finset.range n, ((k.factorial : ℂ)⁻¹) •
+        (((-Complex.I * (t : ℂ)) • A : Matrix I I ℂ) ^ k) := by
+  simp only [exponentialTaylorPolynomial, map_sum, Polynomial.aeval_monomial,
+    Algebra.algebraMap_eq_smul_one, Matrix.smul_mul, Matrix.one_mul]
+  apply Finset.sum_congr rfl
+  intro k _hk
+  rw [_root_.smul_pow, smul_smul]
+  congr 1
+  simp only [exponentialTaylorCoefficient, div_eq_mul_inv, mul_comm]
+
+theorem matrixTaylor_tendsto (A : Matrix I I ℂ) (t : ℝ) :
+    Tendsto (fun n => aeval A (exponentialTaylorPolynomial t n)) atTop
+      (𝓝 (hamiltonianEvolution A t)) := by
+  simpa only [aeval_exponentialTaylorPolynomial, hamiltonianEvolution] using
+    (NormedSpace.exp_series_hasSum_exp' (𝕂 := ℂ)
+      ((-Complex.I * (t : ℂ)) • A : Matrix I I ℂ)).tendsto_sum_nat
+
+theorem matrixTaylor_eventually_error_lt (A : Matrix I I ℂ) (t : ℝ)
+    {ε : ℝ} (hε : 0 < ε) :
+    ∃ N : ℕ, ∀ n ≥ N,
+      ‖aeval A (exponentialTaylorPolynomial t n) - hamiltonianEvolution A t‖ < ε := by
+  simpa only [dist_eq_norm] using Metric.tendsto_atTop.mp (matrixTaylor_tendsto A t) ε hε
+
+@[simp] theorem hamiltonianEvolution_zero_time (A : Matrix I I ℂ) :
+    hamiltonianEvolution A 0 = 1 := by
+  simp [hamiltonianEvolution]
+
+@[simp] theorem hamiltonianEvolution_zero_matrix (t : ℝ) :
+    hamiltonianEvolution (0 : Matrix I I ℂ) t = 1 := by
+  simp [hamiltonianEvolution]
+
+end Qatlib.Concepts.QspSimulation.Achievability

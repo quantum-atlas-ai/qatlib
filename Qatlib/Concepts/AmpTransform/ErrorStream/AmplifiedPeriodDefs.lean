@@ -1,0 +1,99 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseExecutionDefs
+import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
+import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
+import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+import Qatlib.Concepts.AmpTransform.FullLayerCF.FullLayerCFDenoiseUniquePAmpl
+import Qatlib.Concepts.AmpTransform.FullLayerCF.WrapUnknownMRecovery
+import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarGeneralWNAmpl
+import Qatlib.Concepts.QftPreparation.LocalQft
+import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliZeroModeTransportAmpl
+set_option warningAsError false
+set_option backward.isDefEq.respectTransparency false
+open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
+open Qatlib.Foundations.QueryWordCore.Circuit
+open Qatlib.Concepts.QftPreparation.LocalQft
+open Qatlib.Concepts.AmpTransform.ErrorStream
+open Qatlib.Concepts.AmpTransform.FullLayerCF
+open Qatlib.Concepts.AmpTransform.HaarPairTest
+open Qatlib.Concepts.AmpTransform.NoiseEnvelope
+open Qatlib.Concepts.AmpTransform.SuccessRatio
+open Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+open Qatlib.Concepts.LinearLearning.ConcisePipeline
+open Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+
+set_option autoImplicit false
+
+namespace Qatlib.Concepts.AmpTransform.ErrorStream
+
+open Qatlib
+open scoped Classical BigOperators ENNReal
+
+abbrev aqCompletionCandidates := Finset ℕ
+
+structure aqFreshCompletionRecord (N : ℕ) where
+
+  candidates : Finset ℕ
+
+  observation : Finset (Fin N)
+  deriving DecidableEq
+
+def aqCompletionFixedNoiseEndpoint : Prop :=
+  (∀ (N : ℕ) (h : Fin N → Bool) (s M B : ℕ) (xs : List (Fin N)) (p : ℕ),
+      p ∈ aqCandidateRecord h s M B xs → (aqVerify h s M p).1 = true) ∧
+  (∀ (N : ℕ) (h : Fin N → Bool) (s M B k : ℕ) (xs : List (Fin N)),
+      aqCandidateRecordQueries h s M B k xs ≤ xs.length * (k + 3)) ∧
+  FullLayerCFDenoiseUniqueP ∧
+  ((aqProgressionSet 128 0 4 2 ∪ ({8, 12} : Finset (Fin 128))) =
+      (aqProgressionSet 128 0 4 4 ∪ ({2, 6} : Finset (Fin 128)))) ∧
+  ((aqVerify (fun x : Fin 128 =>
+      decide (x ∈ (aqProgressionSet 128 0 4 2 ∪ ({8, 12} : Finset (Fin 128))))) 0 4 2).1
+      = true) ∧
+  ((aqVerify (fun x : Fin 128 =>
+      decide (x ∈ (aqProgressionSet 128 0 4 2 ∪ ({8, 12} : Finset (Fin 128))))) 0 4 4).1
+      = true)
+
+def aqCompletionWrapEndpoint : Prop :=
+  (∀ (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M P : ℕ)
+      (hM : 2 ≤ M) (hP : 0 < P) (hMP : M * P ≤ N) (G : Finset (Fin N))
+      (hmark : ∀ x, h x = decide (x ∈ ((Finset.range M).image (fun r : ℕ =>
+        (⟨(s + r * P) % N, Nat.mod_lt _ hN⟩ : Fin N))) ∪ G)),
+      aqCyclicVerify N hN h s M P = (true, 3)) ∧
+  (∀ (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M q : ℕ),
+      (aqCyclicVerify N hN h s M q).2 ≤ 3)
+
+def aqCompletionHaarEndpoint : Prop :=
+  HaarGeneralWN ∧
+  (∀ (C fuel : ℕ) (hC : 0 < C),
+      ∀ j : Fin C,
+        CostedLaw.event (aqFairLabelSampler C fuel)
+            (fun z => z.1 = Sum.inl j) =
+          (1 - coinRejectMass (Nat.clog 2 C) C ^ fuel) / (C : ℝ≥0∞)) ∧
+  (∀ n : ℕ,
+      GateCount (localProgramCircuit (localQFT n)) = n + n * (n - 1) / 2 + n / 2)
+
+def aqCompletionFreshAccessEndpoint : Prop :=
+  (∀ (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) (i : Fin N),
+      (∑ σ : Fin N → Bool, (bernoulliStreamLaw N p hp hp1).prob σ *
+        (if σ i then 1 else 0)) = p) ∧
+  (∀ (N s M P P' : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1),
+      (∑ σ : Fin N → Bool, (bernoulliStreamLaw N p hp hp1).prob σ *
+        (if aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ) then 1 else 0))
+        = p ^ (aqCandidateSeparation N s M P P')) ∧
+  (∀ (N s M P : ℕ) (p : ℝ) (cands : Finset ℕ) (hP : P ∈ cands) (σ : Fin N → Bool)
+      (hrefute : ∀ P' ∈ cands \ {P},
+        ¬ aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ)),
+      aqFreshDisambiguate N s M cands p (aqFreshMarked N s M P σ) = some P)
+
+def aqCompletionZeroModeEndpoint : Prop :=
+  BernoulliErrorStreamZeroModeTransport
+
+end Qatlib.Concepts.AmpTransform.ErrorStream

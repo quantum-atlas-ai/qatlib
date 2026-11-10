@@ -1,0 +1,246 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.CommutLCHS26.MainResults.TimeOrderedPicard
+import Qatlib.Concepts.TimeEvolution.DysonPropagator.PicardResidual
+import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationCommutatorExpansion
+set_option backward.isDefEq.respectTransparency false
+
+set_option autoImplicit false
+noncomputable section
+
+namespace Qatlib.Papers.CommutLCHS26.MainResults.PerturbationDyson
+
+open Matrix Set
+open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
+open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+open Qatlib.Concepts.LchsSimulation.TimeOrdered
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
+open Qatlib.Concepts.TrotterFormula.GeneralOrder
+open Qatlib.Concepts.InteractionEvo.DysonGrid
+open Qatlib.Concepts.TimeEvolution.DysonPropagator
+open Qatlib.Papers.CommutLCHS26.MainResults
+set_option warningAsError false
+
+variable {I : Type} [Fintype I] [DecidableEq I]
+local instance : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
+
+def interaction (A B : Matrix I I ℂ) (t : ℝ) : Matrix I I ℂ :=
+  -pfConjExp A B (-t)
+
+theorem hamiltonian_eq (A : Matrix I I ℂ) (t : ℝ) :
+    HamiltonianEvolution (Complex.I • A) t = NormedSpace.exp (t • A) := by
+  unfold HamiltonianEvolution
+  rw [smul_smul]
+  have he : (-Complex.I * (t : ℂ)) * Complex.I = (t : ℂ) := by
+    calc
+      _ = (-Complex.I * Complex.I) * (t : ℂ) := by ring
+      _ = _ := by simp
+  rw [he]
+  rfl
+
+theorem interaction_eq_native (A B : Matrix I I ℂ) (t : ℝ) :
+    interaction A B t =
+      Complex.I • interactionGenerator (Complex.I • A) (fun _ => Complex.I • B) t := by
+  simp only [interaction, interactionGenerator, hamiltonian_eq, pfConjExp, neg_neg,
+    Matrix.mul_smul, Matrix.smul_mul, smul_smul, Complex.I_mul_I, neg_one_smul]
+
+omit [Fintype I] [DecidableEq I] in
+
+private theorem hermitian_of_skew (A : Matrix I I ℂ) (hA : Aᴴ = -A) :
+    (Complex.I • A).IsHermitian := by
+  change (Complex.I • A)ᴴ = Complex.I • A
+  simp [Matrix.conjTranspose_smul, hA]
+
+theorem interaction_continuous (A B : Matrix I I ℂ) : Continuous (interaction A B) := by
+  unfold interaction pfConjExp
+  have hE := (trotter_exp_contDiff A).continuous
+  simpa only [neg_neg] using! (((hE.comp continuous_neg).mul continuous_const).mul hE).neg
+
+theorem interaction_norm (A B : Matrix I I ℂ) (hA : Aᴴ = -A) (t : ℝ) :
+    ‖interaction A B t‖ ≤ ‖B‖ := by
+  simpa only [interaction, norm_neg] using! pfConjExp_norm_skew A B (-t) hA
+
+theorem interaction_skew (A B : Matrix I I ℂ) (hA : Aᴴ = -A) (hB : Bᴴ = -B) (t : ℝ) :
+    (interaction A B t)ᴴ = -interaction A B t := by
+  unfold interaction pfConjExp
+  simp only [Matrix.conjTranspose_neg, Matrix.conjTranspose_mul, ← Matrix.exp_conjTranspose,
+    Matrix.conjTranspose_smul, star_trivial, hA, hB, smul_neg, neg_smul, neg_neg]
+  noncomm_ring
+
+theorem evolution_identity (A B : Matrix I I ℂ) (hA : Aᴴ = -A) (hB : Bᴴ = -B) (t : ℝ) :
+    NormedSpace.exp (t • (A + B)) =
+      NormedSpace.exp (t • A) * orderedEvolution (interaction A B) 0 t := by
+  have h := ordered_interaction_picture_identity I (Complex.I • A) (fun _ => Complex.I • B)
+    (hermitian_of_skew A hA) continuous_const (fun _ => hermitian_of_skew B hB) t
+  have he : (fun u => Complex.I • interactionGenerator (Complex.I • A)
+      (fun _ => Complex.I • B) u) = interaction A B := by
+    funext u
+    exact (interaction_eq_native A B u).symm
+  rw [he, hamiltonian_eq, ← smul_add, orderedEvolution_constant_hamiltonian, sub_zero,
+    hamiltonian_eq] at h
+  exact h
+
+def term (A B : Matrix I I ℂ) (n : ℕ) (t : ℝ) : Matrix I I ℂ :=
+  NormedSpace.exp (t • A) * orderedDysonTerm (interaction A B) 0 n t
+
+@[simp] theorem term_zero (A B : Matrix I I ℂ) (t : ℝ) :
+    term A B 0 t = NormedSpace.exp (t • A) := by simp [term, orderedDysonTerm]
+
+theorem term_continuous (A B : Matrix I I ℂ) (n : ℕ) : Continuous (term A B n) :=
+  (trotter_exp_contDiff A).continuous.mul
+    (orderedDysonTerm_continuous _ (interaction_continuous A B) 0 n)
+
+private theorem exp_comp (A : Matrix I I ℂ) (t u : ℝ) :
+    NormedSpace.exp (t • A) * NormedSpace.exp ((-u) • A) =
+      NormedSpace.exp ((t - u) • A) := by
+  have hc : Commute (t • A) ((-u) • A) := by
+    show (t • A) * ((-u) • A) = ((-u) • A) * (t • A)
+    simp only [Matrix.smul_mul, Matrix.mul_smul, smul_smul, mul_comm]
+  calc
+    _ = NormedSpace.exp (t • A + (-u) • A) := (NormedSpace.exp_add_of_commute hc).symm
+    _ = _ := by rw [← add_smul]; rfl
+
+private theorem kernel_identity (A B W : Matrix I I ℂ) (t u : ℝ) :
+    NormedSpace.exp (t • A) * (-(interaction A B u * W)) =
+      NormedSpace.exp ((t - u) • A) * B * (NormedSpace.exp (u • A) * W) := by
+  unfold interaction pfConjExp
+  simp only [neg_neg, neg_mul]
+  rw [← exp_comp A t u]
+  noncomm_ring
+
+theorem term_succ (A B : Matrix I I ℂ) (n : ℕ) (t : ℝ) :
+    term A B (n + 1) t =
+      ∫ u in 0..t, NormedSpace.exp ((t - u) • A) * B * term A B n u := by
+  have hi := ((interaction_continuous A B).mul
+    (orderedDysonTerm_continuous _ (interaction_continuous A B) 0 n)).neg.intervalIntegrable
+      (μ := MeasureTheory.volume) 0 t
+  have h :=
+      (ContinuousLinearMap.mul ℝ (Matrix I I ℂ) (NormedSpace.exp (t • A))).intervalIntegral_comp_comm hi
+  change (∫ u in 0..t, NormedSpace.exp (t • A) * (-(interaction A B u *
+      orderedDysonTerm (interaction A B) 0 n u))) =
+    NormedSpace.exp (t • A) * (∫ u in 0..t, -(interaction A B u *
+      orderedDysonTerm (interaction A B) 0 n u)) at h
+  rw [term, orderedDysonTerm, ← h]
+  apply intervalIntegral.integral_congr
+  intro u _
+  exact kernel_identity A B _ t u
+
+theorem term_norm (A B : Matrix I I ℂ) (hA : Aᴴ = -A) (n : ℕ) (t : ℝ) :
+    ‖term A B n t‖ ≤ (‖B‖ * |t|) ^ n / (n.factorial : ℝ) := by
+  have h := orderedDysonTerm_norm_le (interaction A B) (interaction_continuous A B) 0 t
+    ‖B‖ (norm_nonneg _) (fun u _ => interaction_norm A B hA u) n
+  simp only [sub_zero] at h
+  apply (norm_mul_le _ _).trans
+  exact (mul_le_mul (l2_norm_unitary_le_one (general_trotter_exp_unitary A t hA)) h
+    (norm_nonneg _) (by norm_num : (0 : ℝ) ≤ 1)).trans_eq (one_mul _)
+
+theorem prefix_identity (A B : Matrix I I ℂ) (n : ℕ) (t : ℝ) :
+    (∑ j ∈ Finset.range (n + 1), term A B j t) =
+      NormedSpace.exp (t • A) * dysonPrefix (interaction A B) 0 t n := by
+  simp only [term, dysonPrefix, Finset.mul_sum]
+
+theorem prefix_error (A B : Matrix I I ℂ) (hA : Aᴴ = -A) (hB : Bᴴ = -B)
+    (n : ℕ) (t : ℝ) (ht : 0 ≤ t) :
+    ‖NormedSpace.exp (t • (A + B)) - ∑ j ∈ Finset.range (n + 1), term A B j t‖ ≤
+      (‖B‖ * t) ^ (n + 1) / ((n + 1).factorial : ℝ) := by
+  have hPSD (u : ℝ) : (interaction A B u + (interaction A B u)ᴴ).PosSemidef := by
+    rw [interaction_skew A B hA hB, add_neg_cancel]
+    exact Matrix.PosSemidef.zero
+  have h := TimeOrderedPicard.norm_dysonPrefix_error_le (interaction A B)
+    (interaction_continuous A B) hPSD 0 t ‖B‖ ht (norm_nonneg _)
+    (fun u _ => interaction_norm A B hA u) n
+  rw [evolution_identity A B hA hB, prefix_identity, ← mul_sub]
+  apply (norm_mul_le _ _).trans
+  rw [norm_sub_rev]
+  exact (mul_le_mul (l2_norm_unitary_le_one (general_trotter_exp_unitary A t hA))
+    (by simpa only [sub_zero] using! h) (norm_nonneg _) (by norm_num : (0 : ℝ) ≤ 1)).trans_eq (one_mul _)
+
+theorem expansion_error (A B : Matrix I I ℂ) (hA : Aᴴ = -A) (hB : Bᴴ = -B)
+    (p : ℕ) (hp : 0 < p) (t : ℝ) (ht : 0 ≤ t) :
+    ‖NormedSpace.exp (t • (A + B)) - ∑ j ∈ Finset.range p, term A B j t‖ ≤
+      (‖B‖ * t) ^ p / (p.factorial : ℝ) := by
+  have h := prefix_error A B hA hB (p - 1) t ht
+  simpa only [Nat.sub_add_cancel hp] using! h
+
+theorem exponential_duhamel (A B : Matrix I I ℂ) (t : ℝ) :
+    NormedSpace.exp (t • (A + B)) - NormedSpace.exp (t • A) =
+      ∫ u in 0..t, NormedSpace.exp ((t - u) • A) * B * NormedSpace.exp (u • (A + B)) := by
+  have hd (u : ℝ) : HasDerivAt (fun v : ℝ => NormedSpace.exp (v • (A + B)))
+      (B * NormedSpace.exp (u • (A + B)) - (-A) * NormedSpace.exp (u • (A + B))) u := by
+    have hder : HasDerivAt (fun v : ℝ => NormedSpace.exp (v • (A + B)))
+        ((A + B) * NormedSpace.exp (u • (A + B))) u :=
+      hasDerivAt_exp_smul_const' (𝕂 := ℝ) (A + B) u
+    convert! hder using 1
+    noncomm_ring
+  have h := PicardResidual.residual_identity (-A) (fun u => NormedSpace.exp (u • (A + B)))
+    (fun u => B * NormedSpace.exp (u • (A + B))) hd
+    (continuous_const.mul (trotter_exp_contDiff (A + B)).continuous) t
+  simpa only [Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution,
+    smul_neg, neg_smul, neg_neg, zero_smul, NormedSpace.exp_zero, mul_one, mul_assoc] using! h
+
+def remainder (A B : Matrix I I ℂ) (p : ℕ) (t : ℝ) : Matrix I I ℂ :=
+  NormedSpace.exp (t • (A + B)) - ∑ j ∈ Finset.range p, term A B j t
+
+@[simp] theorem remainder_zero (A B : Matrix I I ℂ) (t : ℝ) :
+    remainder A B 0 t = NormedSpace.exp (t • (A + B)) := by simp [remainder]
+
+theorem remainder_succ (A B : Matrix I I ℂ) (p : ℕ) (t : ℝ) :
+    remainder A B (p + 1) t =
+      ∫ u in 0..t, NormedSpace.exp ((t - u) • A) * B * remainder A B p u := by
+  have hc : Continuous (fun u : ℝ => NormedSpace.exp ((t - u) • A) * B) :=
+    ((trotter_exp_contDiff A).continuous.comp (continuous_const.sub continuous_id)).mul continuous_const
+  have hf := (hc.mul (trotter_exp_contDiff (A + B)).continuous).intervalIntegrable
+    (μ := MeasureTheory.volume) 0 t
+  have hi (n : ℕ) := (hc.mul (term_continuous A B n)).intervalIntegrable
+    (μ := MeasureTheory.volume) 0 t
+  have hs := (continuous_finsetSum (Finset.range p) (fun n _ => hc.mul (term_continuous A B n))).intervalIntegrable
+    (μ := MeasureTheory.volume) 0 t
+  unfold remainder
+  simp only [Matrix.mul_sub, Finset.mul_sum]
+  have hsub : (∫ u in 0..t,
+      NormedSpace.exp ((t - u) • A) * B * NormedSpace.exp (u • (A + B)) -
+        ∑ n ∈ Finset.range p, NormedSpace.exp ((t - u) • A) * B * term A B n u) =
+      (∫ u in 0..t, NormedSpace.exp ((t - u) • A) * B * NormedSpace.exp (u • (A + B))) -
+        ∫ u in 0..t, ∑ n ∈ Finset.range p, NormedSpace.exp ((t - u) • A) * B * term A B n u :=
+    intervalIntegral.integral_sub hf hs
+  rw [hsub]
+  have hsum : (∫ u in 0..t, ∑ n ∈ Finset.range p,
+      NormedSpace.exp ((t - u) • A) * B * term A B n u) =
+      ∑ n ∈ Finset.range p, ∫ u in 0..t,
+        NormedSpace.exp ((t - u) • A) * B * term A B n u :=
+    intervalIntegral.integral_finsetSum (fun n _ => hi n)
+  rw [hsum]
+  simp_rw [← term_succ]
+  rw [← exponential_duhamel, Finset.sum_range_succ']
+  simp only [term_zero]
+  abel
+
+theorem remainder_bound (A B : Matrix I I ℂ) (hA : Aᴴ = -A) (hB : Bᴴ = -B)
+    (p : ℕ) (hp : 0 < p) (t : ℝ) (ht : 0 ≤ t) :
+    ‖remainder A B p t‖ ≤ (‖B‖ * t) ^ p / (p.factorial : ℝ) :=
+  expansion_error A B hA hB p hp t ht
+
+theorem unit_interval_expansion (A B : Matrix I I ℂ) (hA : Aᴴ = -A) (hB : Bᴴ = -B)
+    (p : ℕ) (hp : 0 < p) :
+    NormedSpace.exp (A + B) = NormedSpace.exp A +
+      (∑ j ∈ Finset.range (p - 1), term A B (j + 1) 1) + remainder A B p 1 ∧
+    ‖remainder A B p 1‖ ≤ ‖B‖ ^ p / (p.factorial : ℝ) := by
+  constructor
+  · have hs : (∑ j ∈ Finset.range p, term A B j 1) =
+        NormedSpace.exp A + ∑ j ∈ Finset.range (p - 1), term A B (j + 1) 1 := by
+      conv_lhs => rw [show p = (p - 1) + 1 by omega]
+      rw [Finset.sum_range_succ']
+      simp only [term_zero, one_smul]
+      abel
+    unfold remainder
+    rw [hs]
+    simp only [one_smul]
+    abel
+  · simpa only [mul_one] using! remainder_bound A B hA hB p hp 1 (by norm_num)
+
+end Qatlib.Papers.CommutLCHS26.MainResults.PerturbationDyson

@@ -1,0 +1,116 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.SemiDirectHSP06.MainResults.Proposition3Presentation
+import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
+import Mathlib.Algebra.Group.Subgroup.Lattice
+set_option warningAsError false
+
+set_option autoImplicit false
+noncomputable section
+
+namespace Qatlib.Papers.SemiDirectHSP06.MainResults
+
+lemma prop6_arith (p r s t b h : ℕ) (hr : 2 ≤ r) (hs : 1 ≤ s) (hb : 1 ≤ b) :
+    (h * 2 ^ t * p ^ (s - 1)) * b * ((b - 1) * 1 * p ^ (r - 1) + 1)
+      = (b * h % p) * 2 ^ t * p ^ (s - 1)
+        + (2 ^ t * p ^ s) *
+          ((b * h / p) * ((b - 1) * 1 * p ^ (r - 1) + 1) +
+            (b * h % p) * (b - 1) * p ^ (r - 2)) := by
+  obtain ⟨b', rfl⟩ : ∃ b', b = b' + 1 := ⟨b - 1, by omega⟩
+  obtain ⟨s', rfl⟩ : ∃ s', s = s' + 1 := ⟨s - 1, by omega⟩
+  obtain ⟨r', rfl⟩ : ∃ r', r = r' + 2 := ⟨r - 2, by omega⟩
+  have hb1 : b' + 1 - 1 = b' := by omega
+  have hs1 : s' + 1 - 1 = s' := by omega
+  have hr1 : r' + 2 - 1 = r' + 1 := by omega
+  have hr2 : r' + 2 - 2 = r' := by omega
+  rw [hb1, hs1, hr1, hr2]
+  set T := (b' + 1) * h with hT
+  set d := T / p with hd
+  set m := T % p with hm
+  have hTdm : p * d + m = T := by
+    rw [hd, hm]; exact Nat.div_add_mod T p
+  have hm' : (b' + 1) * h % p = m := by rw [← hT, ← hm]
+  have hd' : (b' + 1) * h / p = d := by rw [← hT, ← hd]
+  have hX : p ^ (r' + 1) = p * p ^ r' := by rw [pow_succ, mul_comm]
+  have hU : p ^ (s' + 1) = p ^ s' * p := by rw [pow_succ]
+  rw [hX, hU]
+  have hTA : h * 2 ^ t * p ^ s' * (b' + 1) = T * 2 ^ t * p ^ s' := by
+    rw [hT]; ring
+  rw [hTA, ← hTdm]
+  ring
+
+theorem proposition6_generated_inclusion
+    {p r : ℕ} (hp : p.Prime) (hr : 2 ≤ r)
+    (φ : Multiplicative (ZMod p) →* MulAut (Multiplicative (ZMod (2 * p ^ r))))
+    (_hφ : φ (Multiplicative.ofAdd 1) = shiftAut p r hp hr)
+    {t s h : ℕ} (_ht : t ≤ 1) (hsr : s ≤ r) (hh : h ≤ p - 1) (hs0 : s = 0 → h = 0)
+    {b : ℕ} (hb : b ≤ p - 1) :
+    genX p r φ ^ ((b * h % p) * 2 ^ t * p ^ (s - 1)) * genY p r φ ^ b ∈
+      Subgroup.closure
+        ({genX p r φ ^ (2 ^ t * p ^ s),
+            genX p r φ ^ (h * 2 ^ t * p ^ (s - 1)) * genY p r φ} :
+          Set (SDP p r φ)) := by
+  classical
+  set G : Subgroup (SDP p r φ) :=
+    Subgroup.closure
+      ({genX p r φ ^ (2 ^ t * p ^ s),
+          genX p r φ ^ (h * 2 ^ t * p ^ (s - 1)) * genY p r φ} :
+        Set (SDP p r φ)) with hG
+  rcases Nat.eq_zero_or_pos b with hb0 | hbpos
+  · subst hb0
+    simp
+  · obtain ⟨b', hb'⟩ : ∃ b', b = b' + 1 := ⟨b - 1, by omega⟩
+    subst hb'
+    rcases Nat.eq_zero_or_pos s with hs_eq | hspos
+    · subst hs_eq
+      have hh0 : h = 0 := hs0 rfl
+      subst hh0
+      have hgy : genY p r φ ∈ G := by
+        have hg0 : genX p r φ ^ (0 * 2 ^ t * p ^ (0 - 1)) * genY p r φ ∈ G := by
+          rw [hG]
+          exact Subgroup.subset_closure (by simp)
+        simpa using hg0
+      simpa using Subgroup.pow_mem G hgy (b' + 1)
+    · obtain ⟨s', hs'⟩ : ∃ s', s = s' + 1 := ⟨s - 1, by omega⟩
+      subst hs'
+      set A := h * 2 ^ t * p ^ (s' + 1 - 1) with hA
+      set P := 2 ^ t * p ^ (s' + 1) with hP
+      set E := ((b' + 1) * h % p) * 2 ^ t * p ^ (s' + 1 - 1) with hE
+      set Abig := A * (b' + 1) * (((b' + 1) - 1) * 1 * p ^ (r - 1) + 1) with hAbig
+      set q := ((b' + 1) * h / p) * (((b' + 1) - 1) * 1 * p ^ (r - 1) + 1)
+        + ((b' + 1) * h % p) * ((b' + 1) - 1) * p ^ (r - 2) with hq
+      have hg : genX p r φ ^ A * genY p r φ ∈ G := by
+        rw [hG]
+        exact Subgroup.subset_closure (by simp)
+      have hgbG : (genX p r φ ^ A * genY p r φ) ^ (b' + 1) ∈ G :=
+        Subgroup.pow_mem G hg (b' + 1)
+      have hgb : (genX p r φ ^ A * genY p r φ) ^ (b' + 1)
+          = genX p r φ ^ Abig * genY p r φ ^ (b' + 1) := by
+        have h := pow_genX_mul_genY (p := p) (r := r) hp (by omega) φ _hφ A 1 (b' + 1)
+        simpa [hAbig, pow_one, one_mul] using h
+      have hmem : genX p r φ ^ Abig * genY p r φ ^ (b' + 1) ∈ G := by
+        rw [← hgb]
+        exact hgbG
+      have hxP : genX p r φ ^ P ∈ G := by
+        rw [hG]
+        exact Subgroup.subset_closure (by simp)
+      have hxPq : genX p r φ ^ (P * q) ∈ G := by
+        rw [pow_mul]
+        exact Subgroup.pow_mem G hxP q
+      have hkey : Abig = E + P * q := by
+        have h := prop6_arith p r (s' + 1) t (b' + 1) h
+          hr (by omega) (by omega)
+        simpa [hA, hP, hE, hAbig, hq] using h
+      have hEq : genX p r φ ^ E * genY p r φ ^ (b' + 1)
+          = (genX p r φ ^ (P * q))⁻¹ *
+            (genX p r φ ^ Abig * genY p r φ ^ (b' + 1)) := by
+        rw [hkey, pow_add]
+        group
+      rw [hEq]
+      exact Subgroup.mul_mem G (Subgroup.inv_mem G hxPq) hmem
+
+end Qatlib.Papers.SemiDirectHSP06.MainResults

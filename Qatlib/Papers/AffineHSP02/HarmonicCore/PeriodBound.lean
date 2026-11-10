@@ -1,0 +1,351 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.AffineHSP02.HarmonicCore.GaussSums
+import Mathlib.FieldTheory.Finite.Basic
+import Mathlib.GroupTheory.SpecificGroups.Cyclic
+import Mathlib.RingTheory.RootsOfUnity.Complex
+import Mathlib.NumberTheory.MulChar.Lemmas
+
+set_option autoImplicit false
+
+open AddChar MulChar BigOperators
+
+namespace Qatlib.Papers.AffineHSP02.HarmonicCore
+
+noncomputable section
+
+variable {p : ℕ} [Fact p.Prime]
+
+def charSub (ψ : AddChar (ZMod p) ℂ) (a : (ZMod p)ˣ) (q : ℕ) : ℂ :=
+  ∑ t ∈ Finset.range q, ψ ((a : ZMod p) ^ t)
+
+theorem exists_char_exp (m : ℕ) (hm : 0 < m) (g : (ZMod p)ˣ)
+    (hg : ∀ x, x ∈ Subgroup.zpowers g) (hmdvd : m ∣ p - 1) :
+    ∃ χ : MulChar (ZMod p) ℂ, ∀ t : ℕ,
+      χ ((g ^ t : (ZMod p)ˣ) : ZMod p) =
+        Complex.exp (2 * Real.pi * Complex.I / m) ^ t := by
+  classical
+  have hmne : m ≠ 0 := hm.ne'
+  set ζ : ℂ := Complex.exp (2 * Real.pi * Complex.I / m) with hζdef
+  have hζ' : ζ = Complex.exp (2 * Real.pi * Complex.I * ((1 : ℂ) / m)) := by
+    rw [hζdef]; congr 1; ring
+  have hpr : IsPrimitiveRoot ζ m := by
+    rw [hζ']
+    have := Complex.isPrimitiveRoot_exp_of_coprime 1 m hmne (by simp)
+    simpa using this
+  have hunit : IsUnit ζ := hpr.isUnit hmne
+  set μ : ℂˣ := hunit.unit with hμdef
+  have hμcoe : ((μ : ℂ)) = ζ := hunit.unit_spec
+  have hμpow : μ ^ m = 1 := by
+    ext
+    simp only [Units.val_pow_eq_pow_val, Units.val_one, hμcoe, hpr.pow_eq_one]
+  have hord : orderOf μ ∣ orderOf g := by
+    rw [orderOf_eq_card_of_forall_mem_zpowers hg]
+    simpa [Nat.card_eq_fintype_card, Fintype.card_units, ZMod.card,
+      Nat.totient_prime (Fact.out)] using dvd_trans (orderOf_dvd_of_pow_eq_one hμpow) hmdvd
+  let φ : (ZMod p)ˣ →* ℂˣ := monoidHomOfForallMemZpowers hg (g' := μ) hord
+  refine ⟨MulChar.ofUnitHom φ, fun t => ?_⟩
+  rw [MulChar.ofUnitHom_coe, map_pow, monoidHomOfForallMemZpowers_apply_gen]
+  simp only [Units.val_pow_eq_pow_val, hμcoe, hζdef]
+
+theorem zpowers_eq_zpowers_pow (g : (ZMod p)ˣ)
+    (hg : ∀ x, x ∈ Subgroup.zpowers g) (a : (ZMod p)ˣ) (q m : ℕ)
+    (ha : orderOf a = q) (hmq : q * m = p - 1) :
+    Subgroup.zpowers a = Subgroup.zpowers (g ^ m) := by
+  classical
+  have hp2 : 2 ≤ p := (Fact.out : p.Prime).two_le
+  have hqpos : 0 < q := by rw [← ha]; exact orderOf_pos a
+  have hmpos : 0 < m := by
+    rcases Nat.eq_zero_or_pos m with hm0 | hm0
+    · rw [hm0, mul_zero] at hmq
+      omega
+    · exact hm0
+  have hqle : q ≤ p - 1 := by rw [← hmq]; exact Nat.le_mul_of_pos_right q hmpos
+
+  have ha_mem : a ∈ (Finset.range (orderOf g)).image (fun t => g ^ t) := by
+    rw [← (isOfFinOrder_of_finite (x := g)).mem_zpowers_iff_mem_range_orderOf]
+    exact hg a
+  obtain ⟨s, hs_mem, hs_eq⟩ := Finset.mem_image.mp ha_mem
+  have hs_lt : s < orderOf g := Finset.mem_range.mp hs_mem
+
+  have hordg : orderOf g = p - 1 := by
+    rw [orderOf_eq_card_of_forall_mem_zpowers hg]
+    simp [Nat.card_eq_fintype_card, Fintype.card_units, ZMod.card]
+  have hops : orderOf (g ^ s) = orderOf g / Nat.gcd (orderOf g) s :=
+    orderOf_pow (x := g) (n := s)
+  have hgcd_eq : Nat.gcd (p - 1) s = m := by
+    have h1 : (p - 1) / Nat.gcd (p - 1) s = q := by
+      rw [← hordg, ← hops, hs_eq, ha]
+    have hdvd : Nat.gcd (p - 1) s ∣ p - 1 := Nat.gcd_dvd_left _ _
+    have h2 : q * Nat.gcd (p - 1) s = p - 1 := by
+      have h0 := Nat.div_mul_cancel hdvd
+      rwa [h1] at h0
+    have : q * Nat.gcd (p - 1) s = q * m := by rw [h2]; exact hmq.symm
+    exact Nat.eq_of_mul_eq_mul_left hqpos this
+  have hmdvds : m ∣ s := by
+    rw [← hgcd_eq]; exact Nat.gcd_dvd_right _ _
+
+  have ha_in : a ∈ Subgroup.zpowers (g ^ m) := by
+    obtain ⟨s', hs'⟩ := hmdvds
+    rw [← hs_eq, hs']
+    rw [Subgroup.mem_zpowers_iff]
+    exact ⟨(s' : ℤ), by rw [zpow_natCast, pow_mul]⟩
+
+  have hcardK : Nat.card (Subgroup.zpowers (g ^ m)) = q := by
+    rw [Nat.card_zpowers, orderOf_pow (x := g) (n := m), hordg]
+    have hgm : Nat.gcd (p - 1) m = m :=
+      Nat.gcd_eq_right (by rw [← hmq]; exact dvd_mul_left m q)
+    rw [hgm, ← hmq]
+    exact Nat.mul_div_left q hmpos
+  apply Subgroup.eq_of_le_of_card_ge
+  · exact Subgroup.zpowers_le.mpr ha_in
+  · have hHa : Nat.card ↥(Subgroup.zpowers a) = q := by rw [Nat.card_zpowers, ha]
+    rw [hHa, hcardK]
+
+theorem char_eq_one_iff_mem (g : (ZMod p)ˣ) (hg : ∀ x, x ∈ Subgroup.zpowers g)
+    (a : (ZMod p)ˣ) (q m : ℕ) (ha : orderOf a = q) (hmq : q * m = p - 1)
+    (hm : 0 < m) (χ : MulChar (ZMod p) ℂ)
+    (hχ : ∀ t : ℕ, χ ((g ^ t : (ZMod p)ˣ) : ZMod p) =
+      Complex.exp (2 * Real.pi * Complex.I / m) ^ t)
+    (u : (ZMod p)ˣ) :
+    χ (u : ZMod p) = 1 ↔ u ∈ Subgroup.zpowers a := by
+  classical
+  have hmne : m ≠ 0 := hm.ne'
+  set ζ : ℂ := Complex.exp (2 * Real.pi * Complex.I / m) with hζdef
+  have hζ' : ζ = Complex.exp (2 * Real.pi * Complex.I * ((1 : ℂ) / m)) := by
+    rw [hζdef]; congr 1; ring
+  have hpr : IsPrimitiveRoot ζ m := by
+    rw [hζ']
+    simpa using Complex.isPrimitiveRoot_exp_of_coprime 1 m hmne (by simp)
+  have hH : Subgroup.zpowers a = Subgroup.zpowers (g ^ m) :=
+    zpowers_eq_zpowers_pow g hg a q m ha hmq
+
+  have hu_mem : u ∈ (Finset.range (orderOf g)).image (fun t => g ^ t) := by
+    rw [← (isOfFinOrder_of_finite (x := g)).mem_zpowers_iff_mem_range_orderOf]
+    exact hg u
+  obtain ⟨t, -, ht_eq⟩ := Finset.mem_image.mp hu_mem
+  have hχu : χ (u : ZMod p) = ζ ^ t := by
+    rw [← ht_eq, hχ t]
+  rw [hχu, hH, hpr.pow_eq_one_iff_dvd t]
+  constructor
+  · intro hmt
+
+    obtain ⟨k, rfl⟩ := hmt
+    rw [← ht_eq]
+    rw [Subgroup.mem_zpowers_iff]
+    exact ⟨(k : ℤ), by rw [zpow_natCast, pow_mul]⟩
+  · intro hmem
+    have hordg : orderOf g = p - 1 := by
+      rw [orderOf_eq_card_of_forall_mem_zpowers hg]
+      simp [Nat.card_eq_fintype_card, Fintype.card_units, ZMod.card]
+
+    have hmem' : u ∈ (Finset.range (orderOf (g ^ m))).image (fun k => (g ^ m) ^ k) := by
+      rw [← (isOfFinOrder_of_finite (x := g ^ m)).mem_zpowers_iff_mem_range_orderOf]
+      exact hmem
+    obtain ⟨k, -, hk_eq⟩ := Finset.mem_image.mp hmem'
+
+    have hkeq : g ^ (m * k) = g ^ t := by
+      rw [pow_mul, hk_eq, ← ht_eq]
+    have hmod : m * k ≡ t [MOD orderOf g] := (pow_eq_pow_iff_modEq).mp hkeq
+    rw [hordg] at hmod
+    have hmodm : m * k ≡ t [MOD m] :=
+      hmod.of_dvd (by rw [← hmq]; exact dvd_mul_left m q)
+    rw [Nat.ModEq, Nat.mul_mod_right] at hmodm
+    exact Nat.dvd_iff_mod_eq_zero.mpr hmodm.symm
+
+theorem geom_sum_roots (z : ℂ) (m : ℕ) (hz : z ^ m = 1) :
+    ∑ j ∈ Finset.range m, z ^ j = if z = 1 then (m : ℂ) else 0 := by
+  by_cases h : z = 1
+  · subst h; simp
+  · rw [if_neg h, geom_sum_eq h m, hz, sub_self, zero_div]
+
+theorem gaussSum_eq_sum_units (χ : MulChar (ZMod p) ℂ) (ψ : AddChar (ZMod p) ℂ) :
+    gaussSum χ ψ = ∑ u : (ZMod p)ˣ, χ (u : ZMod p) * ψ (u : ZMod p) := by
+  rw [gaussSum]
+  have hpt : ∀ x : ZMod p, χ x * ψ x = if x ≠ 0 then χ x * ψ x else 0 := by
+    intro x
+    by_cases hx : x = 0
+    · simp [hx]
+    · simp [hx]
+  rw [Finset.sum_congr rfl (fun x _ => hpt x), ← Finset.sum_filter]
+  have himage : (Finset.univ : Finset (ZMod p)ˣ).image (fun u : (ZMod p)ˣ => (u : ZMod p)) =
+      (Finset.univ : Finset (ZMod p)).filter (fun x => x ≠ 0) := by
+    ext x
+    simp only [Finset.mem_image, Finset.mem_univ, true_and, Finset.mem_filter]
+    constructor
+    · rintro ⟨u, rfl⟩; exact u.ne_zero
+    · intro hx
+      exact ⟨(isUnit_iff_ne_zero.mpr hx).unit, IsUnit.unit_spec _⟩
+  rw [← himage]
+  exact Finset.sum_image (fun u _ v _ h => Units.ext h)
+
+theorem char_pow_card (m : ℕ) (hm : 0 < m) (g : (ZMod p)ˣ)
+    (hg : ∀ x, x ∈ Subgroup.zpowers g) (χ : MulChar (ZMod p) ℂ)
+    (hχ : ∀ t : ℕ, χ ((g ^ t : (ZMod p)ˣ) : ZMod p) =
+      Complex.exp (2 * Real.pi * Complex.I / m) ^ t) :
+    χ ^ m = 1 := by
+  classical
+  set ζ : ℂ := Complex.exp (2 * Real.pi * Complex.I / m) with hζdef
+  have hζ' : ζ = Complex.exp (2 * Real.pi * Complex.I * ((1 : ℂ) / m)) := by
+    rw [hζdef]; congr 1; ring
+  have hpr : IsPrimitiveRoot ζ m := by
+    rw [hζ']
+    simpa using Complex.isPrimitiveRoot_exp_of_coprime 1 m hm.ne' (by simp)
+  apply MulChar.ext
+  intro u
+  rw [MulChar.pow_apply_coe, MulChar.one_apply_coe]
+  have hu_mem : u ∈ (Finset.range (orderOf g)).image (fun t => g ^ t) := by
+    rw [← mem_zpowers_iff_mem_range_orderOf]
+    exact hg u
+  obtain ⟨t, -, ht⟩ := Finset.mem_image.mp hu_mem
+  have hcoe : (u : ZMod p) = ((g ^ t : (ZMod p)ˣ) : ZMod p) := by rw [ht]
+  rw [hcoe, hχ t, ← pow_mul, mul_comm t m, pow_mul, hpr.pow_eq_one, one_pow]
+
+theorem sum_char_pow_apply_unit (g : (ZMod p)ˣ) (hg : ∀ x, x ∈ Subgroup.zpowers g)
+    (a : (ZMod p)ˣ) (q m : ℕ) (ha : orderOf a = q) (hmq : q * m = p - 1) (hm : 0 < m)
+    (χ : MulChar (ZMod p) ℂ)
+    (hχ : ∀ t : ℕ, χ ((g ^ t : (ZMod p)ˣ) : ZMod p) =
+      Complex.exp (2 * Real.pi * Complex.I / m) ^ t)
+    (hmχ : χ ^ m = 1) (u : (ZMod p)ˣ) :
+    ∑ j ∈ Finset.range m, (χ ^ j) (u : ZMod p) =
+      if u ∈ Subgroup.zpowers a then (m : ℂ) else 0 := by
+  classical
+  simp_rw [MulChar.pow_apply_coe]
+  have hzm : (χ ((u : ZMod p))) ^ m = 1 := by
+    have h := congrArg (fun f : MulChar (ZMod p) ℂ => f ((u : ZMod p))) hmχ
+    simpa only [MulChar.pow_apply_coe, MulChar.one_apply_coe] using h
+  rw [geom_sum_roots (χ ((u : ZMod p))) m hzm]
+  by_cases hu : u ∈ Subgroup.zpowers a
+  · rw [if_pos hu, if_pos ((char_eq_one_iff_mem g hg a q m ha hmq hm χ hχ u).mpr hu)]
+  · rw [if_neg hu, if_neg]
+    intro h1
+    exact hu ((char_eq_one_iff_mem g hg a q m ha hmq hm χ hχ u).mp h1)
+
+theorem sum_over_zpowers_eq_charSub (ψ : AddChar (ZMod p) ℂ) (a : (ZMod p)ˣ) (q : ℕ)
+    (ha : orderOf a = q) :
+    ∑ u ∈ (Finset.range q).image (fun t => a ^ t), ψ (u : ZMod p) = charSub ψ a q := by
+  unfold charSub
+  have hinj : Set.InjOn (fun t => a ^ t) (↑(Finset.range q) : Set ℕ) := by
+    intro x hx y hy h
+    have hx' : x < q := Finset.mem_range.mp (by simpa using hx)
+    have hy' : y < q := Finset.mem_range.mp (by simpa using hy)
+    exact pow_injOn_Iio_orderOf (x := a)
+      (by rw [Set.mem_Iio, ha]; exact hx') (by rw [Set.mem_Iio, ha]; exact hy') h
+  rw [Finset.sum_image hinj]
+  apply Finset.sum_congr rfl
+  intro t _
+  simp only [Units.val_pow_eq_pow_val]
+
+theorem sum_gauss_eq_charSub (g : (ZMod p)ˣ) (hg : ∀ x, x ∈ Subgroup.zpowers g)
+    (a : (ZMod p)ˣ) (q m : ℕ) (ha : orderOf a = q) (hmq : q * m = p - 1) (hm : 0 < m)
+    (χ : MulChar (ZMod p) ℂ)
+    (hχ : ∀ t : ℕ, χ ((g ^ t : (ZMod p)ˣ) : ZMod p) =
+      Complex.exp (2 * Real.pi * Complex.I / m) ^ t)
+    (ψ : AddChar (ZMod p) ℂ) :
+    ∑ j ∈ Finset.range m, gaussSum (χ ^ j) ψ = (m : ℂ) * charSub ψ a q := by
+  classical
+  have hmχ : χ ^ m = 1 := char_pow_card m hm g hg χ hχ
+  have h1 : ∀ j : ℕ, gaussSum (χ ^ j) ψ =
+      ∑ u : (ZMod p)ˣ, (χ ^ j) (u : ZMod p) * ψ (u : ZMod p) :=
+    fun j => gaussSum_eq_sum_units (χ ^ j) ψ
+  simp_rw [h1]
+  rw [Finset.sum_comm]
+  have h2 : ∀ u : (ZMod p)ˣ,
+      ∑ j ∈ Finset.range m, (χ ^ j) (u : ZMod p) * ψ (u : ZMod p)
+        = (if u ∈ Subgroup.zpowers a then (m : ℂ) else 0) * ψ (u : ZMod p) := by
+    intro u
+    rw [← Finset.sum_mul, sum_char_pow_apply_unit g hg a q m ha hmq hm χ hχ hmχ u]
+  simp_rw [h2]
+  have hfilter : (Finset.univ.filter (fun u : (ZMod p)ˣ => u ∈ Subgroup.zpowers a))
+      = (Finset.range q).image (fun t => a ^ t) := by
+    ext u
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_image,
+      Finset.mem_range, mem_zpowers_iff_mem_range_orderOf, ha]
+  have h3 : ∑ u : (ZMod p)ˣ,
+      (if u ∈ Subgroup.zpowers a then (m : ℂ) else 0) * ψ (u : ZMod p) =
+      (m : ℂ) * charSub ψ a q := by
+    have h3a : ∑ u : (ZMod p)ˣ,
+        (if u ∈ Subgroup.zpowers a then (m : ℂ) else 0) * ψ (u : ZMod p)
+        = ∑ u ∈ (Finset.univ.filter (fun u : (ZMod p)ˣ => u ∈ Subgroup.zpowers a)),
+            (m : ℂ) * ψ (u : ZMod p) := by
+      rw [Finset.sum_filter]
+      apply Finset.sum_congr rfl
+      intro u _
+      by_cases hu : u ∈ Subgroup.zpowers a <;> simp [hu]
+    rw [h3a, hfilter, ← Finset.mul_sum, sum_over_zpowers_eq_charSub ψ a q ha]
+  exact h3
+
+theorem charSub_norm_le_sqrt (hp : 2 ≤ p) (ψ : AddChar (ZMod p) ℂ) (hψ : ψ ≠ 1)
+    (a : (ZMod p)ˣ) (q m : ℕ) (ha : orderOf a = q) (hmq : q * m = p - 1) (hm : 0 < m) :
+    ‖charSub ψ a q‖ ≤ Real.sqrt p := by
+  classical
+  obtain ⟨g, hg⟩ := IsCyclic.exists_generator (α := (ZMod p)ˣ)
+  have hmdvd : m ∣ p - 1 := ⟨q, by rw [← hmq, mul_comm]⟩
+  obtain ⟨χ, hχ⟩ := exists_char_exp m hm g hg hmdvd
+  set ζ : ℂ := Complex.exp (2 * Real.pi * Complex.I / m) with hζdef
+  have hmne : m ≠ 0 := hm.ne'
+  have hζ' : ζ = Complex.exp (2 * Real.pi * Complex.I * ((1 : ℂ) / m)) := by
+    rw [hζdef]; congr 1; ring
+  have hpr : IsPrimitiveRoot ζ m := by
+    rw [hζ']
+    simpa using Complex.isPrimitiveRoot_exp_of_coprime 1 m hmne (by simp)
+  have heq : (m : ℂ) * charSub ψ a q = ∑ j ∈ Finset.range m, gaussSum (χ ^ j) ψ :=
+    (sum_gauss_eq_charSub g hg a q m ha hmq hm χ hχ ψ).symm
+  have hterm : ∀ j ∈ Finset.range m, ‖gaussSum (χ ^ j) ψ‖ ≤ Real.sqrt p := by
+    intro j hj
+    by_cases hj0 : j = 0
+    · subst hj0
+      rw [pow_zero, gauss_one_add ψ hψ, norm_neg, norm_one]
+      exact Real.one_le_sqrt.mpr (by exact_mod_cast (show (1 : ℕ) ≤ p by omega))
+    · have hχj : χ ^ j ≠ 1 := by
+        intro hcon
+        have h1 : (χ ^ j) ((g : ZMod p)) = (1 : MulChar (ZMod p) ℂ) ((g : ZMod p)) := by
+          rw [hcon]
+        rw [MulChar.pow_apply_coe, MulChar.one_apply_coe] at h1
+        have hχg : χ ((g : ZMod p)) = ζ := by simpa [hζdef] using hχ 1
+        rw [hχg] at h1
+        have hdvd := (hpr.pow_eq_one_iff_dvd j).mp h1
+        exact hj0 (Nat.eq_zero_of_dvd_of_lt hdvd (Finset.mem_range.mp hj))
+      rw [gauss_norm_sqrt (χ ^ j) hχj ψ hψ]
+      simp [ZMod.card]
+  have hbound : ‖∑ j ∈ Finset.range m, gaussSum (χ ^ j) ψ‖ ≤ (m : ℝ) * Real.sqrt p := by
+    calc ‖∑ j ∈ Finset.range m, gaussSum (χ ^ j) ψ‖
+        ≤ ∑ j ∈ Finset.range m, ‖gaussSum (χ ^ j) ψ‖ := norm_sum_le _ _
+      _ ≤ ∑ j ∈ Finset.range m, Real.sqrt p := Finset.sum_le_sum hterm
+      _ = (m : ℝ) * Real.sqrt p := by
+            rw [Finset.sum_const, Finset.card_range, nsmul_eq_mul]
+  have h2 : (m : ℝ) * ‖charSub ψ a q‖ ≤ (m : ℝ) * Real.sqrt p := by
+    rw [← heq, Complex.norm_mul, Complex.norm_natCast] at hbound
+    exact hbound
+  have hmposR : (0 : ℝ) < (m : ℝ) := by exact_mod_cast hm
+  exact le_of_mul_le_mul_left h2 hmposR
+
+theorem subgroupSum_eq_charSub (a : (ZMod p)ˣ) (k : ZMod p) (q : ℕ) :
+    subgroupSum p a k q = charSub ((ZMod.stdAddChar (N := p)).mulShift k) a q := by
+  haveI : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
+  unfold subgroupSum charSub
+  apply Finset.sum_congr rfl
+  intro t _
+  rw [AddChar.mulShift_apply, mul_comm k, stdAddChar_eq_qroot_pow]
+
+theorem subgroupSum_norm_le_sqrt (hp : 2 ≤ p) (a : (ZMod p)ˣ) (k : ZMod p) (hk : k ≠ 0)
+    (q m : ℕ) (ha : orderOf a = q) (hmq : q * m = p - 1) (hm : 0 < m) :
+    ‖subgroupSum p a k q‖ ≤ Real.sqrt p := by
+  haveI : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
+  have hprim : (ZMod.stdAddChar (N := p)).IsPrimitive := ZMod.isPrimitive_stdAddChar p
+  have hψne : (ZMod.stdAddChar (N := p)).mulShift k ≠ 1 := by
+    intro h
+    have h2 : ZMod.stdAddChar (N := p) k = 1 := by
+      have := congrArg (fun ψ : AddChar (ZMod p) ℂ => ψ 1) h
+      simpa [AddChar.mulShift_apply] using this
+    exact hk ((AddChar.IsPrimitive.zmod_char_eq_one_iff p hprim k).mp h2)
+  rw [subgroupSum_eq_charSub a k q]
+  exact charSub_norm_le_sqrt hp _ hψne a q m ha hmq hm
+
+end
+
+end Qatlib.Papers.AffineHSP02.HarmonicCore

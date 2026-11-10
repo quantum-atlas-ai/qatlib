@@ -1,0 +1,45 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovDerivative
+import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovBernstein
+import Mathlib.Analysis.SpecialFunctions.Pow.Real
+set_option warningAsError false
+
+set_option autoImplicit false
+
+namespace Qatlib.Papers.QMedianStats98.MainResults.PolynomialGrowth
+
+open Qatlib.Concepts.QueryComplexity.DegreeMethod
+
+theorem source_fact_A5_markov (d : ℕ) (p : Polynomial ℝ) (C : ℝ)
+    (hdeg : p.natDegree ≤ d) (hC : 0 ≤ C)
+    (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ C) :
+    ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.derivative.eval x| ≤ (d : ℝ) ^ 2 * C :=
+  sharp_markov_derivative d p C hdeg hC hb
+
+theorem source_fact_A5_bernstein (d : ℕ) (p : Polynomial ℝ) (C : ℝ)
+    (hdeg : p.natDegree ≤ d) (hC : 0 ≤ C)
+    (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ C) :
+    ∀ x ∈ Set.Icc (-1 : ℝ) 1,
+      Real.sqrt (1 - x ^ 2) * |p.derivative.eval x| ≤ (d : ℝ) * C := by
+  intro x hx
+  rcases Nat.eq_zero_or_pos d with hd0 | hdpos
+  · subst d
+    have hzero : p.derivative.eval x = 0 := sharp_markov_degree_zero p hdeg x
+    simp [hzero]
+  · exact sharpBernstein_interior d p C hdpos hdeg hC hb x hx
+
+theorem source_fact_A5 (d : ℕ) (p : Polynomial ℝ) (C : ℝ)
+    (hdeg : p.natDegree ≤ d) (hC : 0 ≤ C)
+    (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ C) :
+    (∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.derivative.eval x| ≤ (d : ℝ) ^ 2 * C) ∧
+      (∀ x ∈ Set.Icc (-1 : ℝ) 1,
+        Real.sqrt (1 - x ^ 2) * |p.derivative.eval x| ≤ (d : ℝ) * C) :=
+  ⟨source_fact_A5_markov d p C hdeg hC hb,
+    source_fact_A5_bernstein d p C hdeg hC hb⟩
+
+end Qatlib.Papers.QMedianStats98.MainResults.PolynomialGrowth

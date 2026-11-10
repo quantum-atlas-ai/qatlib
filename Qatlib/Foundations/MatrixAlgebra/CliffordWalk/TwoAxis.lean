@@ -1,0 +1,82 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Foundations.MatrixAlgebra.CliffordWalk.Euler
+set_option warningAsError false
+
+set_option autoImplicit false
+set_option maxHeartbeats 1800000
+noncomputable section
+open Matrix
+open scoped Matrix.Norms.L2Operator
+namespace Qatlib.Foundations.MatrixAlgebra.CliffordWalk
+variable {I : Type*} [Fintype I] [DecidableEq I]
+
+def walk (A B : Matrix I I ℂ) (θ η : ℝ) : Matrix I I ℂ := rotation B η * rotation A θ
+
+theorem walk_unitary (A B : Matrix I I ℂ) (hA : Aᴴ = A) (hB : Bᴴ = B) (θ η : ℝ) :
+    walk A B θ η ∈ Matrix.unitaryGroup I ℂ :=
+  (Matrix.unitaryGroup I ℂ).mul_mem (rotation_unitary B hB η) (rotation_unitary A hA θ)
+
+theorem walk_add_adjoint (A B : Matrix I I ℂ) (hA : Aᴴ = A) (hB : Bᴴ = B)
+    (hA2 : A * A = 1) (hB2 : B * B = 1) (hAB : A * B = -(B * A)) (θ η : ℝ) :
+    walk A B θ η + (walk A B θ η)ᴴ =
+      ((2 : ℂ) * (Real.cos θ : ℂ) * (Real.cos η : ℂ)) • (1 : Matrix I I ℂ) := by
+  simp only [walk, rotation_euler_complex A hA2 θ, rotation_euler_complex B hB2 η,
+    Matrix.conjTranspose_mul, Matrix.conjTranspose_add, Matrix.conjTranspose_smul,
+    Matrix.conjTranspose_one, hA, hB, star_mul, star_neg, Complex.star_def,
+    Complex.conj_I, Complex.conj_ofReal, neg_neg]
+  simp only [add_mul, mul_add, Matrix.smul_mul, Matrix.mul_smul, smul_smul,
+    Matrix.one_mul, Matrix.mul_one, hAB]
+  module
+
+theorem cos_product_of_fixed (A B : Matrix I I ℂ) (hA : Aᴴ = A) (hB : Bᴴ = B)
+    (hA2 : A * A = 1) (hB2 : B * B = 1) (hAB : A * B = -(B * A))
+    (θ η : ℝ) (v : I → ℂ) (hv : v ≠ 0) (hfix : walk A B θ η *ᵥ v = v) :
+    Real.cos θ * Real.cos η = 1 := by
+  let U := walk A B θ η
+  have hu : Uᴴ * U = 1 := Matrix.mem_unitaryGroup_iff'.mp (walk_unitary A B hA hB θ η)
+  have hs : Uᴴ *ᵥ v = v := by
+    calc
+      _ = Uᴴ *ᵥ (U *ᵥ v) := by rw [hfix]
+      _ = (Uᴴ * U) *ᵥ v := by rw [Matrix.mulVec_mulVec]
+      _ = v := by rw [hu, Matrix.one_mulVec]
+  have hh := congrArg (fun M : Matrix I I ℂ => M *ᵥ v)
+    (walk_add_adjoint A B hA hB hA2 hB2 hAB θ η)
+  try dsimp only at hh
+  rw [Matrix.add_mulVec, hfix, hs, Matrix.smul_mulVec, Matrix.one_mulVec] at hh
+  obtain ⟨i, hi⟩ := Function.ne_iff.mp hv
+  have hx := congrFun hh i
+  change v i + v i = ((2 : ℂ) * (Real.cos θ : ℂ) * (Real.cos η : ℂ)) * v i at hx
+  have hc : (2 : ℂ) * (Real.cos θ : ℂ) * (Real.cos η : ℂ) = 2 := by
+    apply mul_right_cancel₀ hi
+    linear_combination -hx
+  have hr : (2 : ℝ) * Real.cos θ * Real.cos η = 2 := by exact_mod_cast hc
+  nlinarith
+
+theorem angles_zero_of_fixed (A B : Matrix I I ℂ) (hA : Aᴴ = A) (hB : Bᴴ = B)
+    (hA2 : A * A = 1) (hB2 : B * B = 1) (hAB : A * B = -(B * A))
+    (θ η : ℝ) (hθ : θ ∈ Set.Icc (-(Real.pi / 2)) (Real.pi / 2))
+    (hη : η ∈ Set.Icc (-(Real.pi / 2)) (Real.pi / 2))
+    (v : I → ℂ) (hv : v ≠ 0) (hfix : walk A B θ η *ᵥ v = v) : θ = 0 ∧ η = 0 := by
+  have hp := cos_product_of_fixed A B hA hB hA2 hB2 hAB θ η v hv hfix
+  have ht0 := Real.cos_nonneg_of_mem_Icc hθ
+  have he0 := Real.cos_nonneg_of_mem_Icc hη
+  have ht : Real.cos θ = 1 := by
+    have hh := mul_le_mul_of_nonneg_left (Real.cos_le_one η) ht0
+    exact le_antisymm (Real.cos_le_one θ) (by nlinarith)
+  have he : Real.cos η = 1 := by
+    have hh := mul_le_mul_of_nonneg_right (Real.cos_le_one θ) he0
+    exact le_antisymm (Real.cos_le_one η) (by nlinarith)
+  constructor
+  · exact (Real.cos_eq_one_iff_of_lt_of_lt (by linarith [hθ.1, Real.pi_pos])
+      (by linarith [hθ.2, Real.pi_pos])).mp ht
+  · exact (Real.cos_eq_one_iff_of_lt_of_lt (by linarith [hη.1, Real.pi_pos])
+      (by linarith [hη.2, Real.pi_pos])).mp he
+
+theorem walk_pi_pi (A B : Matrix I I ℂ) (hA2 : A * A = 1) (hB2 : B * B = 1) :
+    walk A B Real.pi Real.pi = 1 := by
+  simp [walk, rotation_euler A hA2, rotation_euler B hB2]

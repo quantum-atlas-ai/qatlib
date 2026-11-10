@@ -1,0 +1,121 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.MUBCompletion26.Completion.MUB6A119Data
+import Qatlib.Papers.MUBCompletion26.Completion.MUB6GraphLabelGap
+import Qatlib.Foundations.PureStateMath.Qubit
+set_option warningAsError false
+open Qatlib.Papers.MUBCompletion26.Completion
+open Qatlib.Foundations.PureStateMath
+
+namespace Qatlib.Papers.MUBCompletion26.Completion.MUB6A119Certificate
+
+def color (a : Fin 48) : Bool := decide (a ∈ leftSide)
+def Edge (a b : Fin 48) : Prop := (a,b) ∈ edges ∨ (b,a) ∈ edges
+instance (a b : Fin 48) : Decidable (Edge a b) := inferInstanceAs
+  (Decidable ((a,b) ∈ edges ∨ (b,a) ∈ edges))
+
+theorem edges_colored : edges.all (fun e => decide (color e.1 ≠ color e.2)) = true := by
+  decide
+
+theorem edge_colors {a b : Fin 48} (h : Edge a b) : color a ≠ color b := by
+  have hall := List.all_eq_true.mp edges_colored
+  rcases h with h | h
+  · exact of_decide_eq_true (hall (a,b) h)
+  · exact Ne.symm (of_decide_eq_true (hall (b,a) h))
+
+def graph : SimpleGraph (Fin 48) where
+  Adj := Edge
+  symm := ⟨fun _ _ h => Or.symm h⟩
+  loopless := ⟨fun _ h => edge_colors h rfl⟩
+
+theorem graph_triangleFree : graph.CliqueFree 3 := by
+  intro s hs
+  obtain ⟨a,b,c,hab,hac,hbc,_⟩ := SimpleGraph.is3Clique_iff.mp hs
+  have h1 := edge_colors hab
+  have h2 := edge_colors hac
+  have h3 := edge_colors hbc
+  exact (by decide : ∀ x y z : Bool, x ≠ y → x ≠ z → y ≠ z → False)
+    (color a) (color b) (color c) h1 h2 h3
+
+def pairKeys : List (Fin 48 × Fin 48) :=
+  (List.finRange 48).flatMap (fun a =>
+    ((List.finRange 48).filter (fun b => a < b)).map (fun b => (a,b)))
+
+set_option maxRecDepth 8192 in
+set_option maxHeartbeats 2000000 in
+
+theorem record_keys : records.map (fun r => (r.a,r.b)) = pairKeys := by decide
+
+theorem records_cover (a b : Fin 48) (hab : a < b) :
+    ∃ r ∈ records, r.a = a ∧ r.b = b := by
+  have hm : (a,b) ∈ pairKeys := by
+    apply List.mem_flatMap.mpr
+    refine ⟨a, List.mem_finRange a, ?_⟩
+    apply List.mem_map.mpr
+    exact ⟨b, List.mem_filter.mpr ⟨List.mem_finRange b, by simpa using hab⟩, rfl⟩
+  rw [← record_keys] at hm
+  obtain ⟨r,hr,he⟩ := List.mem_map.mp hm
+  exact ⟨r,hr,congrArg Prod.fst he,congrArg Prod.snd he⟩
+
+def grid : ℤ := 17592186044416
+
+def GoodPair (r : RawPair) : Prop :=
+  r.a < r.b ∧ r.realLo ≤ r.realHi ∧ r.imagLo ≤ r.imagHi ∧
+  (Edge r.a r.b ∨ grid < 20 * r.realLo ∨ grid < -(20 * r.realHi) ∨
+    grid < 20 * r.imagLo ∨ grid < -(20 * r.imagHi))
+instance (r : RawPair) : Decidable (GoodPair r) := inferInstanceAs
+  (Decidable (r.a < r.b ∧ r.realLo ≤ r.realHi ∧ r.imagLo ≤ r.imagHi ∧
+    (Edge r.a r.b ∨ grid < 20 * r.realLo ∨ grid < -(20 * r.realHi) ∨
+      grid < 20 * r.imagLo ∨ grid < -(20 * r.imagHi))))
+
+set_option maxRecDepth 8192 in
+set_option maxHeartbeats 4000000 in
+
+theorem records_good : records.all (fun r => decide (GoodPair r)) = true := by decide
+
+def RawPair.Contains (r : RawPair) (z : ℂ) : Prop :=
+  (r.realLo : ℝ) ≤ (grid : ℝ) * z.re ∧ (grid : ℝ) * z.re ≤ r.realHi ∧
+  (r.imagLo : ℝ) ≤ (grid : ℝ) * z.im ∧ (grid : ℝ) * z.im ≤ r.imagHi
+
+theorem raw_separated (r : RawPair) (hr : r ∈ records) (z : ℂ)
+    (hz : MUB6A119Certificate.RawPair.Contains r z) (hno : ¬ Edge r.a r.b) : (1 : ℝ) / 20 < ‖z‖ := by
+  have hg : GoodPair r := of_decide_eq_true ((List.all_eq_true.mp records_good) r hr)
+  have hgrid : (0 : ℝ) < (grid : ℝ) := by norm_num [grid]
+  obtain ⟨rl,ru,il,iu⟩ := hz
+  have re1 := (abs_le.mp (Complex.abs_re_le_norm z)).1
+  have re2 := (abs_le.mp (Complex.abs_re_le_norm z)).2
+  have im1 := (abs_le.mp (Complex.abs_im_le_norm z)).1
+  have im2 := (abs_le.mp (Complex.abs_im_le_norm z)).2
+  rcases hg.2.2.2 with he | he | he | he | he
+  · exact (hno he).elim
+  · have hh : (grid : ℝ) < 20 * (r.realLo : ℝ) := by exact_mod_cast he
+    have hc : (1 : ℝ) / 20 < z.re := by nlinarith
+    exact hc.trans_le re2
+  · have hh : (grid : ℝ) < -(20 * (r.realHi : ℝ)) := by exact_mod_cast he
+    have hc : z.re < -(1 : ℝ) / 20 := by nlinarith
+    linarith
+  · have hh : (grid : ℝ) < 20 * (r.imagLo : ℝ) := by exact_mod_cast he
+    have hc : (1 : ℝ) / 20 < z.im := by nlinarith
+    exact hc.trans_le im2
+  · have hh : (grid : ℝ) < -(20 * (r.imagHi : ℝ)) := by exact_mod_cast he
+    have hc : z.im < -(1 : ℝ) / 20 := by nlinarith
+    linarith
+
+def EnclosesOverlaps (V : Fin 48 → QState (Fin 6)) : Prop :=
+  ∀ r ∈ records, MUB6A119Certificate.RawPair.Contains r ((6 : ℂ) * Qatlib.Foundations.PureStateMath.Inner (V r.a) (V r.b))
+
+theorem enclosed_ordered_pair_gap (V : Fin 48 → QState (Fin 6))
+    (hV : EnclosesOverlaps V) (a b : Fin 48) (hab : a < b) (hno : ¬ Edge a b) :
+    (1 : ℝ) / 120 < ‖Qatlib.Foundations.PureStateMath.Inner (V a) (V b)‖ := by
+  obtain ⟨r,hr,ha,hb⟩ := records_cover a b hab
+  have h := raw_separated r hr ((6 : ℂ) * Qatlib.Foundations.PureStateMath.Inner (V r.a) (V r.b))
+    (hV r hr) (by simpa only [ha,hb] using hno)
+  rw [ha,hb,norm_mul] at h
+  norm_num at h
+  linarith
+
+end Qatlib.Papers.MUBCompletion26.Completion.MUB6A119Certificate

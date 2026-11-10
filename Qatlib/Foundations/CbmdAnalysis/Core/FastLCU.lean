@@ -1,0 +1,75 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Foundations.CbmdAnalysis.Core.KernelSeriesIdentity
+set_option warningAsError false
+
+namespace Qatlib.Foundations.CbmdAnalysis.Core
+
+set_option autoImplicit false
+set_option maxHeartbeats 600000
+noncomputable section
+namespace CBMD
+open MeasureTheory
+open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
+
+theorem fast_lcu_piecewise_dyson {I : Type} [Fintype I] [DecidableEq I]
+    (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
+    (hL : ∀ j, Continuous (L j))
+    (hHherm : ∀ j u, (H j u).IsHermitian) (hLpos : ∀ j u, (L j u).PosSemidef)
+    (τ : ℕ → ℝ) (hτ : StrictMono τ) (n : ℕ)
+    {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
+    let ρ := ∫ u in τ 0..τ n, ‖assembledField L τ n u‖
+    let m := kernelOrder (δ / 2)
+    let a := kernelSpacing ρ (δ / 2) m
+    let K := kernelCutoff a (δ / 2)
+    let U := fun z => assembledDyson H L τ n z (τ n)
+    let B := max 0 (Real.log (kernelTailConstant / (δ / 2)) / 2) + 2
+    ‖U (-Complex.I) - integerLCUSum m a K U‖ ≤ δ ∧
+    (∀ k : ℤ, U (((k : ℝ) / a : ℝ) : ℂ) ∈ Matrix.unitaryGroup I ℂ) ∧
+    (∑ k ∈ Finset.Icc (-(K : ℤ)) K, ‖integerWeight m a ((k : ℝ) / a)‖) ≤
+      5 * integerWeightConstant ∧
+    (∀ k ∈ Finset.Icc (-(K : ℤ)) K,
+      |(k : ℝ) / a| < 2 * max 0 (Real.log (kernelTailConstant / (δ / 2)) / 2) + 5) ∧
+    (Finset.Icc (-(K : ℤ)) K).card = 2 * K + 1 ∧
+    ((Finset.Icc (-(K : ℤ)) K).card : ℝ) <
+      4 * (1 + (ρ + Real.log (kernelAuxiliaryConstant / (δ / 2)) + B) /
+        (2 * Real.pi)) * B + 3 := by
+  (try dsimp only)
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · exact integerLCU_target_error_le _ hδ hδ1 _
+      (assembledDyson_differentiable_parameter H L hH hL τ hτ n)
+      (assembledDyson_norm_le H L hH hL hHherm hLpos τ hτ n)
+  · intro k
+    rw [assembledDyson_endpoint H L τ hτ]
+    exact dysonPiecewise_real_unitary H L hH hL hHherm
+      (fun j u => (hLpos j u).isHermitian) τ n _
+  · exact integerWeight_lattice_norm_sum_le _ (kernelSpacing_ge_one _ _ _) _
+  · exact kernelRetained_frequency_lt (kernelSpacing_ge_one _ _ _) _
+  · exact kernelCutoff_card _ _
+  · exact kernelLCU_card_log_bound _
+      (intervalIntegral.integral_nonneg_of_forall (hτ.monotone (Nat.zero_le n))
+        (fun u => norm_nonneg _)) hδ hδ1
+
+theorem fast_lcu_continuous_target_error {I : Type} [Fintype I] [DecidableEq I]
+    (H L : ℝ → Matrix I I ℂ) (hH : Continuous H) (hL : Continuous L)
+    (hHherm : ∀ u, (H u).IsHermitian) (hLpos : ∀ u, (L u).PosSemidef)
+    (s t : ℝ) (hst : s ≤ t) {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
+    let ρ := ∫ u in s..t, ‖L u‖
+    let m := kernelOrder (δ / 2)
+    let a := kernelSpacing ρ (δ / 2) m
+    let K := kernelCutoff a (δ / 2)
+    ‖orderedEvolution (fun u => L u + Complex.I • H u) s t -
+      integerLCUSum m a K (dysonPropagator H L s t)‖ ≤ δ := by
+  have he := integerLCU_target_error_le (∫ u in s..t, ‖L u‖) hδ hδ1
+    (dysonPropagator H L s t) (dysonPropagator_differentiable H L hH hL s t)
+    (dysonPropagator_norm_le H L hH hL hHherm hLpos s t hst)
+  simpa only [dysonPropagator_at_neg_I] using he
+
+end CBMD
+
+end
+end Qatlib.Foundations.CbmdAnalysis.Core

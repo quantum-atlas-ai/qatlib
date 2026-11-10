@@ -1,0 +1,439 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
+import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
+set_option backward.isDefEq.respectTransparency false
+
+
+open Qatlib.Concepts.ReferenceError.DensityToRaw
+open Qatlib.Concepts.ReferenceError.RefTraceError
+open Qatlib.Concepts.TrotterFormula.LieStrang
+
+open Qatlib.Concepts.AdaptiveCP.BranchTrace
+open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
+open Qatlib.Foundations.PureStateMath.Reflection
+open Qatlib.Foundations.PureStateMath
+
+set_option autoImplicit false
+set_option maxHeartbeats 2000000
+noncomputable section
+namespace Qatlib.Concepts.CopyEvolution.Discriminate
+open Matrix
+open scoped Classical ComplexOrder Matrix.Norms.L2Operator
+set_option warningAsError false
+
+def twoSpeciesPairChannelMap (D : ℕ) (ρ σ : Operator D) (θ : ℝ) :
+    Operator (2*D) →ₗ[ℂ] Operator (2*D) :=
+  (controlledCopyChannelMap ρ θ).comp (controlledCopyChannelMap σ (-θ))
+
+def twoSpeciesPairChannel (D : ℕ) (ρ : Operator D) (hρ : IsDensityOperator ρ)
+    (σ : Operator D) (hσ : IsDensityOperator σ) (θ : ℝ) : QuantumChannel (2*D) (2*D) :=
+  (controlledCopyChannel ρ hρ θ).comp (controlledCopyChannel σ hσ (-θ))
+
+def twoSpeciesRunMap (D : ℕ) (ρ σ : Operator D) (t : ℝ) (n : ℕ) :
+    Operator (2*D) →ₗ[ℂ] Operator (2*D) :=
+  copyMapPower (twoSpeciesPairChannelMap D ρ σ (t/(n : ℝ))) n
+
+def twoSpeciesRun (D : ℕ) (ρ : Operator D) (hρ : IsDensityOperator ρ)
+    (σ : Operator D) (hσ : IsDensityOperator σ) (t : ℝ) (n : ℕ) : QuantumChannel (2*D) (2*D) :=
+  copyChannelPower (twoSpeciesPairChannel D ρ hρ σ hσ (t/(n : ℝ))) n
+
+@[simp] theorem twoSpeciesRun_map (D : ℕ) (ρ : Operator D) (hρ : IsDensityOperator ρ)
+    (σ : Operator D) (hσ : IsDensityOperator σ) (t : ℝ) (n : ℕ) :
+    (twoSpeciesRun D ρ hρ σ hσ t n).map=twoSpeciesRunMap D ρ σ t n :=
+  copyChannelPower_map _ n
+
+theorem controlledCopyHamiltonian_sub (D : ℕ) (ρ σ : Operator D) :
+    controlledCopyHamiltonian D (ρ-σ)=controlledCopyHamiltonian D ρ-controlledCopyHamiltonian D σ := by
+  ext i j
+  simp [controlledCopyHamiltonian,relabelGate_apply',TensorGate,Matrix.kroneckerMap_apply,mul_sub]
+
+def pureStateMixture (d m : ℕ) (ψ : Fin m → QState (Fin d)) : Operator d :=
+  ∑ i, ((m : ℝ)⁻¹ : ℂ) • outerProduct (ψ i)
+
+theorem pureStateMixture_density (d m : ℕ) (ψ : Fin m → QState (Fin d))
+    (hψ : ∀ i, Normalized (ψ i)) (hm : 0 < m) : IsDensityOperator (pureStateMixture d m ψ) := by
+  have hmR : (0 : ℝ) < m := by exact_mod_cast hm
+  constructor
+  · exact Matrix.posSemidef_sum Finset.univ fun i _ =>
+      (outerProduct_posSemidef (ψ i)).smul (by exact_mod_cast (inv_nonneg.2 hmR.le))
+  · simp only [pureStateMixture,Matrix.trace_sum,Matrix.trace_smul,
+      (outerProduct_density (hψ _)).2,smul_eq_mul,mul_one,Finset.sum_const,Finset.card_univ,Fintype.card_fin]
+    simp only [nsmul_eq_mul]
+    exact mul_inv_cancel₀ (Nat.cast_ne_zero.mpr hm.ne')
+
+private theorem twoSpecies_column (d : ℕ) (V : Operator d) (j : Fin d) :
+    ApplyGate V (Qatlib.Foundations.PureStateMath.Ket j)=fun a => V a j := by
+  funext a
+  simp [ApplyGate,Matrix.mulVec,dotProduct,Qatlib.Foundations.PureStateMath.Ket]
+
+theorem unitaryColumn_inner (d : ℕ) (V : Operator d)
+    (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (j k : Fin d) :
+    Qatlib.Foundations.PureStateMath.Inner (fun a => V a j) (fun a => V a k)=if j=k then 1 else 0 := by
+  rw [← twoSpecies_column,← twoSpecies_column,inner_applyGate hV,inner_ket_ket]
+
+private theorem twoSpecies_basis_density (d : ℕ) (V ρ : Operator d)
+    (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (hρ : IsDensityOperator ρ) :
+    IsDensityOperator (Vᴴ*ρ*V) := by
+  refine ⟨hρ.1.conjTranspose_mul_mul_same V,?_⟩
+  rw [Matrix.trace_mul_cycle]
+  have hVV : V*Vᴴ=1 := by
+    simpa only [Matrix.star_eq_conjTranspose] using! (Matrix.mem_unitaryGroup_iff).mp hV
+  rw [hVV,Matrix.one_mul,hρ.2]
+
+private theorem twoSpecies_density_diag (d : ℕ) (ρ : Operator d) (hρ : IsDensityOperator ρ)
+    (j : Fin d) : (ρ j j).re ∈ Set.Icc 0 1 := by
+  have hp (i : Fin d) : 0 ≤ (ρ i i).re := (RCLike.nonneg_iff.mp hρ.1.diag_nonneg).1
+  have ht : (∑ i, (ρ i i).re)=1 := by
+    simpa only [Matrix.trace,Matrix.diag_apply,Complex.re_sum,Complex.one_re] using!
+        congrArg Complex.re hρ.2
+  exact ⟨hp j,(Finset.single_le_sum (fun i _ => hp i) (Finset.mem_univ j)).trans_eq ht⟩
+
+private theorem twoSpecies_spectral_difference (d : ℕ) (ρ σ V : Operator d) (x : Fin d → ℝ)
+    (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ)
+    (hs : ρ-σ=V*Matrix.diagonal (fun j => (x j : ℂ))*Vᴴ) :
+    Vᴴ*ρ*V-Vᴴ*σ*V=Matrix.diagonal (fun j => (x j : ℂ)) := by
+  have hVV : Vᴴ*V=1 := by
+    simpa only [Matrix.star_eq_conjTranspose] using! (Matrix.mem_unitaryGroup_iff').mp hV
+  rw [← Matrix.sub_mul,← Matrix.mul_sub,hs]
+  calc
+    _ = (Vᴴ*V)*Matrix.diagonal (fun j => (x j : ℂ))*(Vᴴ*V) := by noncomm_ring
+    _ = _ := by rw [hVV]; simp
+
+theorem twoSpeciesDifference_eigenvalue_abs_le_one
+    (d m : ℕ) (φ ψ : Fin m → QState (Fin d))
+    (hφ : ∀ i, Normalized (φ i)) (hψ : ∀ i, Normalized (ψ i)) (hm : 0 < m)
+    (V : Operator d) (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (x : Fin d → ℝ)
+    (hs : pureStateMixture d m φ-pureStateMixture d m ψ=
+      V*Matrix.diagonal (fun j => (x j : ℂ))*Vᴴ) : ∀ j, |x j| ≤ 1 := by
+  have hρ := twoSpecies_basis_density d V _ hV (pureStateMixture_density d m φ hφ hm)
+  have hσ := twoSpecies_basis_density d V _ hV (pureStateMixture_density d m ψ hψ hm)
+  have hd := twoSpecies_spectral_difference d _ _ V x hV hs
+  intro j
+  have hρj := twoSpecies_density_diag d _ hρ j
+  have hσj := twoSpecies_density_diag d _ hσ j
+  have he := congrArg (fun A : Operator d => (A j j).re) hd
+  simp only [Matrix.sub_apply,Complex.sub_re,Matrix.diagonal_apply_eq,Complex.ofReal_re] at he
+  apply abs_le.2
+  constructor <;> linarith only [he,hρj.1,hρj.2,hσj.1,hσj.2]
+
+theorem twoSpecies_outer_basis (d : ℕ) (V : Operator d) (ψ : QState (Fin d)) (j k : Fin d) :
+    (Vᴴ*outerProduct ψ*V) j k=Qatlib.Foundations.PureStateMath.Inner (fun a => V a j) ψ*star (Qatlib.Foundations.PureStateMath.Inner (fun a => V a k) ψ) := by
+  simp only [Matrix.mul_apply,Matrix.conjTranspose_apply,outerProduct_apply,inner_apply,map_sum,map_mul,
+    RCLike.star_def,Complex.conj_conj,Finset.sum_mul,Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro a _
+  apply Finset.sum_congr rfl
+  intro b _
+  ring
+
+private theorem twoSpecies_mixture_basis_diag (d m : ℕ) (V : Operator d)
+    (ψ : Fin m → QState (Fin d)) (j : Fin d) :
+    ((Vᴴ*pureStateMixture d m ψ*V) j j).re=
+      (m : ℝ)⁻¹*∑ i, ‖Qatlib.Foundations.PureStateMath.Inner (ψ i) (fun a => V a j)‖^2 := by
+  simp only [pureStateMixture,Matrix.mul_sum,Matrix.sum_mul,Matrix.mul_smul,Matrix.smul_mul,
+    Matrix.sum_apply,Matrix.smul_apply,smul_eq_mul,twoSpecies_outer_basis,Complex.re_sum]
+  rw [Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro i _
+  have hstar : Qatlib.Foundations.PureStateMath.Inner (fun a => V a j) (ψ i)=star (Qatlib.Foundations.PureStateMath.Inner (ψ i) (fun a => V a j)) := by
+    simp only [inner_apply,map_sum,map_mul,RCLike.star_def,Complex.conj_conj]
+    apply Finset.sum_congr rfl
+    intro a _
+    ring
+  rw [hstar,star_star]
+  rw [RCLike.star_def,← Complex.normSq_eq_conj_mul_self]
+  simp only [← Complex.ofReal_inv,← Complex.ofReal_mul,Complex.ofReal_re,Complex.normSq_eq_norm_sq]
+
+private theorem twoSpecies_mixture_zero_orthogonal (d m : ℕ) (V : Operator d)
+    (ψ : Fin m → QState (Fin d)) (hm : 0 < m) (j : Fin d)
+    (hzero : ((Vᴴ*pureStateMixture d m ψ*V) j j).re=0) :
+    ∀ i, Qatlib.Foundations.PureStateMath.Inner (ψ i) (fun a => V a j)=0 := by
+  rw [twoSpecies_mixture_basis_diag] at hzero
+  have hmR : (0 : ℝ) < m := by exact_mod_cast hm
+  have hsum : (∑ i, ‖Qatlib.Foundations.PureStateMath.Inner (ψ i) (fun a => V a j)‖^2)=0 :=
+    (mul_eq_zero.mp hzero).resolve_left (inv_ne_zero hmR.ne')
+  intro i
+  have he : ‖Qatlib.Foundations.PureStateMath.Inner (ψ i) (fun a => V a j)‖^2=0 := by
+    have hh := Finset.single_le_sum (fun k (_ : k ∈ Finset.univ) => sq_nonneg ‖Qatlib.Foundations.PureStateMath.Inner (ψ k) (fun a => V a j)‖)
+      (Finset.mem_univ i)
+    rw [hsum] at hh
+    exact le_antisymm hh (sq_nonneg _)
+  exact norm_eq_zero.mp (sq_eq_zero_iff.mp he)
+
+theorem twoSpecies_eigenvalue_one_orthogonal
+    (d m : ℕ) (φ ψ : Fin m → QState (Fin d))
+    (hφ : ∀ i, Normalized (φ i)) (hψ : ∀ i, Normalized (ψ i)) (hm : 0 < m)
+    (V : Operator d) (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (x : Fin d → ℝ)
+    (hs : pureStateMixture d m φ-pureStateMixture d m ψ=
+      V*Matrix.diagonal (fun j => (x j : ℂ))*Vᴴ) :
+    ∀ j, x j=1 → ∀ i, Qatlib.Foundations.PureStateMath.Inner (ψ i) (fun a => V a j)=0 := by
+  intro j hj
+  have hρ :=
+      twoSpecies_density_diag d _
+      (twoSpecies_basis_density d V _ hV (pureStateMixture_density d m φ hφ hm)) j
+  have hσ :=
+      twoSpecies_density_diag d _
+      (twoSpecies_basis_density d V _ hV (pureStateMixture_density d m ψ hψ hm)) j
+  have he :=
+      congrArg (fun A : Operator d => (A j j).re) (twoSpecies_spectral_difference d _ _ V x hV hs)
+  simp only [Matrix.sub_apply,Complex.sub_re,Matrix.diagonal_apply_eq,Complex.ofReal_re,hj] at he
+  exact twoSpecies_mixture_zero_orthogonal d m V ψ hm j (by linarith only [he,hρ.2,hσ.1])
+
+theorem twoSpecies_eigenvalue_neg_one_orthogonal
+    (d m : ℕ) (φ ψ : Fin m → QState (Fin d))
+    (hφ : ∀ i, Normalized (φ i)) (hψ : ∀ i, Normalized (ψ i)) (hm : 0 < m)
+    (V : Operator d) (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (x : Fin d → ℝ)
+    (hs : pureStateMixture d m φ-pureStateMixture d m ψ=
+      V*Matrix.diagonal (fun j => (x j : ℂ))*Vᴴ) :
+    ∀ j, x j = -1 → ∀ i, Qatlib.Foundations.PureStateMath.Inner (φ i) (fun a => V a j)=0 := by
+  intro j hj
+  have hρ :=
+      twoSpecies_density_diag d _
+      (twoSpecies_basis_density d V _ hV (pureStateMixture_density d m φ hφ hm)) j
+  have hσ :=
+      twoSpecies_density_diag d _
+      (twoSpecies_basis_density d V _ hV (pureStateMixture_density d m ψ hψ hm)) j
+  have he :=
+      congrArg (fun A : Operator d => (A j j).re) (twoSpecies_spectral_difference d _ _ V x hV hs)
+  simp only [Matrix.sub_apply,Complex.sub_re,Matrix.diagonal_apply_eq,Complex.ofReal_re,hj] at he
+  exact twoSpecies_mixture_zero_orthogonal d m V φ hm j (by linarith only [he,hσ.2,hρ.1])
+
+private theorem twoSpecies_hamiltonian_hermitian (D : ℕ) (ρ : Operator D) (hρ : ρ.IsHermitian) :
+    (controlledCopyHamiltonian D ρ).IsHermitian := by
+  have hh : (TensorGate (outerProduct (Qatlib.Foundations.PureStateMath.Ket true : QState Bool)) ρ).IsHermitian := by
+    show (TensorGate (outerProduct (Qatlib.Foundations.PureStateMath.Ket true : QState Bool)) ρ)ᴴ = _
+    rw [tensorGate_conjTranspose, hρ.eq,
+        (outerProduct_posSemidef (Qatlib.Foundations.PureStateMath.Ket true)).isHermitian.eq]
+  exact hh.submatrix (controlDataEquiv D).symm
+
+private theorem twoSpecies_hamiltonian_norm (D : ℕ) (ρ : Operator D) (hρ : IsDensityOperator ρ) :
+    ‖controlledCopyHamiltonian D ρ‖ ≤ 1 := by
+  rw [controlledCopyHamiltonian, l2_norm_relabelGate, l2_norm_tensorGate]
+  have hp : ‖outerProduct (Qatlib.Foundations.PureStateMath.Ket true : QState Bool)‖ ≤ 1 := by
+    have he : outerProduct (Qatlib.Foundations.PureStateMath.Ket true : QState Bool) =
+        Matrix.diagonal (fun b : Bool => if b then (1 : ℂ) else 0) := by
+      ext b c
+      cases b <;> cases c <;> simp [outerProduct_apply, Qatlib.Foundations.PureStateMath.Ket]
+    rw [he, Matrix.l2_opNorm_diagonal]
+    exact (pi_norm_le_iff_of_nonneg zero_le_one).mpr (by intro b; cases b <;> simp)
+  nlinarith [density_l2_opNorm_le_one ρ hρ,
+    norm_nonneg (outerProduct (Qatlib.Foundations.PureStateMath.Ket true : QState Bool)), norm_nonneg ρ]
+
+private theorem twoSpecies_conj_trace {I : Type*} [Fintype I] [DecidableEq I]
+    (U X : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) :
+    Matrix.trace (MatrixMap.conj U X) = Matrix.trace X := by
+  change Matrix.trace (U * X * Uᴴ) = Matrix.trace X
+  rw [Matrix.trace_mul_cycle]
+  have hu : Uᴴ * U = 1 := by
+    simpa only [Matrix.star_eq_conjTranspose] using! (Matrix.mem_unitaryGroup_iff').mp hU
+  rw [hu, Matrix.one_mul]
+
+private theorem twoSpecies_tensor_pow {I J : Type*} [Fintype I] [DecidableEq I]
+    [Fintype J] [DecidableEq J] (A : Matrix J J ℂ) (m : ℕ) :
+    (TensorGate (1 : Matrix I I ℂ) A) ^ m = TensorGate (1 : Matrix I I ℂ) (A ^ m) := by
+  induction m with
+  | zero => simp [tensorGate_one]
+  | succ m ih => rw [pow_succ, ih, tensorGate_mul, Matrix.one_mul, pow_succ]
+
+private theorem twoSpecies_conjugation_error {I : Type} [Fintype I] [DecidableEq I]
+    (U V X : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ) :
+    Matrix.traceNorm (U*X*Uᴴ-V*X*Vᴴ) ≤ 2*‖U-V‖*Matrix.traceNorm X := by
+  have hnX := Matrix.traceNorm_nonneg X
+  have hnU := l2_norm_unitary_le_one hU
+  have hnV := l2_norm_unitary_le_one hV
+  have hnH : ‖Vᴴ‖ ≤ 1 := by rw [Matrix.l2_opNorm_conjTranspose]; exact hnV
+  have he : U*X*Uᴴ-V*X*Vᴴ = U*X*(Uᴴ-Vᴴ)+(U-V)*X*Vᴴ := by
+    simp only [Matrix.mul_sub,Matrix.sub_mul]
+    abel
+  rw [he]
+  calc
+    _ ≤ (U*X*(Uᴴ-Vᴴ)).traceNorm+((U-V)*X*Vᴴ).traceNorm := Matrix.traceNorm_add_le _ _
+    _ ≤ ((U*X).traceNorm*‖Uᴴ-Vᴴ‖)+(((U-V)*X).traceNorm*‖Vᴴ‖) :=
+      add_le_add (Matrix.traceNorm_mul_le_traceNorm_opNorm _ _) (Matrix.traceNorm_mul_le_traceNorm_opNorm _ _)
+    _ ≤ ((‖U‖*X.traceNorm)*‖Uᴴ-Vᴴ‖)+((‖U-V‖*X.traceNorm)*‖Vᴴ‖) := by
+      gcongr <;> exact Matrix.traceNorm_mul_le_opNorm_traceNorm _ _
+    _ ≤ ((1*X.traceNorm)*‖U-V‖)+((‖U-V‖*X.traceNorm)*1) := by
+      rw [← Matrix.conjTranspose_sub,Matrix.l2_opNorm_conjTranspose]
+      gcongr
+    _ = _ := by ring
+
+private theorem twoSpecies_neg_hamiltonian (d : ℕ) (H : Operator d) (t : ℝ) :
+    HamiltonianEvolution (-H) t=HamiltonianEvolution H (-t) := by
+  unfold HamiltonianEvolution
+  congr 1
+  ext i j
+  simp only [Matrix.smul_apply,Matrix.neg_apply,Complex.ofReal_neg]
+  ring
+
+private theorem twoSpecies_pair_ideal_error (D : ℕ) (ρ σ : Operator D)
+    (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) (θ : ℝ) :
+    ‖copyControlledEvolution ρ θ*copyControlledEvolution σ (-θ)-copyControlledEvolution (ρ-σ) θ‖ ≤ θ^2 := by
+  let A := controlledCopyHamiltonian D σ
+  let B := controlledCopyHamiltonian D ρ
+  have hA := twoSpecies_hamiltonian_hermitian D σ hσ.1.isHermitian
+  have hB := twoSpecies_hamiltonian_hermitian D ρ hρ.1.isHermitian
+  have hAn : ‖A‖ ≤ 1 := twoSpecies_hamiltonian_norm D σ hσ
+  have hBn : ‖B‖ ≤ 1 := twoSpecies_hamiltonian_norm D ρ hρ
+  have hcomm : ‖pfComm B (-A)‖ ≤ 2 := by
+    unfold pfComm
+    calc
+      _ ≤ ‖B*(-A)‖+‖(-A)*B‖ := norm_sub_le _ _
+      _ ≤ ‖B‖*‖A‖+‖A‖*‖B‖ := by simpa only [norm_neg] using! add_le_add (norm_mul_le B (-A)) (norm_mul_le (-A) B)
+      _ ≤ 2 := by nlinarith only [hAn,hBn,norm_nonneg A,norm_nonneg B]
+  have h := product_formula_lie_two_term (2*D) (-A) B θ hA.neg hB
+  have hab : -A+B=controlledCopyHamiltonian D (ρ-σ) := by
+    dsimp [A,B]; rw [controlledCopyHamiltonian_sub]; abel
+  rw [pfLie,twoSpecies_neg_hamiltonian,hab,← copyControlledEvolution_hamiltonian,
+    ← copyControlledEvolution_hamiltonian,← copyControlledEvolution_hamiltonian] at h
+  have hc := mul_le_mul_of_nonneg_left hcomm (show 0 ≤ θ^2/2 by positivity)
+  exact h.trans (by nlinarith only [hc])
+
+private theorem twoSpecies_pair_error (D r : ℕ) (ρ σ : Operator D)
+    (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) (θ : ℝ)
+    (X : Matrix (Fin r × Fin (2*D)) (Fin r × Fin (2*D)) ℂ) (hX : X.PosSemidef) :
+    Matrix.traceNorm (ChannelAmplification (twoSpeciesPairChannel D ρ hρ σ hσ θ).map r X-
+      MatrixMap.conj (TensorGate (1 : Operator r) (copyControlledEvolution (ρ-σ) θ)) X)
+      ≤ 32*θ^2*(Matrix.trace X).re := by
+  let T := controlledCopyChannel ρ hρ θ
+  let S := controlledCopyChannel σ hσ (-θ)
+  let U := TensorGate (1 : Operator r) (copyControlledEvolution ρ θ)
+  let V := TensorGate (1 : Operator r) (copyControlledEvolution σ (-θ))
+  let W := TensorGate (1 : Operator r) (copyControlledEvolution (ρ-σ) θ)
+  have hU : U ∈ Matrix.unitaryGroup _ ℂ :=
+      tensorGate_unitary (Submonoid.one_mem _)
+      (copyControlledEvolution_unitarity ρ hρ.1.isHermitian θ)
+  have hV : V ∈ Matrix.unitaryGroup _ ℂ :=
+      tensorGate_unitary (Submonoid.one_mem _)
+      (copyControlledEvolution_unitarity σ hσ.1.isHermitian (-θ))
+  have hW : W ∈ Matrix.unitaryGroup _ ℂ :=
+      tensorGate_unitary (Submonoid.one_mem _)
+      (copyControlledEvolution_unitarity (ρ-σ) (hρ.1.isHermitian.sub hσ.1.isHermitian) θ)
+  let Y := ChannelAmplification S.map r X
+  let Z := MatrixMap.conj V X
+  have hY : Y.PosSemidef := S.completelyPositive r X hX
+  have hZ : Z.PosSemidef := hX.mul_mul_conjTranspose_same V
+  have hZtrace : Matrix.trace Z=Matrix.trace X := twoSpecies_conj_trace V X hV
+  have hrec :
+      ChannelAmplification
+      (twoSpeciesPairChannel D ρ hρ σ hσ θ).map r X=ChannelAmplification T.map r Y := by
+        ext ⟨a,i⟩ ⟨b,j⟩; rfl
+  have hconj : MatrixMap.conj (U*V) X=MatrixMap.conj U Z := by
+    dsimp [Z, MatrixMap.conj]; (try simp only [Matrix.conjTranspose_mul]); noncomm_ring
+  have hsplit : ChannelAmplification T.map r Y-MatrixMap.conj U Z=
+      ChannelAmplification T.map r (Y-Z)+(ChannelAmplification T.map r Z-MatrixMap.conj U Z) := by rw [amplification_sub]; abel
+  have hc := channel_reference_hermitian_trace_contraction T (hY.isHermitian.sub hZ.isHermitian)
+  have hs := controlled_copy_one_step_reference_error D r σ hσ (-θ) X hX
+  have ht := controlled_copy_one_step_reference_error D r ρ hρ θ Z hZ
+  rw [hZtrace] at ht
+  have hp : Matrix.traceNorm (ChannelAmplification (twoSpeciesPairChannel D ρ hρ σ hσ θ).map r X-MatrixMap.conj (U*V) X)
+      ≤ 16*θ^2*(Matrix.trace X).re := by
+    rw [hrec,hconj,hsplit]
+    have hh := (Matrix.traceNorm_add_le _ _).trans (add_le_add (hc.trans hs) ht)
+    exact hh.trans_eq (by ring)
+  have hUV :
+      U*V=TensorGate (1 : Operator r)
+      (copyControlledEvolution ρ θ*copyControlledEvolution σ (-θ)) := by
+        dsimp [U,V]; rw [tensorGate_mul,Matrix.one_mul]
+  have hnorm : ‖U*V-W‖ ≤ θ^2 := by
+    rw [hUV]
+    dsimp [W]
+    rw [tensorGate_sub_right,l2_norm_tensorGate]
+    have he := twoSpecies_pair_ideal_error D ρ σ hρ hσ θ
+    exact (mul_le_mul l2_norm_one_le he (norm_nonneg _) zero_le_one).trans_eq (one_mul _)
+  have hi := twoSpecies_conjugation_error (U*V) W X (mul_mem hU hV) hW
+  change Matrix.traceNorm (MatrixMap.conj (U*V) X-MatrixMap.conj W X) ≤ _ at hi
+  have htr0 : 0 ≤ (Matrix.trace X).re := by
+    rw [← psd_traceNorm_eq_trace X hX]; exact Matrix.traceNorm_nonneg X
+  have hi' : Matrix.traceNorm (MatrixMap.conj (U*V) X-MatrixMap.conj W X) ≤ 2*θ^2*(Matrix.trace X).re := by
+    rw [psd_traceNorm_eq_trace X hX] at hi
+    exact hi.trans (by gcongr)
+  have he : ChannelAmplification (twoSpeciesPairChannel D ρ hρ σ hσ θ).map r X-MatrixMap.conj W X=
+      (ChannelAmplification (twoSpeciesPairChannel D ρ hρ σ hσ θ).map r X-MatrixMap.conj (U*V) X)
+        +(MatrixMap.conj (U*V) X-MatrixMap.conj W X) := by abel
+  change Matrix.traceNorm
+      (ChannelAmplification (twoSpeciesPairChannel D ρ hρ σ hσ θ).map r X-MatrixMap.conj W X) ≤ _
+  rw [he]
+  have hh := (Matrix.traceNorm_add_le _ _).trans (add_le_add hp hi')
+  have hn := mul_nonneg (sq_nonneg θ) htr0
+  nlinarith only [hh,hn]
+
+private theorem twoSpecies_channel_telescope {d r : ℕ} (c : ℝ)
+    (T : QuantumChannel d d) (U : Matrix (Fin r × Fin d) (Fin r × Fin d) ℂ)
+    (hU : U ∈ Matrix.unitaryGroup (Fin r × Fin d) ℂ)
+    (hstep : ∀ Y : Matrix (Fin r × Fin d) (Fin r × Fin d) ℂ, Y.PosSemidef →
+      Matrix.traceNorm (ChannelAmplification T.map r Y-MatrixMap.conj U Y) ≤ c*(Matrix.trace Y).re)
+    (m : ℕ) (X : Matrix (Fin r × Fin d) (Fin r × Fin d) ℂ) (hX : X.PosSemidef) :
+    Matrix.traceNorm
+      (ChannelAmplification (copyChannelPower T m).map r X-MatrixMap.conj (U ^ m) X) ≤
+      (m : ℝ)*c*(Matrix.trace X).re := by
+  induction m with
+  | zero =>
+    have hid : ChannelAmplification (LinearMap.id : Operator d →ₗ[ℂ] Operator d) r X = X := by
+      ext p q
+      rfl
+    simp only [copyChannelPower, QuantumChannel.id, pow_zero, Nat.cast_zero, zero_mul]
+    rw [hid, conjMap_apply]
+    simp
+  | succ m ih =>
+    let A := ChannelAmplification (copyChannelPower T m).map r X
+    let B := MatrixMap.conj (U ^ m) X
+    have hA : A.PosSemidef := (copyChannelPower T m).completelyPositive r X hX
+    have hB : B.PosSemidef := hX.mul_mul_conjTranspose_same (U ^ m)
+    have hBt : Matrix.trace B = Matrix.trace X := twoSpecies_conj_trace _ X (pow_mem hU m)
+    have hrecA : ChannelAmplification (copyChannelPower T (m + 1)).map r X =
+        ChannelAmplification T.map r A := by
+      ext ⟨a,i⟩ ⟨b,j⟩
+      rfl
+    have hrecB : MatrixMap.conj (U ^ (m + 1)) X = MatrixMap.conj U B := by
+      simp only [B, conjMap_apply, pow_succ', Matrix.conjTranspose_mul]
+      noncomm_ring
+    have he : ChannelAmplification T.map r A-MatrixMap.conj U B=
+        ChannelAmplification T.map r (A-B)+(ChannelAmplification T.map r B-MatrixMap.conj U B) := by
+      rw [amplification_sub]
+      abel
+    have hc := channel_reference_hermitian_trace_contraction T (hA.isHermitian.sub hB.isHermitian)
+    have hl := hstep B hB
+    rw [hBt] at hl
+    change Matrix.traceNorm (ChannelAmplification (copyChannelPower T (m + 1)).map r X-
+      MatrixMap.conj (U ^ (m + 1)) X) ≤ _
+    rw [hrecA, hrecB]
+    rw [he]
+    have ht := (Matrix.traceNorm_add_le _ _).trans (add_le_add hc hl)
+    have hi : (A - B).traceNorm ≤ (m : ℝ)*c*(Matrix.trace X).re := ih
+    have hsum := ht.trans (add_le_add hi (le_refl _))
+    exact hsum.trans_eq (by push_cast; ring)
+
+private theorem twoSpecies_equal_step_error (D r : ℕ) (ρ σ : Operator D)
+    (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) (θ : ℝ) (m : ℕ)
+    (X : Matrix (Fin r × Fin (2 * D)) (Fin r × Fin (2 * D)) ℂ) (hX : X.PosSemidef) :
+    Matrix.traceNorm
+      (ChannelAmplification (copyChannelPower (twoSpeciesPairChannel D ρ hρ σ hσ θ) m).map r X -
+        MatrixMap.conj ((TensorGate (1 : Operator r) (copyControlledEvolution (ρ-σ) θ)) ^ m) X) ≤
+      32 * (m : ℝ) * θ ^ 2 * (Matrix.trace X).re := by
+  have h := twoSpecies_channel_telescope (32 * θ ^ 2) (twoSpeciesPairChannel D ρ hρ σ hσ θ)
+    (TensorGate (1 : Operator r) (copyControlledEvolution (ρ-σ) θ))
+    (tensorGate_unitary (Submonoid.one_mem _)
+      (copyControlledEvolution_unitarity (ρ-σ) (hρ.1.isHermitian.sub hσ.1.isHermitian) θ))
+    (fun Y hY => twoSpecies_pair_error D r ρ σ hρ hσ θ Y hY) m X hX
+  exact h.trans_eq (by ring)
+
+theorem two_species_controlled_fresh_global_error
+    (D r n : ℕ) (hn : 0 < n) (ρ σ : Operator D) (hρ : IsDensityOperator ρ)
+    (hσ : IsDensityOperator σ) (t : ℝ)
+    (X : Matrix (Fin r × Fin (2*D)) (Fin r × Fin (2*D)) ℂ) (hX : X.PosSemidef) :
+    Matrix.traceNorm (ChannelAmplification (twoSpeciesRun D ρ hρ σ hσ t n).map r X-
+      MatrixMap.conj (TensorGate (1 : Operator r) (copyControlledEvolution (ρ-σ) t)) X)
+      ≤ 32*t^2/(n : ℝ)*(Matrix.trace X).re := by
+  have h := twoSpecies_equal_step_error D r ρ σ hρ hσ (t/(n : ℝ)) n X hX
+  rw [twoSpecies_tensor_pow,copyControlledEvolution_pow,nat_mul_div_self hn t] at h
+  have hn0 : (n : ℝ) ≠ 0 := by exact_mod_cast ne_of_gt hn
+  convert! h using 1
+  field_simp
+
+end Qatlib.Concepts.CopyEvolution.Discriminate

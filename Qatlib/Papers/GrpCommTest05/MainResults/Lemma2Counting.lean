@@ -1,0 +1,161 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Mathlib.Tactic
+import Qatlib.Papers.GrpCommTest05.MainResults.GroupProductCounting
+import Qatlib.Papers.GrpCommTest05.MainResults.CentralizerCommutator
+set_option warningAsError false
+
+set_option autoImplicit false
+
+attribute [local instance] Classical.propDecidable
+
+namespace Qatlib.Papers.GrpCommTest05.MainResults
+
+open Finset
+
+variable {G : Type*} [Group G]
+
+def pp (k l : ℕ) : ℚ :=
+  ((l : ℚ) * (l - 1) + ((k : ℚ) - l) * ((k : ℚ) - l - 1)) / ((k : ℚ) * (k - 1))
+
+def idxCount (k l : ℕ) : ℚ := ((lIndexSets k l).card : ℕ)
+
+noncomputable def noncommPairs {k : ℕ} (g : Fin k → G) (l : ℕ) :
+    Finset (Finset (Fin k) × Finset (Fin k)) :=
+  (lIndexSets k l ×ˢ lIndexSets k l).filter
+    (fun AB => chainProd g AB.1 * chainProd g AB.2 ≠ chainProd g AB.2 * chainProd g AB.1)
+
+theorem pp_le_one {k l : ℕ} (hk : 2 ≤ k) (hlk : l ≤ k) : pp k l ≤ 1 := by
+  have hden : (0 : ℚ) < (k : ℚ) * ((k : ℚ) - 1) := by
+    apply mul_pos
+    · exact_mod_cast (by omega : 0 < k)
+    · have : (2 : ℚ) ≤ k := by exact_mod_cast hk
+      linarith
+  rw [pp, div_le_one hden]
+  have hexp : (k : ℚ) * ((k : ℚ) - 1) -
+      ((l : ℚ) * ((l : ℚ) - 1) + ((k : ℚ) - l) * ((k : ℚ) - l - 1))
+        = 2 * (l : ℚ) * ((k : ℚ) - l) := by ring
+  have hlq : (0 : ℚ) ≤ (l : ℚ) := by positivity
+  have hklq : (0 : ℚ) ≤ (k : ℚ) - l := by
+    have : (l : ℚ) ≤ k := by exact_mod_cast hlk
+    linarith
+  nlinarith [mul_nonneg hlq hklq]
+
+theorem lemma2_counting {k l : ℕ} (g : Fin k → G) (hk : 2 ≤ k) (hl : 2 ≤ l) (hlk : l ≤ k)
+    (hgen : Subgroup.closure (Set.range g) = ⊤)
+    (hg0 : g (idIdx (by omega : 0 < k)) = 1)
+    (hnc : ∃ a b : G, a * b ≠ b * a) :
+    ((1 - pp k l) / 2)^2 * (idxCount k l)^2 ≤ ((noncommPairs g l).card : ℚ) := by
+  classical
+  set T : Finset (Finset (Fin k)) := lIndexSets k l with hT
+  set q : ℚ := (1 - pp k l) / 2 with hq
+  set S : Finset (Finset (Fin k)) :=
+    T.filter (fun A => chainProd g A ∉ Subgroup.center G) with hS
+  set V : Finset (Fin k) → Finset (Finset (Fin k)) :=
+    fun A => T.filter
+      (fun B => chainProd g B ∉ Subgroup.centralizer ({chainProd g A} : Set G)) with hV
+  set W : Finset (Fin k) → Finset (Finset (Fin k) × Finset (Fin k)) :=
+    fun A => (V A).image (fun B => (A, B)) with hW
+  set U : Finset (Finset (Fin k) × Finset (Fin k)) := S.biUnion W with hU
+  have hTc0 : (0 : ℚ) ≤ ((T.card : ℕ) : ℚ) := by positivity
+
+  have hSbound : q * ((T.card : ℕ) : ℚ) ≤ (S.card : ℚ) := by
+    have h := lemma1_prob (l := l) g (Subgroup.center G) hk hl hlk hgen
+      (center_ne_top_of_noncommutative hnc) hg0
+    have hST : S = T.filter
+        (fun A => chainProd g A ∉ Subgroup.center G) := by rw [hS]
+    rw [← hT] at h
+    rw [hq, hST]
+    simp only [pp]
+    convert h using 1; congr 1; congr 1; ext A; simp
+
+  have hVbound : ∀ A ∈ S, q * ((T.card : ℕ) : ℚ) ≤ ((V A).card : ℚ) := by
+    intro A hA
+    have hAc : chainProd g A ∉ Subgroup.center G := by
+      rw [hS] at hA
+      exact (Finset.mem_filter.mp hA).2
+    have hK : Subgroup.centralizer ({chainProd g A} : Set G) ≠ ⊤ :=
+      centralizer_ne_top_of_not_mem_center hAc
+    have h := lemma1_prob (l := l) g
+      (Subgroup.centralizer ({chainProd g A} : Set G)) hk hl hlk hgen hK hg0
+    have hVT : V A = T.filter
+        (fun B => chainProd g B ∉ Subgroup.centralizer ({chainProd g A} : Set G)) := by
+      rw [hV]
+    rw [← hT] at h
+    rw [hq, hVT]
+    simp only [pp]
+    convert h using 1
+
+  have hWcard : ∀ A, (W A).card = (V A).card := by
+    intro A
+    rw [hW]
+    exact Finset.card_image_of_injective _ (fun B1 B2 h => by simpa using h)
+  have hdisj : (S : Set (Finset (Fin k))).PairwiseDisjoint W := by
+    intro A _ B _ hAB
+    show Disjoint (W A) (W B)
+    refine Finset.disjoint_left.mpr ?_
+    intro x hx hx'
+    rw [hW] at hx hx'
+    obtain ⟨b, _, hxb⟩ := Finset.mem_image.mp hx
+    obtain ⟨b', _, hxb'⟩ := Finset.mem_image.mp hx'
+    have hEq : (A, b) = (B, b') := hxb.trans hxb'.symm
+    exact hAB (congrArg Prod.fst hEq)
+  have hUcardNat : U.card = ∑ A ∈ S, (V A).card := by
+    rw [hU, Finset.card_biUnion hdisj]
+    exact Finset.sum_congr rfl (fun A _ => hWcard A)
+  have hUcard : (U.card : ℚ) = ∑ A ∈ S, ((V A).card : ℚ) := by
+    rw [hUcardNat]
+    push_cast
+    rfl
+  have hsub : U ⊆ noncommPairs g l := by
+    intro x hx
+    rw [hU] at hx
+    obtain ⟨A, hA, hxA⟩ := Finset.mem_biUnion.mp hx
+    rw [hW] at hxA
+    obtain ⟨B, hB, rfl⟩ := Finset.mem_image.mp hxA
+    have hAT : A ∈ T := by
+      rw [hS] at hA
+      exact (Finset.mem_filter.mp hA).1
+    have hBT : B ∈ T := by
+      rw [hV] at hB
+      exact (Finset.mem_filter.mp hB).1
+    have hBnc : chainProd g B ∉ Subgroup.centralizer ({chainProd g A} : Set G) := by
+      rw [hV] at hB
+      exact (Finset.mem_filter.mp hB).2
+    rw [noncommPairs]
+    refine Finset.mem_filter.mpr ⟨?_, ?_⟩
+    · rw [Finset.mem_product]
+      exact ⟨hAT, hBT⟩
+    · intro heq
+      exact hBnc ((mem_centralizer_singleton_iff).mpr heq)
+  have hUleP : (U.card : ℚ) ≤ ((noncommPairs g l).card : ℚ) := by
+    exact_mod_cast Finset.card_le_card hsub
+
+  have hsum : ∑ A ∈ S, q * ((T.card : ℕ) : ℚ) ≤ ∑ A ∈ S, ((V A).card : ℚ) :=
+    Finset.sum_le_sum hVbound
+  have hconst : ∑ A ∈ S, q * ((T.card : ℕ) : ℚ) =
+      (S.card : ℚ) * (q * ((T.card : ℕ) : ℚ)) := by
+    rw [Finset.sum_const, nsmul_eq_mul]
+  have hq0 : 0 ≤ q := by
+    rw [hq]
+    have := pp_le_one hk hlk
+    linarith
+  have hSleT : (S.card : ℚ) ≤ (T.card : ℚ) := by
+    rw [hS]
+    exact_mod_cast Finset.card_filter_le _ _
+  have hSq : (q * ((T.card : ℕ) : ℚ))^2 ≤ (U.card : ℚ) := by
+    rw [hUcard]
+    nlinarith [hSbound, hSleT, hsum, hconst, mul_nonneg hq0 hTc0, hTc0]
+  have hgoal : (q * ((T.card : ℕ) : ℚ))^2 =
+      ((1 - pp k l) / 2)^2 * (idxCount k l)^2 := by
+    rw [hq]
+    simp only [idxCount, T]
+    ring
+  rw [hgoal] at hSq
+  exact le_trans hSq hUleP
+
+end Qatlib.Papers.GrpCommTest05.MainResults

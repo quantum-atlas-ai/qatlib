@@ -1,0 +1,135 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+set_option backward.isDefEq.respectTransparency false
+set_option warningAsError false
+
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Foundations.PureStateMath.BornBridge
+
+set_option autoImplicit false
+
+namespace Qatlib.Concepts.PauliClifford.ExactRank
+
+open Matrix
+open scoped ComplexOrder
+
+noncomputable def pauliProductDensity {n : ℕ} (ρ : Fin n → Operator 2) :
+    Matrix (Reg n) (Reg n) ℂ :=
+  Matrix.of fun x y => ∏ i, (ρ i) (boolEquivFin2 (x i)) (boolEquivFin2 (y i))
+
+theorem pauliProductDensity_conjTranspose {n : ℕ} (A : Fin n → Operator 2) :
+    (pauliProductDensity A)ᴴ = pauliProductDensity (fun i => (A i)ᴴ) := by
+  ext x y
+  simp [pauliProductDensity, Matrix.conjTranspose_apply]
+
+theorem pauliProductDensity_mul {n : ℕ} (A B : Fin n → Operator 2) :
+    pauliProductDensity A * pauliProductDensity B =
+      pauliProductDensity (fun i => A i * B i) := by
+  ext x y
+  simp only [Matrix.mul_apply, pauliProductDensity, Matrix.of_apply]
+  simp_rw [← Finset.prod_mul_distrib]
+  rw [← Fintype.prod_sum (fun i b =>
+    A i (boolEquivFin2 (x i)) (boolEquivFin2 b) *
+      B i (boolEquivFin2 b) (boolEquivFin2 (y i)))]
+  apply Finset.prod_congr rfl
+  intro i _
+  exact (Equiv.sum_comp boolEquivFin2
+    (fun k => A i (boolEquivFin2 (x i)) k * B i k (boolEquivFin2 (y i))))
+
+theorem pauliProductDensity_one (n : ℕ) :
+    pauliProductDensity (fun _ : Fin n => (1 : Operator 2)) = 1 := by
+  ext x y
+  by_cases h : x = y
+  · subst y
+    simp [pauliProductDensity]
+  · obtain ⟨i, hi⟩ := Function.ne_iff.mp h
+    have hb : boolEquivFin2 (x i) ≠ boolEquivFin2 (y i) :=
+      fun he => hi (boolEquivFin2.injective he)
+    rw [Matrix.one_apply_ne h]
+    apply Finset.prod_eq_zero (Finset.mem_univ i)
+    exact Matrix.one_apply_ne hb
+
+theorem pauliProductDensity_trace {n : ℕ} (A : Fin n → Operator 2) :
+    Matrix.trace (pauliProductDensity A) = ∏ i, Matrix.trace (A i) := by
+  change (∑ x : Reg n, ∏ i, A i (boolEquivFin2 (x i)) (boolEquivFin2 (x i))) = _
+  rw [← Fintype.prod_sum (fun i b => A i (boolEquivFin2 b) (boolEquivFin2 b))]
+  apply Finset.prod_congr rfl
+  intro i _
+  exact Equiv.sum_comp boolEquivFin2 (fun k => A i k k)
+
+theorem pauliProductDensity_sum {n : ℕ} {O : Type*} [Fintype O]
+    (A : Fin n → O → Operator 2) :
+    (∑ o : Fin n → O, pauliProductDensity (fun i => A i (o i))) =
+      pauliProductDensity (fun i => ∑ o, A i o) := by
+  ext x y
+  simp only [Matrix.sum_apply, pauliProductDensity, Matrix.of_apply]
+  exact (Fintype.prod_sum
+    (fun i o => A i o (boolEquivFin2 (x i)) (boolEquivFin2 (y i)))).symm
+
+theorem pauliProductDensity_smul {n : ℕ} (c : Fin n → ℂ) (A : Fin n → Operator 2) :
+    pauliProductDensity (fun i => c i • A i) = (∏ i, c i) • pauliProductDensity A := by
+  ext x y
+  simp [pauliProductDensity, Finset.prod_mul_distrib]
+
+noncomputable def tensorPauliProduct (n : ℕ) (A : Fin n → Operator 2) : Operator (2 ^ n) :=
+  relabelGate (bitVecEquiv n) (pauliProductDensity A)
+
+theorem tensorPauliProduct_mul (n : ℕ) (A B : Fin n → Operator 2) :
+    tensorPauliProduct n A * tensorPauliProduct n B =
+      tensorPauliProduct n (fun i => A i * B i) := by
+  simp only [tensorPauliProduct, relabelGate, Matrix.reindex_apply,
+    Matrix.submatrix_mul_equiv, pauliProductDensity_mul]
+
+theorem tensorPauliProduct_conjTranspose (n : ℕ) (A : Fin n → Operator 2) :
+    (tensorPauliProduct n A)ᴴ = tensorPauliProduct n (fun i => (A i)ᴴ) := by
+  simp only [tensorPauliProduct, relabelGate, Matrix.reindex_apply,
+    Matrix.conjTranspose_submatrix, pauliProductDensity_conjTranspose]
+
+theorem tensorPauliProduct_one (n : ℕ) :
+    tensorPauliProduct n (fun _ => 1) = 1 := by
+  simp only [tensorPauliProduct, pauliProductDensity_one, relabelGate,
+    Matrix.reindex_apply, Matrix.submatrix_one_equiv]
+
+theorem tensorPauliProduct_trace (n : ℕ) (A : Fin n → Operator 2) :
+    Matrix.trace (tensorPauliProduct n A) = ∏ i, Matrix.trace (A i) := by
+  change (∑ x, pauliProductDensity A ((bitVecEquiv n).symm x)
+    ((bitVecEquiv n).symm x)) = _
+  rw [Equiv.sum_comp (bitVecEquiv n).symm (fun x => pauliProductDensity A x x)]
+  exact pauliProductDensity_trace A
+
+theorem tensorPauliProduct_sum (n : ℕ) {O : Type*} [Fintype O]
+    (A : Fin n → O → Operator 2) :
+    (∑ o : Fin n → O, tensorPauliProduct n (fun i => A i (o i))) =
+      tensorPauliProduct n (fun i => ∑ o, A i o) := by
+  unfold tensorPauliProduct
+  rw [← pauliProductDensity_sum A]
+  ext; simp only [relabelGate, Matrix.reindex_apply, Matrix.sum_apply,
+    Matrix.submatrix_apply]
+
+theorem tensorPauliProduct_smul (n : ℕ) (c : Fin n → ℂ) (A : Fin n → Operator 2) :
+    tensorPauliProduct n (fun i => c i • A i) = (∏ i, c i) • tensorPauliProduct n A := by
+  unfold tensorPauliProduct
+  rw [pauliProductDensity_smul]
+  rfl
+
+theorem tensorPauliTrace_submatrix {I J : Type*} [Fintype I] [Fintype J]
+    [DecidableEq I] [DecidableEq J] (e : I ≃ J) (A : Matrix J J ℂ) :
+    Matrix.trace (A.submatrix e e) = Matrix.trace A :=
+  Equiv.sum_comp e (fun i => A i i)
+
+theorem tensorPauliTrace_relabel_mul {I J : Type*} [Fintype I] [Fintype J]
+    [DecidableEq I] [DecidableEq J] (e : I ≃ J)
+    (A : Matrix I I ℂ) (B : Matrix J J ℂ) :
+    Matrix.trace (relabelGate e A * B) = Matrix.trace (A * B.submatrix e e) := by
+  rw [← tensorPauliTrace_submatrix e (relabelGate e A * B)]
+  rw [← Matrix.submatrix_mul_equiv (relabelGate e A) B e e e]
+  congr 2
+  ext
+  simp [relabelGate]
+
+end Qatlib.Concepts.PauliClifford.ExactRank

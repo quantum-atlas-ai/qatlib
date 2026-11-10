@@ -1,0 +1,161 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+import Qatlib.Concepts.WalkSearch.ProjectorCS
+import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.WalkSearchDefs
+import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilationDefs
+import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormStat
+set_option warningAsError false
+set_option backward.isDefEq.respectTransparency false
+
+set_option autoImplicit false
+set_option linter.unusedVariables false
+
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Concepts.WalkSearch.TwoLevelLower
+
+open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
+open Qatlib.Concepts.SpectralFilter.BusySpectrum
+open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentCore.Measurement
+open Qatlib.Concepts.WalkSearch.TauEmbedding
+open Qatlib.Concepts.WalkSearch.Detection
+
+namespace Qatlib.Concepts.WalkSearch.FrameSpectral
+
+open Matrix
+open Qatlib
+open Qatlib.Concepts.WalkSearch.MnrsAmplify
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib.Concepts.WalkSearch.Th4Expander
+
+def Clause1Spec : Prop :=
+  (∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
+      (P : I → I → ℝ) (S : Finset I),
+    IsTransitionMatrix P →
+      GraphSetupAccount P S ∧
+      WalkPreservesReachableSpan P ∧
+      ReachableTwoPlaneLaw P) ∧
+  noCountableExactGateCover ∧
+  (∀ (n d : ℕ) (hdn : d ≤ n) (adj : Fin n → Fin n → Bool) (M : Fin n → Bool),
+    HasGraphBitAccess n d hdn adj M)
+
+def Clause2Spec : Prop :=
+  (∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
+      (P : I → I → ℝ) (Sc Uc Cc bound : ℝ),
+    ¬ HasRealElementFind P ∅ Sc Uc Cc bound) ∧
+  (∀ (I : Type) [Fintype I] [DecidableEq I]
+      (P : I → I → ℝ) (Sc Uc Cc bound : ℝ),
+    ¬ HasWalkFind P ∅ Sc Uc Cc bound) ∧
+  (∀ (I : Type) [Fintype I] [DecidableEq I]
+      (P : I → I → ℝ) (Mq k t : ℕ),
+    walkFindSuccessProb (SzegedyWalk P) (detectionInitial P)
+      (edgeMarkedSet (∅ : Finset I)) Mq k t = 0)
+
+def SzegedyTheorem5IntersectionNorm : Prop :=
+  ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
+      [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ),
+    Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry A → Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry B →
+    ∀ (a : QState I) (b : QState J),
+      Normalized a → A *ᵥ a = B *ᵥ b →
+      bipartiteWalk A B *ᵥ (A *ᵥ a) = A *ᵥ a ∧
+      Qatlib.Foundations.PureStateMath.Inner (A *ᵥ a) (A *ᵥ a) = ((1 : ℝ) : ℂ)
+
+def SzegedyTheorem5Unified : Prop :=
+  SzegedyTheorem5InteriorNorm ∧ SzegedyTheorem5IntersectionNorm
+
+def Clause3Spec : Prop :=
+  SzegedyTheorem5Unified ∧
+  BipartiteTauEndpointVanishes
+
+noncomputable def printedMarkerOnUncontrolled {I : Type} [Fintype I] [DecidableEq I]
+    (S : Finset I) (v : DetectionSpace I) : DetectionSpace I :=
+  if decide (v.2.2.1 ∈ S) then (v.1, !v.2.1, v.2.2) else v
+
+noncomputable def printedFlagShear {I : Type} [Fintype I] [DecidableEq I]
+    (S : Finset I) (v : DetectionSpace I) : DetectionSpace I :=
+  if v.1 = false then v
+  else if decide (v.2.2.1 ∈ S) != decide (v.2.2.2 ∈ S) then (v.1, !v.2.1, v.2.2)
+  else v
+
+theorem printedFlagShear_involutive {I : Type} [Fintype I] [DecidableEq I]
+    (S : Finset I) : Function.Involutive (printedFlagShear S) := by
+  intro v
+  rcases v with ⟨b, c, xy⟩
+  obtain ⟨x, y⟩ := xy
+  by_cases hb : b = false
+  · simp [printedFlagShear, hb]
+  · by_cases h : decide (x ∈ S) != decide (y ∈ S)
+    · simp [printedFlagShear, hb, h]
+    · simp [printedFlagShear, hb, h]
+
+theorem printedMarkerOnUncontrolled_involutive {I : Type} [Fintype I] [DecidableEq I]
+    (S : Finset I) : Function.Involutive (printedMarkerOnUncontrolled S) := by
+  intro v
+  rcases v with ⟨b, c, xy⟩
+  obtain ⟨x, y⟩ := xy
+  by_cases h : decide (x ∈ S)
+  · simp [printedMarkerOnUncontrolled, h]
+  · simp [printedMarkerOnUncontrolled, h]
+
+def RowPreservingAccess {I : Type} [Fintype I] [DecidableEq I]
+    (U : Matrix (I × I) (I × I) ℂ) : Prop :=
+  ∃ V W : Matrix I I ℂ,
+    (∀ (f : I × I → ℂ) (x y : I), (U *ᵥ f) (x, y) = (V *ᵥ (fun e ↦ f (x, e))) y) ∧
+    (∀ (f : I × I → ℂ) (x y : I), (Uᴴ *ᵥ f) (x, y) = (W *ᵥ (fun e ↦ f (x, e))) y) ∧
+    V * W = 1
+
+def WalkSpectral3Clause39FullEndpoint : Prop :=
+  SzegedyTheorem5Unified ∧
+  BipartiteTauEndpointVanishes ∧
+  (∀ (I : Type) [Fintype I] [DecidableEq I]
+      (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I)
+      (v : QState (DetectionSpace I)),
+    ∀ (c : Bool) (xy : I × I),
+      (detectionEvaluate U S (plusIReflectionWord j) *ᵥ v) (false, c, xy)
+        = (detectionMarkGate S *ᵥ v) (false, c, xy)) ∧
+  (∀ (I : Type) [Fintype I] [DecidableEq I]
+      (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I)
+      (v : QState (DetectionSpace I)),
+    ∀ (c : Bool) (xy : I × I),
+      (detectionEvaluate U S (plusIWalkWord j) *ᵥ v) (false, c, xy)
+        = v (false, c, xy)) ∧
+  (∀ (I : Type) [Fintype I] [DecidableEq I] (S : Finset I),
+    Function.Involutive (printedFlagShear S)) ∧
+  (∀ (I : Type) [Fintype I] [DecidableEq I]
+      (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I)
+      (v : QState (DetectionSpace I)),
+    ∀ (c : Bool) (xy : I × I),
+      (detectionEvaluate U S (detectionReflectionWord j) *ᵥ v) (false, c, xy)
+        = v (false, c, xy)) ∧
+  (∀ (I : Type) [Fintype I] [DecidableEq I]
+      (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I) (K : ℕ)
+      (v : QState (DetectionSpace I)),
+    ∀ (c : Bool) (xy : I × I),
+      (detectionEvaluate U S (List.replicate K (plusIWalkWord j)).flatten *ᵥ v) (false, c, xy)
+        = v (false, c, xy)) ∧
+  (∀ (I : Type) [Fintype I] [DecidableEq I]
+      (S : Finset I) (U : Matrix (I × I) (I × I) ℂ)
+      (hU : U ∈ Matrix.unitaryGroup (I × I) ℂ),
+    (detectionInstruction U S .rowForward) * (detectionInstruction U S .rowBackward) = 1) ∧
+  (∀ (I : Type) [Fintype I] [DecidableEq I]
+      (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I),
+    RowPreservingAccess U →
+    ∀ (v : QState (DetectionSpace I)) (c : Bool) (xy : I × I),
+      (detectionEvaluate U S (plusIWalkWord j) *ᵥ v) (true, c, xy)
+        = v (printedFlagShear S (true, c, xy))) ∧
+  (∀ (I : Type) [Fintype I] [DecidableEq I]
+      (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I),
+    RowPreservingAccess U →
+    ∀ (K : ℕ) (v : QState (DetectionSpace I)),
+      (detectionEvaluate U S (List.replicate K (plusIWalkWord j)).flatten *ᵥ v)
+        = if K % 2 = 0 then v
+          else (detectionEvaluate U S (plusIWalkWord j) *ᵥ v))
+
+end Qatlib.Concepts.WalkSearch.FrameSpectral

@@ -1,0 +1,199 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.SemidirectHSP07.MainResults.CyclicityTest
+import Mathlib.GroupTheory.PGroup
+import Mathlib.GroupTheory.SpecificGroups.Cyclic
+import Mathlib.GroupTheory.SemidirectProduct
+set_option warningAsError false
+
+set_option autoImplicit false
+set_option linter.unusedVariables false
+noncomputable section
+
+open scoped IsMulCommutative
+
+namespace Qatlib.Papers.SemidirectHSP07.MainResults
+
+theorem zpowers_xGen_inf_zpowers_yGen (p r : ℕ) [NeZero (p ^ r)] [NeZero (p ^ 2)]
+    (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) :
+    Subgroup.zpowers (xGen p r φ) ⊓ Subgroup.zpowers (yGen p r φ) = ⊥ := by
+  rw [Subgroup.eq_bot_iff_forall]
+  intro z hz
+  obtain ⟨hzx, hzy⟩ := hz
+  apply Subgroup.mem_bot.mpr
+  apply SemidirectProduct.ext
+  · have hmem : z ∈ (SemidirectProduct.inr : Cyc (p ^ 2) →* SDG p r φ).range :=
+      (Subgroup.zpowers_le.mpr (by
+        rw [yGen]
+        exact MonoidHom.mem_range.mpr ⟨cycGen (p ^ 2), rfl⟩)) hzy
+    obtain ⟨g, hg⟩ := MonoidHom.mem_range.mp hmem
+    rw [← hg]
+    simp
+  · have hmem : z ∈ (SemidirectProduct.inl : Cyc (p ^ r) →* SDG p r φ).range :=
+      (Subgroup.zpowers_le.mpr (by
+        rw [xGen]
+        exact MonoidHom.mem_range.mpr ⟨cycGen (p ^ r), rfl⟩)) hzx
+    obtain ⟨g, hg⟩ := MonoidHom.mem_range.mp hmem
+    rw [← hg]
+    simp
+
+def HxIn (p r : ℕ) (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r)))
+    (H : Subgroup (SDG p r φ)) : Subgroup H :=
+  (Hx p r φ H).comap H.subtype
+
+def HyIn (p r : ℕ) (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r)))
+    (H : Subgroup (SDG p r φ)) : Subgroup H :=
+  (Hy p r φ H).comap H.subtype
+
+theorem not_isCyclic_of_Hx_ne_bot_of_Hy_ne_bot (p r : ℕ) (hp : p.Prime)
+    (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) (H : Subgroup (SDG p r φ))
+    (hHx : Hx p r φ H ≠ ⊥) (hHy : Hy p r φ H ≠ ⊥) : ¬ IsCyclic H := by
+  intro hcyc
+  haveI hcycI : IsCyclic H := hcyc
+  haveI : Fact p.Prime := ⟨hp⟩
+  haveI hnzr : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.ne_zero⟩
+  haveI hnz2 : NeZero (p ^ 2) := ⟨pow_ne_zero _ hp.ne_zero⟩
+  haveI hGfin : Finite (SDG p r φ) :=
+    Nat.finite_of_card_ne_zero (by
+      rw [card_SDG_prime_pow p r hp φ]
+      exact pow_ne_zero _ hp.ne_zero)
+  haveI hpgG : IsPGroup p (SDG p r φ) := isPGroup_SDG p r hp φ
+  haveI hpgH : IsPGroup p H := hpgG.to_subgroup H
+  set A : Subgroup H := HxIn p r φ H with hAdef
+  set B : Subgroup H := HyIn p r φ H with hBdef
+  have hA_ne : A ≠ ⊥ := by
+    intro hbot
+    apply hHx
+    rw [Subgroup.eq_bot_iff_forall]
+    intro x hx
+    have hxH : x ∈ H := hx.1
+    have hmem : (⟨x, hxH⟩ : H) ∈ A := hx
+    rw [hbot] at hmem
+    have h1 : (⟨x, hxH⟩ : H) = 1 := Subgroup.mem_bot.mp hmem
+    exact congrArg Subtype.val h1
+  have hB_ne : B ≠ ⊥ := by
+    intro hbot
+    apply hHy
+    rw [Subgroup.eq_bot_iff_forall]
+    intro x hx
+    have hxH : x ∈ H := hx.1
+    have hmem : (⟨x, hxH⟩ : H) ∈ B := hx
+    rw [hbot] at hmem
+    have h1 : (⟨x, hxH⟩ : H) = 1 := Subgroup.mem_bot.mp hmem
+    exact congrArg Subtype.val h1
+  have hAB : A ⊓ B = ⊥ := by
+    rw [Subgroup.eq_bot_iff_forall]
+    intro x hx
+    obtain ⟨hxA, hxB⟩ := hx
+    apply Subgroup.mem_bot.mpr
+    apply Subtype.ext
+    have hxG : (x : SDG p r φ) ∈
+        Subgroup.zpowers (xGen p r φ) ⊓ Subgroup.zpowers (yGen p r φ) := by
+      refine ⟨?_, ?_⟩
+      · exact (hxA : (x : SDG p r φ) ∈ Hx p r φ H).2
+      · exact (hxB : (x : SDG p r φ) ∈ Hy p r φ H).2
+    rw [zpowers_xGen_inf_zpowers_yGen p r φ, Subgroup.mem_bot] at hxG
+    exact hxG
+
+  let f : A × B →* H :=
+    { toFun := fun x => (x.1 : H) * (x.2 : H)
+      map_one' := by simp
+      map_mul' := fun x y => by
+        show ((x.1 : A) : H) * ((y.1 : A) : H) *
+              (((x.2 : B) : H) * ((y.2 : B) : H))
+            = ((x.1 : A) : H) * ((x.2 : B) : H) *
+              (((y.1 : A) : H) * ((y.2 : B) : H))
+        exact mul_mul_mul_comm _ _ _ _ }
+  have hf : Function.Injective f := by
+    intro x y hxy
+    have hmem : (y.1 : H)⁻¹ * (x.1 : H) = (y.2 : H) * (x.2 : H)⁻¹ := by
+      have h1 : (y.1 : H)⁻¹ * (x.1 : H) * (x.2 : H) = (y.2 : H) := by
+        calc (y.1 : H)⁻¹ * (x.1 : H) * (x.2 : H)
+            = (y.1 : H)⁻¹ * ((x.1 : H) * (x.2 : H)) := by group
+          _ = (y.1 : H)⁻¹ * ((y.1 : H) * (y.2 : H)) := by
+              have hxy' : (x.1 : H) * (x.2 : H) = (y.1 : H) * (y.2 : H) := hxy
+              rw [hxy']
+          _ = (y.2 : H) := by group
+      calc (y.1 : H)⁻¹ * (x.1 : H)
+          = (y.1 : H)⁻¹ * (x.1 : H) * (x.2 : H) * (x.2 : H)⁻¹ := by group
+        _ = (y.2 : H) * (x.2 : H)⁻¹ := by rw [h1]
+    have hA : (y.1 : H)⁻¹ * (x.1 : H) ∈ A :=
+      A.mul_mem (A.inv_mem y.1.2) x.1.2
+    have hB : (y.2 : H) * (x.2 : H)⁻¹ ∈ B :=
+      B.mul_mem y.2.2 (B.inv_mem x.2.2)
+    have hB' : (y.1 : H)⁻¹ * (x.1 : H) ∈ B := by
+      rw [hmem]
+      exact hB
+    have hbot : (y.1 : H)⁻¹ * (x.1 : H) ∈ (⊥ : Subgroup H) := by
+      rw [← hAB]
+      exact Subgroup.mem_inf.mpr ⟨hA, hB'⟩
+    have hx1 : (x.1 : H) = (y.1 : H) := by
+      have := (inv_mul_eq_one.mp (Subgroup.mem_bot.mp hbot))
+      exact this.symm
+    have hx2 : (x.2 : H) = (y.2 : H) := by
+      have h1 : (y.1 : H)⁻¹ * (x.1 : H) = 1 := Subgroup.mem_bot.mp hbot
+      rw [h1] at hmem
+      have h2 : (y.2 : H) * (x.2 : H)⁻¹ = 1 := hmem.symm
+      have := mul_inv_eq_one.mp h2
+      exact this.symm
+    exact Prod.ext (Subtype.ext hx1) (Subtype.ext hx2)
+  have hcycAB : IsCyclic (A × B) := isCyclic_of_injective f hf
+  have hApg : IsPGroup p A := hpgH.to_subgroup A
+  have hBpg : IsPGroup p B := hpgH.to_subgroup B
+  obtain ⟨n, hn⟩ := IsPGroup.iff_card.mp hApg
+  obtain ⟨m, hm⟩ := IsPGroup.iff_card.mp hBpg
+  have hn0 : 0 < n := by
+    rcases Nat.eq_zero_or_pos n with hn' | hn'
+    · exfalso
+      apply hA_ne
+      exact Subgroup.eq_bot_of_card_eq A (by rw [hn, hn']; simp)
+    · exact hn'
+  have hm0 : 0 < m := by
+    rcases Nat.eq_zero_or_pos m with hm' | hm'
+    · exfalso
+      apply hB_ne
+      exact Subgroup.eq_bot_of_card_eq B (by rw [hm, hm']; simp)
+    · exact hm'
+  have hcop : Nat.Coprime (Nat.card A) (Nat.card B) :=
+    (Group.isCyclic_prod_iff.mp hcycAB).2.2
+  rw [hn, hm] at hcop
+  rw [Nat.coprime_pow_left_iff hn0, Nat.coprime_pow_right_iff hm0] at hcop
+  have hp1 : p = 1 := by
+    have h2 := hcop
+    rwa [Nat.coprime_iff_gcd_eq_one, Nat.gcd_self] at h2
+  exact hp.ne_one hp1
+
+theorem HxGen_eq_bot_iff (p r : ℕ) (hp : p.Prime)
+    (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) (m : ℕ) :
+    HxGen p r φ m = ⊥ ↔ r ≤ m := by
+  rw [HxGen, Subgroup.zpowers_eq_bot, ← orderOf_dvd_iff_pow_eq_one, orderOf_xGen,
+    Nat.pow_dvd_pow_iff_le_right hp.one_lt]
+
+theorem HyGen_eq_bot_iff (p r : ℕ) (hp : p.Prime)
+    (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) (n : ℕ) :
+    HyGen p r φ n = ⊥ ↔ 2 ≤ n := by
+  rw [HyGen, Subgroup.zpowers_eq_bot, ← orderOf_dvd_iff_pow_eq_one, orderOf_yGen,
+    Nat.pow_dvd_pow_iff_le_right hp.one_lt]
+
+theorem not_isCyclic_of_HxGen_HyGen (p r : ℕ) (hp : p.Prime)
+    (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) (H : Subgroup (SDG p r φ))
+    (m n : ℕ) (hHx : Hx p r φ H = HxGen p r φ m)
+    (hHy : Hy p r φ H = HyGen p r φ n) (hm : m < r) (hn : n < 2) :
+    ¬ IsCyclic H := by
+  refine not_isCyclic_of_Hx_ne_bot_of_Hy_ne_bot p r hp φ H ?_ ?_
+  · rw [hHx]
+    exact (HxGen_eq_bot_iff p r hp φ m).not.mpr (by omega)
+  · rw [hHy]
+    exact (HyGen_eq_bot_iff p r hp φ n).not.mpr (by omega)
+
+theorem cyclic_of_HxGen_eq (p r : ℕ) (hp : p.Prime)
+    (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) (H : Subgroup (SDG p r φ))
+    (hHx : Hx p r φ H = ⊥) : IsCyclic H := by
+  haveI : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.ne_zero⟩
+  exact cyclic_of_Hx_eq_bot p r φ H hHx
+
+end Qatlib.Papers.SemidirectHSP07.MainResults

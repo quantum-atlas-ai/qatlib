@@ -1,0 +1,39 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGAdder
+set_option backward.isDefEq.respectTransparency false
+set_option warningAsError false
+
+open Qatlib.Concepts.MatrixAccess.RitzPipeline
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+namespace Qatlib.Papers.MonteCarloInt20.PrnJump.Kernel
+open Matrix
+open scoped Classical BigOperators
+set_option autoImplicit false
+
+def booleanWordLow (W m : ℕ) (hm : m ≤ W) (a : Reg W) : Reg m := fun j => a (Fin.castLE hm j)
+
+theorem boolean_word_low_value (W m : ℕ) (hm : m ≤ W) (a : Reg W) :
+    booleanWordLSBValue m (booleanWordLow W m hm a) = booleanWordLSBValue W a % 2^m := by
+  obtain ⟨k,rfl⟩ := Nat.exists_eq_add_of_le hm
+  let low := booleanWordLSBValue m (booleanWordLow (m+k) m hm a)
+  let high := booleanWordLSBValue k (fun j => a (Fin.natAdd m j))
+  have hlt : low < 2^m := (bitVecEquiv m (fun j => booleanWordLow (m+k) m hm a (Fin.rev j))).isLt
+  have hs : booleanWordLSBValue (m+k) a = low + 2^m*high := by
+    rw [boolean_word_lsb_value,Fin.sum_univ_add]
+    change _ = booleanWordLSBValue m (booleanWordLow (m+k) m hm a)+
+      2^m*booleanWordLSBValue k (fun j => a (Fin.natAdd m j))
+    rw [boolean_word_lsb_value,boolean_word_lsb_value,Finset.mul_sum]
+    congr 1
+    apply Finset.sum_congr rfl
+    intro j _
+    simp only [Fin.val_natAdd,pow_add]
+    ring
+  change low = _
+  simp only [hs,Nat.add_mod,Nat.mul_mod_right,Nat.add_zero,Nat.mod_eq_of_lt hlt]
+end Qatlib.Papers.MonteCarloInt20.PrnJump.Kernel

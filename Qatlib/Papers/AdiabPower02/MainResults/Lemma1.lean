@@ -1,0 +1,147 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Mathlib.Analysis.CStarAlgebra.Matrix
+import Mathlib.Analysis.Complex.Order
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+import Mathlib.Tactic
+import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+import Qatlib.Foundations.OperatorErrors.OperatorError
+set_option warningAsError false
+set_option backward.isDefEq.respectTransparency false
+
+set_option autoImplicit false
+set_option maxHeartbeats 800000
+
+noncomputable section
+
+open Matrix
+open scoped Matrix.Norms.L2Operator ComplexOrder
+
+namespace Qatlib.Papers.AdiabPower02.MainResults
+namespace Lemma1
+
+open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+open Qatlib.Foundations.OperatorErrors.OperatorError
+
+variable {I : Type} [Fintype I] [DecidableEq I]
+
+lemma min_two_sqrt (x : ℝ) (hx : 0 ≤ x) : min x 2 ≤ Real.sqrt (2 * x) := by
+  have h2x : 0 ≤ 2 * x := by linarith
+  rcases le_total x 2 with h | h
+  · rw [min_eq_left h]
+    rw [Real.le_sqrt hx h2x]
+    nlinarith
+  · rw [min_eq_right h]
+    rw [Real.le_sqrt (by norm_num) h2x]
+    nlinarith
+
+theorem duhamel_identity
+    (A A' : ℝ → Matrix I I ℂ) (hA : Continuous A) (hA' : Continuous A') (T : ℝ) :
+    orderedEvolution A 0 T - orderedEvolution A' 0 T
+      = ∫ s in (0 : ℝ)..T,
+          orderedEvolution A' s T * (A' s - A s) * orderedEvolution A 0 s := by
+
+  have hderiv : ∀ s : ℝ,
+      HasDerivAt (fun u => orderedEvolution A' u T * orderedEvolution A 0 u)
+        (orderedEvolution A' s T * (A' s - A s) * orderedEvolution A 0 s) s := by
+    intro s
+    have h1 : HasDerivAt (fun u => orderedEvolution A' u T)
+        (orderedEvolution A' s T * A' s) s :=
+      orderedEvolution_hasDerivAt_start A' hA' T s
+    have h2 : HasDerivAt (fun u => orderedEvolution A 0 u)
+        (-(A s * orderedEvolution A 0 s)) s :=
+      orderedEvolution_hasDerivAt A hA 0 s
+    have hmul := h1.mul h2
+    convert! hmul using 1
+    noncomm_ring
+  have hVc : Continuous (fun s => orderedEvolution A' s T) := by
+    refine continuous_iff_continuousAt.mpr fun s => ?_
+    exact (orderedEvolution_hasDerivAt_start A' hA' T s).continuousAt
+  have hUc : Continuous (fun s => orderedEvolution A 0 s) := by
+    refine continuous_iff_continuousAt.mpr fun s => ?_
+    exact (orderedEvolution_hasDerivAt A hA 0 s).continuousAt
+  have hfc : Continuous (fun s => orderedEvolution A' s T * (A' s - A s) *
+      orderedEvolution A 0 s) :=
+    (hVc.mul (hA'.sub hA)).mul hUc
+  have hGc : Continuous (fun u => orderedEvolution A' u T * orderedEvolution A 0 u) :=
+    hVc.mul hUc
+  have hFTC :
+      ∫ s in (0 : ℝ)..T,
+          orderedEvolution A' s T * (A' s - A s) * orderedEvolution A 0 s
+        = orderedEvolution A' T T * orderedEvolution A 0 T
+            - orderedEvolution A' 0 T * orderedEvolution A 0 0 :=
+    intervalIntegral.integral_eq_sub_of_hasDerivAt (fun s _ => hderiv s)
+      (hfc.intervalIntegrable 0 T)
+  simp only [orderedEvolution_self, Matrix.one_mul, Matrix.mul_one] at hFTC
+  rw [hFTC]
+
+theorem lemma1
+    (H H' : ℝ → Matrix I I ℂ) (T δ : ℝ)
+    (hHc : Continuous H) (hH'c : Continuous H')
+    (hHerm : ∀ u, (H u).IsHermitian) (hHerm' : ∀ u, (H' u).IsHermitian)
+    (hT : 0 ≤ T) (hδ : 0 ≤ δ)
+    (hdiff : ∀ u, ‖H u - H' u‖ ≤ δ) :
+    ‖orderedEvolution (fun u => Complex.I • H u) 0 T
+        - orderedEvolution (fun u => Complex.I • H' u) 0 T‖
+      ≤ Real.sqrt (2 * T * δ) := by
+  set A : ℝ → Matrix I I ℂ := fun u => Complex.I • H u with hAdef
+  set A' : ℝ → Matrix I I ℂ := fun u => Complex.I • H' u with hA'def
+  have hA : Continuous A := hHc.const_smul Complex.I
+  have hA' : Continuous A' := hH'c.const_smul Complex.I
+  have hU : orderedEvolution A 0 T ∈ unitaryGroup I ℂ :=
+    ordered_evolution_hermitian_unitary I H hHc hHerm 0 T
+  have hU' : orderedEvolution A' 0 T ∈ unitaryGroup I ℂ :=
+    ordered_evolution_hermitian_unitary I H' hH'c hHerm' 0 T
+
+  have hduhamel :
+      ‖orderedEvolution A 0 T - orderedEvolution A' 0 T‖ ≤ T * δ := by
+    rw [duhamel_identity A A' hA hA' T]
+    have hb : ∀ s ∈ Set.uIoc (0 : ℝ) T,
+        ‖orderedEvolution A' s T * (A' s - A s) * orderedEvolution A 0 s‖ ≤ δ := by
+      intro s _
+      have hVs : orderedEvolution A' s T ∈ unitaryGroup I ℂ :=
+        ordered_evolution_hermitian_unitary I H' hH'c hHerm' s T
+      have hUs : orderedEvolution A 0 s ∈ unitaryGroup I ℂ :=
+        ordered_evolution_hermitian_unitary I H hHc hHerm 0 s
+      have hVnorm : ‖orderedEvolution A' s T‖ ≤ 1 := l2_norm_unitary_le_one hVs
+      have hUnorm : ‖orderedEvolution A 0 s‖ ≤ 1 := l2_norm_unitary_le_one hUs
+      have hstep : ‖A' s - A s‖ = ‖H' s - H s‖ := by
+        have : A' s - A s = Complex.I • (H' s - H s) := by
+          simp only [hAdef, hA'def, smul_sub]
+        rw [this, norm_smul, Complex.norm_I, one_mul]
+      calc ‖orderedEvolution A' s T * (A' s - A s) * orderedEvolution A 0 s‖
+          ≤ ‖orderedEvolution A' s T * (A' s - A s)‖ * ‖orderedEvolution A 0 s‖ :=
+            Matrix.l2_opNorm_mul _ _
+        _ ≤ (‖orderedEvolution A' s T‖ * ‖A' s - A s‖) *
+              ‖orderedEvolution A 0 s‖ := by
+            gcongr
+            exact Matrix.l2_opNorm_mul _ _
+        _ ≤ (1 * ‖A' s - A s‖) * 1 := by gcongr
+        _ = ‖H' s - H s‖ := by rw [hstep]; ring
+        _ = ‖H s - H' s‖ := norm_sub_rev _ _
+        _ ≤ δ := hdiff s
+    have := intervalIntegral.norm_integral_le_of_norm_le_const
+      (a := (0 : ℝ)) (b := T) (f := fun s =>
+        orderedEvolution A' s T * (A' s - A s) * orderedEvolution A 0 s) hb
+    rw [sub_zero, abs_of_nonneg hT, mul_comm] at this
+    exact this
+
+  have htriv : ‖orderedEvolution A 0 T - orderedEvolution A' 0 T‖ ≤ 2 := by
+    calc ‖orderedEvolution A 0 T - orderedEvolution A' 0 T‖
+        ≤ ‖orderedEvolution A 0 T‖ + ‖orderedEvolution A' 0 T‖ := norm_sub_le _ _
+      _ ≤ 1 + 1 := by
+          gcongr
+          · exact l2_norm_unitary_le_one hU
+          · exact l2_norm_unitary_le_one hU'
+      _ = 2 := by norm_num
+  have hfin : min (T * δ) 2 ≤ Real.sqrt (2 * T * δ) := by
+    convert! min_two_sqrt (T * δ) (mul_nonneg hT hδ) using 2
+    ring
+  exact le_trans (le_min hduhamel htriv) hfin
+
+end Lemma1
+end Qatlib.Papers.AdiabPower02.MainResults

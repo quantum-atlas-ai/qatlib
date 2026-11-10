@@ -1,0 +1,27 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorODESystem
+open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+set_option warningAsError false
+set_option backward.isDefEq.respectTransparency false
+
+
+namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
+
+open Matrix
+open scoped Matrix.Norms.L2Operator
+
+def Theorem5V2 : Prop :=
+  ∀ (N : Type) [Fintype N] [DecidableEq N] (m k p : ℕ) (A V D : Matrix N N ℂ),
+    0 < m → 5 ≤ k → 0 < p → Nat.factorial (k + 1) ≥ 2 * m →
+    (∀ i j : N, i ≠ j → D i j = 0) →
+    A = V * D * V⁻¹ → V * V⁻¹ = 1 → V⁻¹ * V = 1 →
+    ‖A‖ ≤ 1 → (∀ i : N, (D i i).re ≤ 0) →
+    ‖taylorStepMatrixV2 m k p A‖ * ‖(taylorStepMatrixV2 m k p A)⁻¹‖ ≤
+      6 * (‖V‖ * ‖V⁻¹‖) * (k : ℝ) * ((m + p : ℕ) : ℝ)
+
+end Qatlib.Papers.QLinearODE17.TaylorAnalysis

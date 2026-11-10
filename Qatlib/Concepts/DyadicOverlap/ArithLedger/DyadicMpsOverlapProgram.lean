@@ -1,0 +1,925 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.DyadicOverlap.ArithLedger.DyadicMpsOverlapDefs
+set_option backward.isDefEq.respectTransparency false
+set_option warningAsError false
+open Qatlib.Concepts.DyadicOverlap.OverlapContract
+open Qatlib.Concepts.DyadicProgram.DyadicContract
+
+set_option autoImplicit false
+set_option linter.unnecessarySeqFocus false
+
+namespace Qatlib.Concepts.DyadicOverlap.ArithLedger.DyadicMpsOverlapProgram
+
+open Matrix
+open scoped BigOperators
+open Qatlib.Concepts.DyadicProgram.DyadicContract (GI add mul initial row run dot)
+open Qatlib.Concepts.DyadicOverlap.ArithLedger
+
+theorem mul_le_two_mul (a b : ℕ) : a * b ≤ 2 * a * b := by
+  have h := Nat.mul_le_mul_left (a * b) (by norm_num : 1 ≤ 2)
+  calc a * b = (a * b) * 1 := by simp
+    _ ≤ (a * b) * 2 := h
+    _ = 2 * a * b := by ring
+
+theorem two_pow_two (w : ℕ) : 2 * 2 ^ w * 2 ^ w = 2 ^ (2 * w + 1) := by
+  have h3 : 2 ^ w * 2 ^ w = 2 ^ (2 * w) := by
+    rw [← pow_add]
+    congr 1
+    omega
+  calc 2 * 2 ^ w * 2 ^ w = 2 * (2 ^ w * 2 ^ w) := by ring
+    _ = 2 * 2 ^ (2 * w) := by rw [h3]
+    _ = 2 ^ (2 * w + 1) := by
+      rw [pow_succ]
+      ring
+
+theorem bounded_add {B C : ℕ} {x y : GI} (hx : BoundedGI B x) (hy : BoundedGI C y) :
+    BoundedGI (B + C) (add x y) := by
+  exact ⟨(Int.natAbs_add_le _ _).trans (Nat.add_le_add hx.1 hy.1),
+    (Int.natAbs_add_le _ _).trans (Nat.add_le_add hx.2 hy.2)⟩
+
+theorem bounded_mul {B C : ℕ} {x y : GI} (hx : BoundedGI B x) (hy : BoundedGI C y) :
+    BoundedGI (2 * B * C) (mul x y) := by
+  constructor
+  · exact (Int.natAbs_sub_le _ _).trans (by
+      simp only [Int.natAbs_mul]
+      nlinarith [Nat.mul_le_mul hx.1 hy.1, Nat.mul_le_mul hx.2 hy.2])
+  · exact (Int.natAbs_add_le _ _).trans (by
+      simp only [Int.natAbs_mul]
+      nlinarith [Nat.mul_le_mul hx.1 hy.2, Nat.mul_le_mul hx.2 hy.1])
+
+theorem bounded_conj {B : ℕ} {x : GI} (hx : BoundedGI B x) : BoundedGI B (conjGI x) := by
+  exact ⟨hx.1, by simpa [conjGI] using! hx.2⟩
+
+theorem bounded_mono {B C : ℕ} (h : B ≤ C) {z : GI} (hz : BoundedGI B z) : BoundedGI C z :=
+  ⟨hz.1.trans h, hz.2.trans h⟩
+
+theorem bounded_zero : BoundedGI 0 ((0, 0) : GI) := by
+  simp [BoundedGI]
+
+theorem bounded_fold {B C : ℕ} (xs : List GI) (z : GI)
+    (hz : BoundedGI B z) (hx : ∀ x ∈ xs, BoundedGI C x) :
+    BoundedGI (B + xs.length * C) (xs.foldl add z) := by
+  induction xs generalizing B z with
+  | nil => simpa using! hz
+  | cons x xs ih =>
+    have hstep : BoundedGI (B + C) (add z x) := bounded_add hz (hx x (by simp))
+    have h := ih (add z x) hstep (fun y hy => hx y (by simp [hy]))
+    have h' : BoundedGI (B + C + xs.length * C) (xs.foldl add (add z x)) := h
+    rw [List.foldl_cons]
+    convert! h' using 1
+    rw [List.length_cons]
+    ring
+
+theorem Ev.bounded_mono {B C : ℕ} (h : B ≤ C) {e : Ev} (he : Ev.bounded B e) : Ev.bounded C e := by
+  simp only [Ev.bounded] at he ⊢
+  exact ⟨he.1.trans h, he.2.1.trans h, he.2.2.trans h⟩
+
+theorem logBounded_mono {B C : ℕ} {L : List Ev} (h : B ≤ C) (hL : logBounded B L) :
+    logBounded C L := by
+  intro e he
+  exact Ev.bounded_mono h (hL e he)
+
+theorem logBounded_append {B : ℕ} {L L' : List Ev} (hL : logBounded B L) (hL' : logBounded B L') :
+    logBounded B (L ++ L') := by
+  intro e he
+  rcases List.mem_append.mp he with h1 | h2
+  · exact hL e h1
+  · exact hL' e h2
+
+theorem logBounded_negEv {B : ℕ} {x : GI} (hx : BoundedGI B x) : logBounded B (negEv x) := by
+  intro e he
+  simp only [negEv, List.mem_cons, List.mem_nil_iff, or_false] at he
+  rcases he with rfl | rfl
+  · simp only [Ev.bounded]
+    exact ⟨hx.1, Nat.zero_le _, hx.1⟩
+  · simp only [Ev.bounded]
+    exact ⟨hx.2, Nat.zero_le _, by simpa [conjGI] using! hx.2⟩
+
+theorem logBounded_mulEv {B C : ℕ} {x y : GI} (hx : BoundedGI B x) (hy : BoundedGI C y) :
+    logBounded (Nat.max B (Nat.max C (2 * B * C))) (mulEv x y) := by
+  have hB : B ≤ Nat.max B (Nat.max C (2 * B * C)) := Nat.le_max_left _ _
+  have hC : C ≤ Nat.max B (Nat.max C (2 * B * C)) :=
+    (Nat.le_max_left C (2 * B * C)).trans (Nat.le_max_right B (Nat.max C (2 * B * C)))
+  have hBC : B * C ≤ Nat.max B (Nat.max C (2 * B * C)) := by
+    refine (mul_le_two_mul B C).trans ?_
+    exact (Nat.le_max_right C (2 * B * C)).trans (Nat.le_max_right B (Nat.max C (2 * B * C)))
+  have h2BC : 2 * B * C ≤ Nat.max B (Nat.max C (2 * B * C)) :=
+    (Nat.le_max_right C (2 * B * C)).trans (Nat.le_max_right B (Nat.max C (2 * B * C)))
+  intro e he
+  simp only [mulEv, List.mem_cons, List.mem_nil_iff, or_false] at he
+  rcases he with rfl | rfl | rfl | rfl | rfl | rfl
+  · simp only [Ev.bounded]
+    refine ⟨hx.1.trans hB, hy.1.trans hC, ?_⟩
+    simp only [Int.natAbs_mul]
+    exact (Nat.mul_le_mul hx.1 hy.1).trans hBC
+  · simp only [Ev.bounded]
+    refine ⟨hx.2.trans hB, hy.2.trans hC, ?_⟩
+    simp only [Int.natAbs_mul]
+    exact (Nat.mul_le_mul hx.2 hy.2).trans hBC
+  · simp only [Ev.bounded]
+    refine ⟨?_, ?_, ?_⟩
+    · simp only [Int.natAbs_mul]
+      exact (Nat.mul_le_mul hx.1 hy.1).trans hBC
+    · simp only [Int.natAbs_mul]
+      exact (Nat.mul_le_mul hx.2 hy.2).trans hBC
+    · refine (Int.natAbs_sub_le _ _).trans ?_
+      simp only [Int.natAbs_mul]
+      nlinarith [Nat.mul_le_mul hx.1 hy.1, Nat.mul_le_mul hx.2 hy.2]
+  · simp only [Ev.bounded]
+    refine ⟨hx.1.trans hB, hy.2.trans hC, ?_⟩
+    simp only [Int.natAbs_mul]
+    exact (Nat.mul_le_mul hx.1 hy.2).trans hBC
+  · simp only [Ev.bounded]
+    refine ⟨hx.2.trans hB, hy.1.trans hC, ?_⟩
+    simp only [Int.natAbs_mul]
+    exact (Nat.mul_le_mul hx.2 hy.1).trans hBC
+  · simp only [Ev.bounded]
+    refine ⟨?_, ?_, ?_⟩
+    · simp only [Int.natAbs_mul]
+      exact (Nat.mul_le_mul hx.1 hy.2).trans hBC
+    · simp only [Int.natAbs_mul]
+      exact (Nat.mul_le_mul hx.2 hy.1).trans hBC
+    · refine (Int.natAbs_add_le _ _).trans ?_
+      simp only [Int.natAbs_mul]
+      nlinarith [Nat.mul_le_mul hx.1 hy.2, Nat.mul_le_mul hx.2 hy.1]
+
+theorem logBounded_addEv {B C : ℕ} {x y : GI} (hx : BoundedGI B x) (hy : BoundedGI C y) :
+    logBounded (B + C) (addEv x y) := by
+  intro e he
+  simp only [addEv, List.mem_cons, List.mem_nil_iff, or_false] at he
+  rcases he with rfl | rfl
+  · simp only [Ev.bounded]
+    refine ⟨hx.1.trans (by omega : B ≤ B + C), hy.1.trans (by omega : C ≤ B + C), ?_⟩
+    exact (Int.natAbs_add_le _ _).trans (Nat.add_le_add hx.1 hy.1)
+  · simp only [Ev.bounded]
+    refine ⟨hx.2.trans (by omega : B ≤ B + C), hy.2.trans (by omega : C ≤ B + C), ?_⟩
+    exact (Int.natAbs_add_le _ _).trans (Nat.add_le_add hx.2 hy.2)
+
+def transferStep (acc : GI × List Ev) (pair : GI × GI) : GI × List Ev :=
+  let ca := conjGI pair.1
+  let m := mul ca pair.2
+  (add acc.1 m, acc.2 ++ negEv pair.1 ++ mulEv ca pair.2 ++ addEv acc.1 m)
+
+def dotStep (acc : GI × List Ev) (pair : GI × GI) : GI × List Ev :=
+  let m := mul pair.1 pair.2
+  (add acc.1 m, acc.2 ++ mulEv pair.1 pair.2 ++ addEv acc.1 m)
+
+def rowStep {D : ℕ} (acc : (Fin D → GI) × List Ev) (A : Matrix (Fin D) (Fin D) GI) :
+    (Fin D → GI) × List Ev :=
+  (row acc.1 A, acc.2 ++ rowEv acc.1 A)
+
+theorem transferEntryEv_eq {d Da Db : ℕ}
+    (A : Fin d → Matrix (Fin Da) (Fin Da) GI)
+    (B : Fin d → Matrix (Fin Db) (Fin Db) GI)
+    (a a' : Fin Da) (b b' : Fin Db) :
+    transferEntryEv A B a a' b b'
+      = (List.ofFn fun s : Fin d => (A s a a', B s b b')).foldl transferStep
+          (((0, 0) : GI), []) := rfl
+
+theorem dotEv_eq {D : ℕ} (v : Fin D → GI) (A : Matrix (Fin D) (Fin D) GI) (j : Fin D) :
+    dotEv v A j
+      = (List.ofFn fun i : Fin D => (v i, A i j)).foldl dotStep (((0, 0) : GI), []) := rfl
+
+theorem runEv_eq {D : ℕ} (As : List (Matrix (Fin D) (Fin D) GI)) :
+    runEv As = (As.foldl rowStep (initial D, [])).2 := rfl
+
+theorem logBounded_transferStep {E P s : ℕ} {acc : GI × List Ev} {pair : GI × GI}
+    (haccv : BoundedGI (s * P) acc.1) (hacc : logBounded (s * P) acc.2)
+    (hp1 : BoundedGI E pair.1) (hp2 : BoundedGI E pair.2)
+    (hE : E ≤ P) (hEE : 2 * E * E ≤ P) :
+    logBounded ((s + 1) * P) (transferStep acc pair).2 := by
+  have hmulv : BoundedGI P (mul (conjGI pair.1) pair.2) :=
+    bounded_mono hEE (bounded_mul (bounded_conj hp1) hp2)
+  have hmax : Nat.max E (Nat.max E (2 * E * E)) ≤ P := by
+    have h1 := max_le_max hE (max_le_max hE hEE)
+    simpa [Nat.max_eq_left] using! h1
+  have hmul : logBounded P (mulEv (conjGI pair.1) pair.2) :=
+    logBounded_mono hmax (logBounded_mulEv (bounded_conj hp1) hp2)
+  have hadd : logBounded (s * P + P) (addEv acc.1 (mul (conjGI pair.1) pair.2)) :=
+    logBounded_addEv haccv hmulv
+  have hstep : (s + 1) * P = s * P + P := by ring
+  have hle : s * P ≤ (s + 1) * P := by
+    have h1 : s ≤ s + 1 := by omega
+    exact Nat.mul_le_mul_right P h1
+  have hP' : P ≤ (s + 1) * P := by
+    have h1 : 1 ≤ s + 1 := by omega
+    simpa using! (Nat.mul_le_mul_right P h1)
+  have hE' : E ≤ (s + 1) * P := by
+    have h1 : E ≤ P := hE
+    omega
+  have hacc' : logBounded ((s + 1) * P) acc.2 := logBounded_mono hle hacc
+  have hneg : logBounded ((s + 1) * P) (negEv pair.1) :=
+    logBounded_mono hE' (logBounded_negEv hp1)
+  have hmul' : logBounded ((s + 1) * P) (mulEv (conjGI pair.1) pair.2) :=
+    logBounded_mono hP' hmul
+  have hadd' : logBounded ((s + 1) * P) (addEv acc.1 (mul (conjGI pair.1) pair.2)) := by
+    rw [← hstep] at hadd
+    exact hadd
+  show logBounded ((s + 1) * P)
+    (acc.2 ++ negEv pair.1 ++ mulEv (conjGI pair.1) pair.2
+      ++ addEv acc.1 (mul (conjGI pair.1) pair.2))
+  exact logBounded_append (logBounded_append (logBounded_append hacc' hneg) hmul') hadd'
+
+private theorem transfer_fold_bound {E P : ℕ} :
+    ∀ (xs : List (GI × GI)) (s : ℕ) (acc : GI × List Ev),
+      (∀ x ∈ xs, BoundedGI E x.1 ∧ BoundedGI E x.2) →
+      (∀ x ∈ xs, BoundedGI P (mul (conjGI x.1) x.2)) →
+      E ≤ P → 2 * E * E ≤ P →
+      BoundedGI (s * P) acc.1 →
+      logBounded (s * P) acc.2 →
+      BoundedGI ((s + xs.length) * P) (xs.foldl transferStep acc).1 ∧
+      logBounded ((s + xs.length) * P) (xs.foldl transferStep acc).2 := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro s acc hx hp hE hEE ha hl
+      exact ⟨by simpa using! ha, by simpa using! hl⟩
+  | cons x xs ih =>
+      intro s acc hx hp hE hEE ha hl
+      have hx0 : BoundedGI E x.1 ∧ BoundedGI E x.2 := hx x (by simp)
+      have hp0 : BoundedGI P (mul (conjGI x.1) x.2) := hp x (by simp)
+      have hstepV : BoundedGI ((s + 1) * P) (add acc.1 (mul (conjGI x.1) x.2)) := by
+        have h := bounded_add ha hp0
+        convert! h using 1
+        ring
+      have hstepL : logBounded ((s + 1) * P) (transferStep acc x).2 :=
+        logBounded_transferStep ha hl hx0.1 hx0.2 hE hEE
+      have htail := ih (s + 1) (transferStep acc x)
+        (fun y hy => hx y (by simp [hy])) (fun y hy => hp y (by simp [hy])) hE hEE hstepV hstepL
+      constructor
+      · simpa [List.foldl_cons, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using! htail.1
+      · simpa [List.foldl_cons, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using! htail.2
+
+private theorem transferEntry_bound {d Da Db w : ℕ}
+    (A : Fin d → Matrix (Fin Da) (Fin Da) GI)
+    (B : Fin d → Matrix (Fin Db) (Fin Db) GI)
+    (a a' : Fin Da) (b b' : Fin Db)
+    (hA : ∀ s, BoundedGI (2 ^ w) (A s a a')) (hB : ∀ s, BoundedGI (2 ^ w) (B s b b')) :
+    BoundedGI (d * 2 ^ (2 * w + 1)) (transferEntry A B a a' b b') := by
+  have hprod : ∀ x ∈ (List.ofFn fun s : Fin d => mul (conjGI (A s a a')) (B s b b')),
+      BoundedGI (2 ^ (2 * w + 1)) x := by
+    intro x hx
+    obtain ⟨s, rfl⟩ := List.mem_ofFn.mp hx
+    exact bounded_mono (two_pow_two w).le (bounded_mul (bounded_conj (hA s)) (hB s))
+  have h := bounded_fold (List.ofFn fun s : Fin d => mul (conjGI (A s a a')) (B s b b'))
+    ((0, 0) : GI) bounded_zero hprod
+  have hlen : (List.ofFn fun s : Fin d => mul (conjGI (A s a a')) (B s b b')).length = d := by
+    simp
+  have h2 : BoundedGI (d * 2 ^ (2 * w + 1)) (transferEntry A B a a' b b') := by
+    simpa [transferEntry, hlen, Nat.zero_add] using! h
+  exact h2
+
+private theorem transferPrefix_bound {d Da Db w : ℕ}
+    (A : Fin d → Matrix (Fin Da) (Fin Da) GI)
+    (B : Fin d → Matrix (Fin Db) (Fin Db) GI)
+    (a a' : Fin Da) (b b' : Fin Db) (k : ℕ) (hk : k ≤ d)
+    (hA : ∀ s, BoundedGI (2 ^ w) (A s a a')) (hB : ∀ s, BoundedGI (2 ^ w) (B s b b')) :
+    BoundedGI (d * 2 ^ (2 * w + 1)) (transferPrefix A B a a' b b' k) := by
+  have hprod : ∀ x ∈ (List.ofFn fun s : Fin d => mul (conjGI (A s a a')) (B s b b')),
+      BoundedGI (2 ^ (2 * w + 1)) x := by
+    intro x hx
+    obtain ⟨s, rfl⟩ := List.mem_ofFn.mp hx
+    exact bounded_mono (two_pow_two w).le (bounded_mul (bounded_conj (hA s)) (hB s))
+  have hprod' : ∀ x ∈ ((List.ofFn fun s : Fin d => mul (conjGI (A s a a')) (B s b b')).take k),
+      BoundedGI (2 ^ (2 * w + 1)) x := by
+    intro x hx
+    exact hprod x (List.mem_of_mem_take hx)
+  have h := bounded_fold
+    ((List.ofFn fun s : Fin d => mul (conjGI (A s a a')) (B s b b')).take k)
+    ((0, 0) : GI) bounded_zero hprod'
+  have hlen : ((List.ofFn fun s : Fin d => mul (conjGI (A s a a')) (B s b b')).take k).length = k := by
+    rw [List.length_take, List.length_ofFn]
+    simp [Nat.min_eq_left hk]
+  have h1 : k * 2 ^ (2 * w + 1) ≤ d * 2 ^ (2 * w + 1) :=
+    Nat.mul_le_mul_right _ hk
+  have h2 : BoundedGI (k * 2 ^ (2 * w + 1)) (transferPrefix A B a a' b b' k) := by
+    simpa [transferPrefix, hlen, Nat.zero_add] using! h
+  exact bounded_mono h1 h2
+
+private theorem transferEntryEv_bound {d Da Db w : ℕ}
+    (A : Fin d → Matrix (Fin Da) (Fin Da) GI)
+    (B : Fin d → Matrix (Fin Db) (Fin Db) GI)
+    (a a' : Fin Da) (b b' : Fin Db)
+    (hA : ∀ s, BoundedGI (2 ^ w) (A s a a')) (hB : ∀ s, BoundedGI (2 ^ w) (B s b b')) :
+    BoundedGI (d * 2 ^ (2 * w + 1)) (transferEntryEv A B a a' b b').1 ∧
+    logBounded (d * 2 ^ (2 * w + 1)) (transferEntryEv A B a a' b b').2 := by
+  have hE : 2 ^ w ≤ 2 ^ (2 * w + 1) :=
+    Nat.pow_le_pow_right (by omega : (2 : ℕ) > 0) (by omega : w ≤ 2 * w + 1)
+  have hEE : 2 * 2 ^ w * 2 ^ w ≤ 2 ^ (2 * w + 1) := by
+    rw [two_pow_two]
+  have hxs : ∀ x ∈ (List.ofFn fun s : Fin d => (A s a a', B s b b')),
+      BoundedGI (2 ^ w) x.1 ∧ BoundedGI (2 ^ w) x.2 := by
+    intro x hx
+    obtain ⟨s, rfl⟩ := List.mem_ofFn.mp hx
+    exact ⟨hA s, hB s⟩
+  have hprod : ∀ x ∈ (List.ofFn fun s : Fin d => (A s a a', B s b b')),
+      BoundedGI (2 ^ (2 * w + 1)) (mul (conjGI x.1) x.2) := by
+    intro x hx
+    obtain ⟨s, rfl⟩ := List.mem_ofFn.mp hx
+    exact bounded_mono (two_pow_two w).le (bounded_mul (bounded_conj (hA s)) (hB s))
+  have h := transfer_fold_bound (List.ofFn fun s : Fin d => (A s a a', B s b b')) 0
+    (((0, 0) : GI), []) hxs hprod hE hEE (by simpa using! bounded_zero) (by
+      intro e he
+      exact absurd he List.not_mem_nil)
+  have hlen : (List.ofFn fun s : Fin d => (A s a a', B s b b')).length = d := by
+    simp
+  rw [transferEntryEv_eq]
+  simpa [hlen] using! h
+
+private theorem constructionEv_bound {n d Da Db w : ℕ}
+    (A : Fin n → Fin d → Matrix (Fin Da) (Fin Da) GI)
+    (B : Fin n → Fin d → Matrix (Fin Db) (Fin Db) GI)
+    (hA : ∀ (i : Fin n) (s : Fin d) (a a' : Fin Da), BoundedGI (2 ^ w) (A i s a a'))
+    (hB : ∀ (i : Fin n) (s : Fin d) (b b' : Fin Db), BoundedGI (2 ^ w) (B i s b b')) :
+    logBounded (d * 2 ^ (2 * w + 1)) (constructionEv A B) := by
+  intro e he
+  simp only [constructionEv] at he
+  obtain ⟨L1, hL1, heL1⟩ := List.mem_flatten.mp he
+  obtain ⟨j, rfl⟩ := List.mem_ofFn.mp hL1
+  simp only [transferMatEv] at heL1
+  obtain ⟨L2, hL2, heL2⟩ := List.mem_flatten.mp heL1
+  obtain ⟨i, rfl⟩ := List.mem_ofFn.mp hL2
+  obtain ⟨L3, hL3, heL3⟩ := List.mem_flatten.mp heL2
+  obtain ⟨i', rfl⟩ := List.mem_ofFn.mp hL3
+  have hA' : ∀ s : Fin d, BoundedGI (2 ^ w) (A j s (ofIdx i).1 (ofIdx i').1) := by
+    intro s
+    exact hA j s (ofIdx i).1 (ofIdx i').1
+  have hB' : ∀ s : Fin d, BoundedGI (2 ^ w) (B j s (ofIdx i).2 (ofIdx i').2) := by
+    intro s
+    exact hB j s (ofIdx i).2 (ofIdx i').2
+  have h := (transferEntryEv_bound (A j) (B j) (ofIdx i).1 (ofIdx i').1 (ofIdx i).2 (ofIdx i').2
+    hA' hB').2
+  exact h e heL3
+
+theorem logBounded_dotStep {B C P s : ℕ} {acc : GI × List Ev} {pair : GI × GI}
+    (haccv : BoundedGI (s * P) acc.1) (hacc : logBounded (s * P) acc.2)
+    (hp1 : BoundedGI B pair.1) (hp2 : BoundedGI C pair.2)
+    (hB : B ≤ P) (hC : C ≤ P) (hBC : 2 * B * C ≤ P) :
+    logBounded ((s + 1) * P) (dotStep acc pair).2 := by
+  have hmulv : BoundedGI P (mul pair.1 pair.2) := bounded_mono hBC (bounded_mul hp1 hp2)
+  have hmax : Nat.max B (Nat.max C (2 * B * C)) ≤ P := by
+    have h1 := max_le_max hB (max_le_max hC hBC)
+    simpa [Nat.max_eq_left] using! h1
+  have hmul : logBounded P (mulEv pair.1 pair.2) :=
+    logBounded_mono hmax (logBounded_mulEv hp1 hp2)
+  have hadd : logBounded (s * P + P) (addEv acc.1 (mul pair.1 pair.2)) :=
+    logBounded_addEv haccv hmulv
+  have hstep : (s + 1) * P = s * P + P := by ring
+  have hle : s * P ≤ (s + 1) * P := by
+    have h1 : s ≤ s + 1 := by omega
+    exact Nat.mul_le_mul_right P h1
+  have hP' : P ≤ (s + 1) * P := by
+    have h1 : 1 ≤ s + 1 := by omega
+    simpa using! (Nat.mul_le_mul_right P h1)
+  have hacc' : logBounded ((s + 1) * P) acc.2 := logBounded_mono hle hacc
+  have hmul' : logBounded ((s + 1) * P) (mulEv pair.1 pair.2) := logBounded_mono hP' hmul
+  have hadd' : logBounded ((s + 1) * P) (addEv acc.1 (mul pair.1 pair.2)) := by
+    rw [← hstep] at hadd
+    exact hadd
+  show logBounded ((s + 1) * P)
+    (acc.2 ++ mulEv pair.1 pair.2 ++ addEv acc.1 (mul pair.1 pair.2))
+  exact logBounded_append (logBounded_append hacc' hmul') hadd'
+
+private theorem dot_fold_bound {B C P L : ℕ} :
+    ∀ (xs : List (GI × GI)) (s : ℕ) (acc : GI × List Ev),
+      (∀ x ∈ xs, BoundedGI B x.1 ∧ BoundedGI C x.2) →
+      (∀ x ∈ xs, BoundedGI P (mul x.1 x.2)) →
+      B ≤ L → C ≤ L → 2 * B * C ≤ L → P ≤ L → (s + xs.length) * P ≤ L →
+      BoundedGI (s * P) acc.1 →
+      logBounded L acc.2 →
+      BoundedGI ((s + xs.length) * P) (xs.foldl dotStep acc).1 ∧
+      logBounded L (xs.foldl dotStep acc).2 := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro s acc hx hp hB hC hBC hPL hL ha hl
+      refine ⟨?_, ?_⟩
+      · simpa using! ha
+      · simpa using! hl
+  | cons x xs ih =>
+      intro s acc hx hp hB hC hBC hPL hL ha hl
+      have hx0 : BoundedGI B x.1 ∧ BoundedGI C x.2 := hx x (by simp)
+      have hp0 : BoundedGI P (mul x.1 x.2) := hp x (by simp)
+      have hstepV : BoundedGI ((s + 1) * P) (add acc.1 (mul x.1 x.2)) := by
+        have h := bounded_add ha hp0
+        convert! h using 1
+        ring
+      have hmax : Nat.max B (Nat.max C (2 * B * C)) ≤ L := by
+        have h1 := max_le_max hB (max_le_max hC hBC)
+        simpa [Nat.max_eq_left] using! h1
+      have hL1 : (s + 1) * P ≤ L := by
+        have h1 : (s + 1) * P ≤ (s + 1 + xs.length) * P := by
+          have hx0 : 0 ≤ xs.length := Nat.zero_le _
+          have : s + 1 ≤ s + 1 + xs.length := by omega
+          exact Nat.mul_le_mul_right P this
+        have h2 : (s + 1 + xs.length) * P ≤ L := by
+          have : s + 1 + xs.length = s + (x :: xs).length := by
+            simp only [List.length_cons]
+            omega
+          rw [this]
+          exact hL
+        omega
+      have hstepL : logBounded L (dotStep acc x).2 := by
+        have hmul : logBounded (Nat.max B (Nat.max C (2 * B * C))) (mulEv x.1 x.2) :=
+          logBounded_mulEv hx0.1 hx0.2
+        have hadd : logBounded (s * P + P) (addEv acc.1 (mul x.1 x.2)) :=
+          logBounded_addEv ha hp0
+        have hstep : (s + 1) * P = s * P + P := by ring
+        have hadd' : logBounded L (addEv acc.1 (mul x.1 x.2)) := by
+          rw [← hstep] at hadd
+          exact logBounded_mono hL1 hadd
+        exact logBounded_append (logBounded_append hl (logBounded_mono hmax hmul)) hadd'
+      have htail := ih (s + 1) (dotStep acc x)
+        (fun y hy => hx y (by simp [hy])) (fun y hy => hp y (by simp [hy]))
+        hB hC hBC hPL
+        (by
+          have : s + 1 + xs.length = s + (x :: xs).length := by
+            simp only [List.length_cons]
+            omega
+          rw [this]
+          exact hL)
+        hstepV hstepL
+      constructor
+      · simpa [List.foldl_cons, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using! htail.1
+      · simpa [List.foldl_cons, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using! htail.2
+
+private theorem dotEv_bound {D B C L : ℕ} (v : Fin D → GI) (A : Matrix (Fin D) (Fin D) GI)
+    (j : Fin D)
+    (hv : ∀ i, BoundedGI B (v i)) (hA : ∀ i, BoundedGI C (A i j))
+    (hB : B ≤ L) (hC : C ≤ L) (hBC : 2 * B * C ≤ L) (hL : D * (2 * B * C) ≤ L) :
+    BoundedGI (D * (2 * B * C)) (dot v A j) ∧ logBounded L (dotEv v A j).2 := by
+  have hxs : ∀ x ∈ (List.ofFn fun i : Fin D => (v i, A i j)),
+      BoundedGI B x.1 ∧ BoundedGI C x.2 := by
+    intro x hx
+    obtain ⟨i, rfl⟩ := List.mem_ofFn.mp hx
+    exact ⟨hv i, hA i⟩
+  have hprod : ∀ x ∈ (List.ofFn fun i : Fin D => (v i, A i j)),
+      BoundedGI (2 * B * C) (mul x.1 x.2) := by
+    intro x hx
+    obtain ⟨i, rfl⟩ := List.mem_ofFn.mp hx
+    exact bounded_mul (hv i) (hA i)
+  have hfold := dot_fold_bound (List.ofFn fun i : Fin D => (v i, A i j)) 0
+    (((0, 0) : GI), []) hxs hprod hB hC hBC hBC (by simpa using! hL) (by simpa using! bounded_zero) (by
+      intro e he
+      exact absurd he List.not_mem_nil)
+  have hlen : (List.ofFn fun i : Fin D => (v i, A i j)).length = D := by
+    simp
+  have hval : BoundedGI (D * (2 * B * C)) (dot v A j) := by
+    have h := bounded_fold (List.ofFn fun i : Fin D => mul (v i) (A i j)) ((0, 0) : GI)
+      bounded_zero (by
+        intro x hx
+        obtain ⟨i, rfl⟩ := List.mem_ofFn.mp hx
+        exact bounded_mul (hv i) (hA i))
+    simpa [dot, hlen, Nat.zero_add] using! h
+  refine ⟨hval, ?_⟩
+  rw [dotEv_eq]
+  simpa [hlen] using! hfold.2
+
+private theorem rowEv_bound {D B C L : ℕ} (v : Fin D → GI) (A : Matrix (Fin D) (Fin D) GI)
+    (hv : ∀ i, BoundedGI B (v i)) (hA : ∀ i j, BoundedGI C (A i j))
+    (hB : B ≤ L) (hC : C ≤ L) (hBC : 2 * B * C ≤ L) (hL : D * (2 * B * C) ≤ L) :
+    logBounded L (rowEv v A) := by
+  intro e he
+  obtain ⟨L', hL', heL'⟩ := List.mem_flatten.mp he
+  obtain ⟨j, rfl⟩ := List.mem_ofFn.mp hL'
+  have h := (dotEv_bound v A j hv (fun i => hA i j) hB hC hBC hL).2
+  exact h e heL'
+
+private theorem run_fold_bound {D C M : ℕ} :
+    ∀ (As : List (Matrix (Fin D) (Fin D) GI)) (k : ℕ) (acc : (Fin D → GI) × List Ev),
+      1 ≤ D →
+      (∀ A ∈ As, ∀ i j, BoundedGI C (A i j)) →
+      (∀ m, k ≤ m → m ≤ k + As.length → (2 * D * C)^m ≤ M) →
+      C ≤ M →
+      (∀ j, BoundedGI ((2 * D * C)^k) ((acc.1) j)) →
+      logBounded M acc.2 →
+      (∀ j, BoundedGI ((2 * D * C)^(k + As.length)) ((As.foldl rowStep acc).1 j)) ∧
+      logBounded M (As.foldl rowStep acc).2 := by
+  intro As
+  induction As with
+  | nil =>
+      intro k acc hD hA hpow hC hv hl
+      refine ⟨?_, ?_⟩
+      · simpa using! hv
+      · simpa using! hl
+  | cons A As ih =>
+      intro k acc hD hA hpow hC hv hl
+      have hA0 : ∀ i j, BoundedGI C (A i j) := hA A (by simp)
+      have hlen : (A :: As).length = As.length + 1 := List.length_cons
+      have hpow' : ∀ m, k + 1 ≤ m → m ≤ k + 1 + As.length → (2 * D * C)^m ≤ M := by
+        intro m hm1 hm2
+        exact hpow m (by omega) (by omega)
+      have hmul : D * (2 * (2 * D * C)^k * C) = (2 * D * C)^(k + 1) := by
+        calc D * (2 * (2 * D * C)^k * C) = (2 * D * C) * (2 * D * C)^k := by ring
+          _ = (2 * D * C)^(k + 1) := by rw [pow_succ]; ring
+      have hmul' : 2 * (2 * D * C)^k * C ≤ (2 * D * C)^(k + 1) := by
+        have h1 : 2 * (2 * D * C)^k * C ≤ D * (2 * (2 * D * C)^k * C) := by
+          simpa using! (Nat.mul_le_mul_right (2 * (2 * D * C)^k * C) hD)
+        rw [hmul] at h1
+        exact h1
+      have hV : (2 * D * C)^k ≤ M := hpow k (by omega) (by omega)
+      have hV1 : (2 * D * C)^(k + 1) ≤ M := hpow (k + 1) (by omega) (by omega)
+      have hBC' : 2 * (2 * D * C)^k * C ≤ M := by omega
+      have hL' : D * (2 * (2 * D * C)^k * C) ≤ M := by rw [hmul]; omega
+      have hstepV : ∀ j, BoundedGI ((2 * D * C)^(k + 1)) (row acc.1 A j) := by
+        intro j
+        have h := (dotEv_bound acc.1 A j hv (fun i => hA0 i j)
+          (by omega) (by omega) hBC' hL').1
+        simpa [Qatlib.Concepts.DyadicProgram.DyadicContract.row, hmul] using! h
+      have hstepL0 : logBounded M (rowEv acc.1 A) :=
+        rowEv_bound acc.1 A hv hA0 (by omega) (by omega) hBC' hL'
+      have hstepL : logBounded M (rowStep acc A).2 := by
+        show logBounded M (acc.2 ++ rowEv acc.1 A)
+        exact logBounded_append hl hstepL0
+      have htail := ih (k + 1) (rowStep acc A)
+        (by omega) (fun A' hA' => hA A' (by simp [hA'])) hpow' hC hstepV hstepL
+      constructor
+      · simpa [List.foldl_cons, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using! htail.1
+      · simpa [List.foldl_cons, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using! htail.2
+
+private theorem foldl_rowStep_first {D : ℕ} (As : List (Matrix (Fin D) (Fin D) GI))
+    (acc : (Fin D → GI) × List Ev) :
+    (As.foldl rowStep acc).1 = As.foldl Qatlib.Concepts.DyadicProgram.DyadicContract.row acc.1 := by
+  induction As generalizing acc with
+  | nil => rfl
+  | cons A As ih => simp [List.foldl_cons, rowStep, ih]
+
+private theorem initial_bound {D : ℕ} (j : Fin D) : BoundedGI 1 (initial D j) := by
+  by_cases hj : j.val = 0
+  · simp [initial, hj, BoundedGI]
+  · simp [initial, hj, BoundedGI]
+
+private theorem natPowPow (a m n : ℕ) : (a ^ m) ^ n = a ^ (m * n) := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+      rw [pow_succ, ih, Nat.mul_succ, pow_add]
+
+private theorem clog_bound (D : ℕ) : D ≤ 2 ^ Nat.clog 2 (D + 1) :=
+  (Nat.le_succ D).trans (Nat.le_pow_clog (by decide : 1 < 2) (D + 1))
+
+private theorem transferBound_le (w D d : ℕ) :
+    d * 2 ^ (2 * w + 1)
+      ≤ 2 ^ (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) := by
+  have h1 : d ≤ 2 ^ Nat.clog 2 (d + 1) := clog_bound d
+  have h2 : Nat.clog 2 (d + 1) + (2 * w + 1)
+      ≤ 2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1) := by omega
+  calc d * 2 ^ (2 * w + 1)
+      ≤ (2 ^ Nat.clog 2 (d + 1)) * 2 ^ (2 * w + 1) := Nat.mul_le_mul_right _ h1
+    _ = 2 ^ (Nat.clog 2 (d + 1) + (2 * w + 1)) := by rw [← pow_add]
+    _ ≤ 2 ^ (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) :=
+      Nat.pow_le_pow_right (by omega : (2 : ℕ) > 0) h2
+
+private theorem stepFactor_le {Da Db D d w : ℕ} (hD : Da ≤ D) (hDb : Db ≤ D) :
+    2 * (Da * Db) * (d * 2 ^ (2 * w + 1))
+      ≤ 2 ^ (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) := by
+  have h1 : Da * Db ≤ D * D := Nat.mul_le_mul hD hDb
+  have hD2 : D * D ≤ 2 ^ (2 * Nat.clog 2 (D + 1)) := by
+    have h : D ≤ 2 ^ Nat.clog 2 (D + 1) := clog_bound D
+    calc D * D ≤ (2 ^ Nat.clog 2 (D + 1)) * (2 ^ Nat.clog 2 (D + 1)) := Nat.mul_le_mul h h
+      _ = 2 ^ (2 * Nat.clog 2 (D + 1)) := by
+          rw [← pow_add]
+          congr 1
+          omega
+  have hd : d ≤ 2 ^ Nat.clog 2 (d + 1) := clog_bound d
+  have hA : 2 ^ (2 * w + 2) * ((Da * Db) * d) ≤ 2 ^ (2 * w + 2) * ((D * D) * d) := by
+    have h2 := Nat.mul_le_mul_left (2 ^ (2 * w + 2)) h1
+    have h3 := Nat.mul_le_mul_right d h2
+    simpa [Nat.mul_assoc] using! h3
+  have hB : 2 ^ (2 * w + 2) * ((D * D) * d)
+      ≤ 2 ^ (2 * w + 2) * 2 ^ (2 * Nat.clog 2 (D + 1)) * 2 ^ Nat.clog 2 (d + 1) := by
+    have h2 := Nat.mul_le_mul_left (2 ^ (2 * w + 2)) hD2
+    have h3 := Nat.mul_le_mul_right (2 ^ Nat.clog 2 (d + 1)) h2
+    calc 2 ^ (2 * w + 2) * ((D * D) * d) = (2 ^ (2 * w + 2) * (D * D)) * d := by
+          ac_rfl
+      _ ≤ (2 ^ (2 * w + 2) * (D * D)) * 2 ^ Nat.clog 2 (d + 1) :=
+          Nat.mul_le_mul_left (2 ^ (2 * w + 2) * (D * D)) hd
+      _ ≤ (2 ^ (2 * w + 2) * 2 ^ (2 * Nat.clog 2 (D + 1))) * 2 ^ Nat.clog 2 (d + 1) := h3
+      _ = _ := rfl
+  calc 2 * (Da * Db) * (d * 2 ^ (2 * w + 1))
+      = 2 ^ (2 * w + 1) * 2 * ((Da * Db) * d) := by ring
+    _ = 2 ^ (2 * w + 2) * ((Da * Db) * d) := by rw [← pow_succ]
+    _ ≤ 2 ^ (2 * w + 2) * ((D * D) * d) := hA
+    _ ≤ 2 ^ (2 * w + 2) * 2 ^ (2 * Nat.clog 2 (D + 1)) * 2 ^ Nat.clog 2 (d + 1) := hB
+    _ = 2 ^ (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) := by
+        rw [← pow_add, ← pow_add]
+
+theorem intBitWidth_le {W : ℕ} {z : ℤ} (hz : z.natAbs ≤ 2 ^ W) : intBitWidth z ≤ W + 1 := by
+  by_cases h : z.natAbs = 0
+  · simp [intBitWidth, h]
+  · have h1 : Nat.log 2 z.natAbs ≤ W := by
+      have h2 := Nat.log_mono_right (b := 2) hz
+      rwa [Nat.log_pow (by decide : 1 < 2) W] at h2
+    simp [intBitWidth, h, h1]
+
+theorem clause3_endpoint : clause3StatementNext := by
+  intro n d Da Db w hDa hDb A B hA hB
+  have hDaPos : 0 < Da := NeZero.pos Da
+  have hDbPos : 0 < Db := NeZero.pos Db
+  have hDc : 0 < Da * Db := Nat.mul_pos hDaPos hDbPos
+  refine ⟨clause3_erasure A B, clause3_logWF A B, (clause3_counts A B).1, (clause3_counts A B).2.1,
+    (clause3_counts A B).2.2, ?_, ?_, clause3_boundary_empty A B, clause3_boundary_zeroPhysical A B⟩
+  · intro D hD hDbD
+    exact clause3_counts_pow4 A B hD hDbD
+  · intro D hD hDbD
+    by_cases hn : n = 0
+    · subst hn
+      have htr := clause3_boundary_empty A B rfl
+      have hM : magnitudeBoundNext 0 d D w = 1 := by
+        simp [magnitudeBoundNext, widthBoundNext]
+      have htl : transferList A B
+          = ([] : List (Matrix (Fin (Da * Db)) (Fin (Da * Db)) GI)) := by
+        show (List.ofFn fun j : Fin 0 => transferMat (A j) (B j)) = []
+        have : (List.ofFn fun j : Fin 0 => transferMat (A j) (B j)).length = 0 := by
+          rw [List.length_ofFn]
+        exact List.eq_nil_of_length_eq_zero this
+      have hrun : ∀ (j : Fin (Da * Db)), run (transferList A B) j = initial (Da * Db) j := by
+        intro j
+        rw [htl]
+        simp [run]
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+      · intro e he
+        rw [htr] at he
+        exact absurd he List.not_mem_nil
+      · intro i a a' b b'
+        exact Fin.elim0 i
+      · intro i a a' b b' k hk
+        exact Fin.elim0 i
+      · intro j
+        rw [hrun, hM]
+        exact initial_bound j
+      · intro j jj k hk
+        exact Fin.elim0 j
+      · rw [← clause3_erasure A B, htr, hM]
+        exact by simp [BoundedGI]
+    · have hn1 : 1 ≤ n := by omega
+      have hW1 : 2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)
+          ≤ n * (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) := by
+        have h1 := Nat.mul_le_mul_right
+          (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) hn1
+        simpa using! h1
+      have hstep1 : 2 * (Da * Db) * (d * 2 ^ (2 * w + 1))
+          ≤ 2 ^ (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) :=
+        stepFactor_le hD hDbD
+      have hCval : d * 2 ^ (2 * w + 1) ≤ magnitudeBoundNext n d D w := by
+        have h1 := transferBound_le w D d
+        rw [magnitudeBoundNext, widthBoundNext]
+        exact h1.trans (Nat.pow_le_pow_right (by omega : (2 : ℕ) > 0) hW1)
+      have hpow : ∀ (m : ℕ), m ≤ n →
+          (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^m ≤ magnitudeBoundNext n d D w := by
+        intro m hm
+        rw [magnitudeBoundNext, widthBoundNext]
+        calc (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^m
+            ≤ (2 ^ (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)))^m :=
+              Nat.pow_le_pow_left hstep1 m
+          _ = 2 ^ ((2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) * m) := by
+              rw [natPowPow]
+          _ ≤ 2 ^ (n * (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1))) := by
+              apply Nat.pow_le_pow_right (by omega : (2 : ℕ) > 0)
+              have h3 := Nat.mul_le_mul_right
+                (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) hm
+              simpa [Nat.mul_comm] using! h3
+      have htrans : ∀ (i : Fin n) (a a' : Fin Da) (b b' : Fin Db),
+          BoundedGI (magnitudeBoundNext n d D w) (transferEntry (A i) (B i) a a' b b') := by
+        intro i a a' b b'
+        have hA' : ∀ s : Fin d, BoundedGI (2 ^ w) (A i s a a') := fun s => hA i s a a'
+        have hB' : ∀ s : Fin d, BoundedGI (2 ^ w) (B i s b b') := fun s => hB i s b b'
+        exact bounded_mono hCval (transferEntry_bound (A i) (B i) a a' b b' hA' hB')
+      have htranspre : ∀ (i : Fin n) (a a' : Fin Da) (b b' : Fin Db) (k : ℕ), k ≤ d →
+          BoundedGI (magnitudeBoundNext n d D w) (transferPrefix (A i) (B i) a a' b b' k) := by
+        intro i a a' b b' k hk
+        have hA' : ∀ s : Fin d, BoundedGI (2 ^ w) (A i s a a') := fun s => hA i s a a'
+        have hB' : ∀ s : Fin d, BoundedGI (2 ^ w) (B i s b b') := fun s => hB i s b b'
+        exact bounded_mono hCval
+          (transferPrefix_bound (A i) (B i) a a' b b' k hk hA' hB')
+      have hmat : ∀ (j : Fin n) (i i' : Fin (Da * Db)),
+          BoundedGI (d * 2 ^ (2 * w + 1)) (transferMat (A j) (B j) i i') := by
+        intro j i i'
+        exact transferEntry_bound (A j) (B j) (ofIdx i).1 (ofIdx i').1 (ofIdx i).2 (ofIdx i').2
+          (fun s => hA j s (ofIdx i).1 (ofIdx i').1)
+          (fun s => hB j s (ofIdx i).2 (ofIdx i').2)
+      have hlen : (transferList A B).length = n := by
+        simp [transferList]
+      have hrunfold := run_fold_bound (transferList A B) 0 (initial (Da * Db), []) (by omega)
+        (by
+          intro T hT
+          obtain ⟨jT, rfl⟩ := List.mem_ofFn.mp hT
+          exact hmat jT)
+        (by
+          intro m hm1 hm2
+          exact hpow m (by omega))
+        (by exact hCval)
+        (fun j => initial_bound j)
+        (by
+          intro e he
+          exact absurd he List.not_mem_nil)
+      have hrun : ∀ (j : Fin (Da * Db)),
+          BoundedGI (magnitudeBoundNext n d D w) (run (transferList A B) j) := by
+        intro j
+        have hfirst : ((transferList A B).foldl rowStep (initial (Da * Db), [])).1
+            = (transferList A B).foldl row (initial (Da * Db)) :=
+          foldl_rowStep_first (transferList A B) (initial (Da * Db), [])
+        have hj : BoundedGI ((2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^n)
+            ((transferList A B).foldl row (initial (Da * Db)) j) := by
+          have h2 := (hrunfold.1 j)
+          rw [hfirst] at h2
+          rwa [show 0 + (transferList A B).length = n by
+            simp [transferList]] at h2
+        show BoundedGI (magnitudeBoundNext n d D w)
+            ((transferList A B).foldl row (initial (Da * Db)) j)
+        exact bounded_mono (hpow n (by omega)) hj
+      have hout : BoundedGI (magnitudeBoundNext n d D w) (overlapProgram A B) := by
+        have h := hrun ⟨0, hDc⟩
+        rw [overlapProgram]
+        split
+        · next hh => exact h
+        · next hh => exact absurd hh (by omega)
+      have hprefixrun : ∀ (m : ℕ) (jj : Fin (Da * Db)),
+          BoundedGI ((2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(min m n))
+            (run ((transferList A B).take m) jj) := by
+        intro m jj
+        have htakeLen : ((transferList A B).take m).length = min m n := by
+          simp [transferList, List.length_take]
+        have hfold := run_fold_bound ((transferList A B).take m) 0 (initial (Da * Db), []) (by omega)
+          (by
+            intro T hT
+            have hT' : T ∈ transferList A B := List.mem_of_mem_take hT
+            obtain ⟨jT, rfl⟩ := List.mem_ofFn.mp hT'
+            exact hmat jT)
+          (by
+            intro m' hm1 hm2
+            rw [htakeLen] at hm2
+            exact hpow m' (by omega))
+          (by exact hCval)
+          (fun j => initial_bound j)
+          (by
+            intro e he
+            exact absurd he List.not_mem_nil)
+        have hfirst : (((transferList A B).take m).foldl rowStep (initial (Da * Db), [])).1
+            = ((transferList A B).take m).foldl row (initial (Da * Db)) :=
+          foldl_rowStep_first ((transferList A B).take m) (initial (Da * Db), [])
+        have hj : BoundedGI ((2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(min m n))
+            (((transferList A B).take m).foldl row (initial (Da * Db)) jj) := by
+          have h2 := (hfold.1 jj)
+          rw [hfirst] at h2
+          rwa [show 0 + ((transferList A B).take m).length = min m n by
+            simp [transferList, List.length_take]] at h2
+        show BoundedGI _ (run ((transferList A B).take m) jj)
+        exact hj
+      have hrowpre : ∀ (j : Fin n) (jj : Fin (Da * Db)) (k : ℕ), k ≤ Da * Db →
+          BoundedGI (magnitudeBoundNext n d D w) (rowPrefix A B j jj k) := by
+        intro j jj k hk
+        have hjle : (j : ℕ) + 1 ≤ n := by omega
+        have hPj : 2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1))
+            ≤ magnitudeBoundNext n d D w := by
+          have h1 : 2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1))
+              ≤ (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ) + 1) := by
+            calc 2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1))
+                ≤ (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ)
+                    * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1))) := by
+                    have h1' : 1 ≤ Da * Db := by omega
+                    have h2' : 2 * (d * 2 ^ (2 * w + 1))
+                        ≤ 2 * (Da * Db) * (d * 2 ^ (2 * w + 1)) := by
+                      have h5 : 2 ≤ 2 * (Da * Db) := by
+                        have := Nat.mul_le_mul_left 2 h1'
+                        simpa using! this
+                      have h6 : (d * 2 ^ (2 * w + 1)) * 2
+                          ≤ (d * 2 ^ (2 * w + 1)) * (2 * (Da * Db)) :=
+                        Nat.mul_le_mul_left _ h5
+                      calc 2 * (d * 2 ^ (2 * w + 1)) = (d * 2 ^ (2 * w + 1)) * 2 := by ac_rfl
+                        _ ≤ (d * 2 ^ (2 * w + 1)) * (2 * (Da * Db)) := h6
+                        _ = 2 * (Da * Db) * (d * 2 ^ (2 * w + 1)) := by ac_rfl
+                    have h3' : (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ))
+                        * (2 * (d * 2 ^ (2 * w + 1)))
+                        ≤ (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ))
+                          * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1))) :=
+                      Nat.mul_le_mul_left
+                        ((2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ))) h2'
+                    have h4 : 2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ))
+                        * (d * 2 ^ (2 * w + 1))
+                        = (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ))
+                          * (2 * (d * 2 ^ (2 * w + 1))) := by ac_rfl
+                    rw [h4]
+                    exact h3'
+              _ = (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ) + 1) := by
+                  exact (Nat.pow_succ (2 * (Da * Db) * (d * 2 ^ (2 * w + 1))) (j : ℕ)).symm
+          have h2 : (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ) + 1)
+              ≤ magnitudeBoundNext n d D w := by
+            rw [magnitudeBoundNext, widthBoundNext]
+            calc (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ) + 1)
+                ≤ (2 ^ (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)))^((j : ℕ) + 1) :=
+                  Nat.pow_le_pow_left hstep1 _
+              _ = 2 ^ ((2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) * ((j : ℕ) + 1)) := by
+                  rw [natPowPow]
+              _ ≤ 2 ^ (n * (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1))) := by
+                  apply Nat.pow_le_pow_right (by omega : (2 : ℕ) > 0)
+                  have h3 := Nat.mul_le_mul_right
+                    (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) hjle
+                  rw [Nat.mul_comm ((j : ℕ) + 1)
+                    (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1))] at h3
+                  exact h3
+          exact h1.trans h2
+        have hprod : ∀ x ∈ (List.ofFn fun i : Fin (Da * Db) =>
+              mul ((run ((transferList A B).take (j : ℕ))) i) (transferMat (A j) (B j) i jj)),
+            BoundedGI (2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1))) x := by
+          intro x hx
+          obtain ⟨i, rfl⟩ := List.mem_ofFn.mp hx
+          have hv : BoundedGI ((2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ))
+              ((run ((transferList A B).take (j : ℕ))) i) := by
+            have h := hprefixrun (j : ℕ) i
+            rwa [Nat.min_eq_left (by omega : (j : ℕ) ≤ n)] at h
+          have ht : BoundedGI (d * 2 ^ (2 * w + 1)) (transferMat (A j) (B j) i jj) :=
+            hmat j i jj
+          exact bounded_mul hv ht
+        have hprod' : ∀ x ∈ ((List.ofFn fun i : Fin (Da * Db) =>
+              mul ((run ((transferList A B).take (j : ℕ))) i) (transferMat (A j) (B j) i jj)).take k),
+            BoundedGI (2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1))) x := by
+          intro x hx
+          exact hprod x (List.mem_of_mem_take hx)
+        have hfold := bounded_fold
+          ((List.ofFn fun i : Fin (Da * Db) =>
+              mul ((run ((transferList A B).take (j : ℕ))) i) (transferMat (A j) (B j) i jj)).take k)
+          ((0, 0) : GI) bounded_zero hprod'
+        have hlenk : ((List.ofFn fun i : Fin (Da * Db) =>
+              mul ((run ((transferList A B).take (j : ℕ))) i) (transferMat (A j) (B j) i jj)).take k).length
+            = k := by
+            rw [List.length_take]
+            simp [Nat.min_eq_left hk]
+        have hsum : BoundedGI
+            (k * (2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1))))
+            (rowPrefix A B j jj k) := by
+          simpa [rowPrefix, hlenk, Nat.zero_add] using! hfold
+        have hkD : k * (2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1)))
+            ≤ magnitudeBoundNext n d D w := by
+          have h1 : k * (2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1)))
+              ≤ (Da * Db) * (2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1))) :=
+            Nat.mul_le_mul_right _ hk
+          have h2 : (Da * Db)
+              * (2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1)))
+              ≤ magnitudeBoundNext n d D w := by
+            have h3 : (Da * Db)
+                * (2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1)))
+                = (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ) + 1) := by
+              calc (Da * Db)
+                  * (2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1)))
+                  = (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ)
+                      * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1))) := by ac_rfl
+                _ = (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ) + 1) := by
+                    exact (Nat.pow_succ (2 * (Da * Db) * (d * 2 ^ (2 * w + 1))) (j : ℕ)).symm
+            have h6 : (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ) + 1)
+                ≤ magnitudeBoundNext n d D w := by
+              rw [magnitudeBoundNext, widthBoundNext]
+              calc (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^((j : ℕ) + 1)
+                  ≤ (2 ^ (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)))^((j : ℕ) + 1) :=
+                    Nat.pow_le_pow_left hstep1 _
+                _ = 2 ^ ((2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) * ((j : ℕ) + 1)) := by
+                    rw [natPowPow]
+                _ ≤ 2 ^ (n * (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1))) := by
+                    apply Nat.pow_le_pow_right (by omega : (2 : ℕ) > 0)
+                    have h3 := Nat.mul_le_mul_right
+                      (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1)) hjle
+                    rw [Nat.mul_comm ((j : ℕ) + 1)
+                      (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1))] at h3
+                    exact h3
+            have h7 : (Da * Db)
+                * (2 * (2 * (Da * Db) * (d * 2 ^ (2 * w + 1)))^(j : ℕ) * (d * 2 ^ (2 * w + 1)))
+                ≤ magnitudeBoundNext n d D w := by
+              rw [h3]
+              exact h6
+            exact h7
+          exact h1.trans h2
+        exact bounded_mono hkD hsum
+      have hlogc : logBounded (d * 2 ^ (2 * w + 1)) (constructionEv A B) :=
+        constructionEv_bound A B (fun i s a a' => hA i s a a') (fun i s b b' => hB i s b b')
+      have hlogr : logBounded (magnitudeBoundNext n d D w) (runEv (transferList A B)) := by
+        rw [runEv_eq]
+        exact hrunfold.2
+      have hlog : logBounded (magnitudeBoundNext n d D w) (overlapTrace A B).2 := by
+        have h1 : logBounded (magnitudeBoundNext n d D w) (constructionEv A B) :=
+          logBounded_mono hCval hlogc
+        have h2 : (overlapTrace A B).2 = constructionEv A B ++ runEv (transferList A B) := rfl
+        rw [h2]
+        exact logBounded_append h1 hlogr
+      refine ⟨hlog, htrans, htranspre, hrun, hrowpre, hout, ?_⟩
+      · intro e he
+        have h1 := hlog e he
+        have hb : BoundedGI (magnitudeBoundNext n d D w) (e.a, e.b) := ⟨h1.1, h1.2.1⟩
+        have hr : BoundedGI (magnitudeBoundNext n d D w) (e.r, e.r) := ⟨h1.2.2, h1.2.2⟩
+        have hW : magnitudeBoundNext n d D w = 2 ^ widthBoundNext n d D w := rfl
+        rw [hW] at hb hr
+        have hwa : intBitWidth e.a ≤ widthBoundNext n d D w + 1 :=
+          intBitWidth_le hb.1
+        have hwb : intBitWidth e.b ≤ widthBoundNext n d D w + 1 :=
+          intBitWidth_le hb.2
+        have hwr : intBitWidth e.r ≤ widthBoundNext n d D w + 1 :=
+          intBitWidth_le hr.1
+        show max (intBitWidth e.a) (max (intBitWidth e.b) (intBitWidth e.r))
+          ≤ widthBoundNext n d D w + 1
+        exact max_le (hwa) (max_le hwb hwr)
+
+end Qatlib.Concepts.DyadicOverlap.ArithLedger.DyadicMpsOverlapProgram

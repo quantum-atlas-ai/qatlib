@@ -1,0 +1,35 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.WalkSearch.QuantumAccess.ResidualDiagnosticContracts
+import Qatlib.Concepts.WalkSearch.Primitives.AdaptiveCheckerObstruction
+set_option backward.isDefEq.respectTransparency false
+set_option warningAsError false
+
+open Qatlib.Concepts.WalkSearch.QuantumAccess.Walk
+open Qatlib.Concepts.WalkSearch.WalkAlgorithms
+
+set_option autoImplicit false
+
+namespace Qatlib.Concepts.WalkSearch.Primitives
+
+theorem checkerSubstitution_obstruction : ¬ CheckerSubstitution := by
+  intro h
+  obtain ⟨r, r', _hr, _hl, _hu, _hr', _hl', _hu', hcheck, _rest⟩ :=
+    h 3 (by decide) threeVertexTriangle (by decide) (by decide)
+      oneBadCollisionSolver failingTestNoisySearch positiveNullGrover
+      (by decide) (by decide) (by decide)
+  exact triCheckSpecCorrected_adaptive_obstruction r' hcheck
+
+theorem th4Alg_checker_run_irrelevant {n : ℕ} (adj : Fin n → Fin n → Bool)
+    (kcs : KCollisionSolver) (ncs ncs' : NoisySearch) (sgs : Qatlib.Concepts.WalkSearch.WalkAlgorithms.SafeGrover)
+    (hκ : ncs.κ = ncs'.κ) (r r' c₀ : ℕ)
+    (stape : ℕ → kcs.seed) (gtape : ℕ → sgs.seed) :
+    th4Alg adj kcs ncs sgs r r' c₀ stape gtape =
+      th4Alg adj kcs ncs' sgs r r' c₀ stape gtape := by
+  simp only [th4Alg, cCOf, hκ]
+
+end Qatlib.Concepts.WalkSearch.Primitives

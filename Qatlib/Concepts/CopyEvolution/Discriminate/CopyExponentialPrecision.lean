@@ -1,0 +1,560 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyComposition
+import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+import Qatlib.Concepts.CopyEvolution.Discriminate.UnitaryExponentialRemainder
+import Qatlib.Concepts.CopyEvolution.Discriminate.CopyEvolutionConsumer
+open Qatlib.Foundations.PureStateMath.BornBridge
+set_option warningAsError false
+set_option backward.isDefEq.respectTransparency false
+
+open Qatlib.Concepts.ReferenceError.RefTraceError
+open Qatlib.Concepts.FreshCopyExec.QpeConsumers
+
+open Qatlib.Foundations.OperatorErrors.OperatorError
+open Qatlib.Foundations.PureStateMath
+
+namespace Qatlib.Concepts.CopyEvolution.Discriminate
+
+open Matrix
+open scoped Matrix.Norms.L2Operator ComplexOrder Classical
+
+set_option linter.unusedSectionVars false
+set_option maxHeartbeats 4000000
+
+theorem density_eigenvalue_le_one {D : ℕ} (ρ : Operator D) (hρ : IsDensityOperator ρ)
+    (i : Fin D) : (hρ.1.isHermitian.eigenvalues i : ℂ) ≤ 1 := by
+  have hsum : ρ.trace = ∑ j, (hρ.1.isHermitian.eigenvalues j : ℂ) := by
+    simpa only [Complex.ofReal_sum] using! hρ.1.isHermitian.trace_eq_sum_eigenvalues
+  have hle : (hρ.1.isHermitian.eigenvalues i : ℂ)
+      ≤ ∑ j, (hρ.1.isHermitian.eigenvalues j : ℂ) := by
+    rw [← Complex.ofReal_sum]
+    exact_mod_cast Finset.single_le_sum (fun j _ => hρ.1.eigenvalues_nonneg j)
+      (Finset.mem_univ i)
+  exact hle.trans_eq (hsum.symm.trans hρ.2)
+
+theorem density_l2_opNorm_le_one {D : ℕ} (ρ : Operator D) (hρ : IsDensityOperator ρ) :
+    ‖ρ‖ ≤ 1 := by
+  have hH : ρ.IsHermitian := hρ.1.isHermitian
+  set V : Matrix (Fin D) (Fin D) ℂ :=
+    (hH.eigenvectorUnitary : Matrix (Fin D) (Fin D) ℂ) with hVdef
+  set lam : Fin D → ℂ := fun i => (RCLike.ofReal (hH.eigenvalues i) : ℂ) with hlamdef
+  have hVunit : V ∈ Matrix.unitaryGroup (Fin D) ℂ := by
+    rw [hVdef]; exact hH.eigenvectorUnitary.2
+  have hV : ‖V‖ ≤ 1 := l2_norm_unitary_le_one hVunit
+  have hVH : ‖Vᴴ‖ ≤ 1 := by rw [Matrix.l2_opNorm_conjTranspose]; exact hV
+  have hspec : ρ = V * Matrix.diagonal lam * Vᴴ := by
+    rw [hVdef, hlamdef]; exact hH.spectral_theorem
+  have hdiag : ‖Matrix.diagonal lam‖ = ‖lam‖ := Matrix.l2_opNorm_diagonal lam
+  have hlam : ‖lam‖ ≤ 1 := by
+    refine (pi_norm_le_iff_of_nonneg (r := (1 : ℝ)) (by norm_num)).2 fun i => ?_
+    have hle : ‖lam i‖ ≤ 1 := by
+      have hlami : lam i = (hH.eigenvalues i : ℂ) := by simp [hlamdef]
+      rw [hlami, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (hρ.1.eigenvalues_nonneg i)]
+      exact_mod_cast density_eigenvalue_le_one ρ hρ i
+    simpa using hle
+  rw [hspec]
+  have h1 : ‖V * Matrix.diagonal lam‖ ≤ ‖V‖ * ‖Matrix.diagonal lam‖ := Matrix.l2_opNorm_mul _ _
+  have h2 : ‖(V * Matrix.diagonal lam) * Vᴴ‖ ≤ ‖V * Matrix.diagonal lam‖ * ‖Vᴴ‖ :=
+    Matrix.l2_opNorm_mul _ _
+  calc
+    ‖V * Matrix.diagonal lam * Vᴴ‖ ≤ ‖V * Matrix.diagonal lam‖ * ‖Vᴴ‖ := h2
+    _ ≤ (‖V‖ * ‖lam‖) * ‖Vᴴ‖ :=
+      mul_le_mul_of_nonneg_right (hdiag ▸ h1) (norm_nonneg Vᴴ)
+    _ ≤ (1 * ‖lam‖) * 1 := by gcongr
+    _ ≤ 1 := by simpa using hlam
+
+theorem hamiltonianEvolution_pow {D : ℕ} (ρ : Operator D) (τ : ℝ) (m : ℕ) :
+    (HamiltonianEvolution ρ τ) ^ m = HamiltonianEvolution ρ ((m : ℝ) * τ) := by
+  induction m with
+  | zero => simp [hamiltonianEvolution_zero]
+  | succ m ih =>
+      rw [pow_succ, ih, ← hamiltonianEvolution_add]
+      congr 1
+      push_cast
+      ring
+
+theorem nat_mul_div_self {n : ℕ} (hn : 0 < n) (t : ℝ) :
+    (n : ℝ) * (t / (n : ℝ)) = t := by
+  have hn0 : (n : ℝ) ≠ 0 := by exact_mod_cast (ne_of_gt hn)
+  field_simp
+
+theorem copy_density_ideal_equal_step_evolution (D : ℕ) (ρ : Operator D) (t : ℝ) (n : ℕ)
+    (hρ : IsDensityOperator ρ) (hn : 0 < n) :
+    ‖ρ‖ ≤ 1 ∧ HamiltonianEvolution ρ t ∈ Matrix.unitaryGroup (Fin D) ℂ ∧
+      (HamiltonianEvolution ρ (t / (n : ℝ))) ^ n = HamiltonianEvolution ρ t :=
+  ⟨density_l2_opNorm_le_one ρ hρ, hamiltonianEvolution_unitary hρ.1.isHermitian t,
+    (hamiltonianEvolution_pow ρ (t / (n : ℝ)) n).trans
+      (congrArg (HamiltonianEvolution ρ) (nat_mul_div_self hn t))⟩
+
+theorem psd_traceNorm_eq_trace {I : Type*} [Fintype I] [DecidableEq I]
+    (A : Matrix I I ℂ) (hA : A.PosSemidef) : Matrix.traceNorm A = A.trace.re := by
+  have h := Matrix.PosSemidef.traceNorm_eq_trace (A := A) hA
+  simpa using congrArg Complex.re h
+
+private theorem trace_re_mul {x y : ℂ} (hx : x.re = x) (hy : y.re = y) :
+    (x * y).re = x.re * y.re := by
+  have hxi : x.im = 0 := by rw [← hx]; simp
+  have hyi : y.im = 0 := by rw [← hy]; simp
+  rw [Complex.mul_re, hxi, hyi, zero_mul, sub_zero]
+
+theorem traceNorm_tensorGate {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I]
+    [DecidableEq J] (A : Matrix I I ℂ) (hA : A.PosSemidef) (B : Matrix J J ℂ)
+    (hB : B.PosSemidef) :
+    Matrix.traceNorm (TensorGate A B) = Matrix.traceNorm A * Matrix.traceNorm B := by
+  rw [psd_traceNorm_eq_trace (TensorGate A B)
+      (Qatlib.Foundations.PureStateMath.BornBridge.posSemidef_tensorGate (ρ := A) (σ := B) hA hB),
+    Qatlib.Foundations.PureStateMath.BornBridge.trace_tensorGate, psd_traceNorm_eq_trace A hA, psd_traceNorm_eq_trace B hB]
+  exact trace_re_mul hA.isHermitian.re_trace_eq_trace hB.isHermitian.re_trace_eq_trace
+
+theorem traceNorm_sub_le {I : Type*} [Fintype I] [DecidableEq I]
+    (A B : Matrix I I ℂ) :
+    Matrix.traceNorm (A - B) ≤ Matrix.traceNorm A + Matrix.traceNorm B := by
+  calc
+    Matrix.traceNorm (A - B) = Matrix.traceNorm (A + -B) := by rw [sub_eq_add_neg]
+    _ ≤ Matrix.traceNorm A + Matrix.traceNorm (-B) := Matrix.traceNorm_add_le _ _
+    _ = Matrix.traceNorm A + Matrix.traceNorm B := by rw [Matrix.traceNorm_neg]
+
+theorem one_mem_unitaryGroup_ℂ {I : Type*} [Fintype I] [DecidableEq I] :
+    (1 : Matrix I I ℂ) ∈ Matrix.unitaryGroup I ℂ :=
+  Matrix.mem_unitaryGroup_iff'.2 (by simp)
+
+theorem conjTranspose_pow {I : Type*} [Fintype I] (A : Matrix I I ℂ) (n : ℕ) :
+    (A ^ n)ᴴ = (Aᴴ) ^ n := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+      calc
+        (A ^ (n + 1))ᴴ = (A ^ n * A)ᴴ := by rw [pow_succ]
+        _ = Aᴴ * (A ^ n)ᴴ := by rw [Matrix.conjTranspose_mul]
+        _ = Aᴴ * (Aᴴ) ^ n := by rw [ih]
+        _ = (Aᴴ) ^ (n + 1) := (pow_succ' _ _).symm
+
+theorem tensorGate_evolution_unitary {D r : ℕ} (ρ : Operator D) (hρ : IsDensityOperator ρ)
+    (τ : ℝ) : TensorGate (HamiltonianEvolution ρ τ) (1 : Operator r)
+      ∈ Matrix.unitaryGroup (Fin D × Fin r) ℂ :=
+  tensorGate_unitary (hamiltonianEvolution_unitary hρ.1.isHermitian τ) one_mem_unitaryGroup_ℂ
+
+theorem tensorGate_density_l2_norm_le_one {D r : ℕ} (ρ : Operator D)
+    (hρ : IsDensityOperator ρ) : ‖TensorGate ρ (1 : Operator r)‖ ≤ 1 := by
+  have h1 : ‖(1 : Operator r)‖ ≤ 1 := l2_norm_one_le (I := Fin r)
+  have h2 : ‖ρ‖ ≤ 1 := density_l2_opNorm_le_one ρ hρ
+  rw [l2_norm_tensorGate (I := Fin D) (J := Fin r) ρ (1 : Operator r)]
+  calc
+    ‖ρ‖ * ‖(1 : Operator r)‖ ≤ ‖ρ‖ * 1 := by gcongr
+    _ = ‖ρ‖ := by ring
+    _ ≤ 1 := h2
+
+theorem density_traceNorm_eq_one {D : ℕ} (ρ : Operator D) (hρ : IsDensityOperator ρ) :
+    Matrix.traceNorm ρ = 1 := by
+  have h := psd_traceNorm_eq_trace ρ hρ.1
+  rw [hρ.2] at h
+  norm_num at h
+  exact h
+
+theorem reset_term_traceNorm {D r : ℕ} (ρ : Operator D) (hρ : IsDensityOperator ρ)
+    (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (hX : X.PosSemidef) :
+    Matrix.traceNorm (TensorGate ρ (Matrix.traceLeft X)) = Matrix.traceNorm X := by
+  rw [traceNorm_tensorGate ρ hρ.1 (Matrix.traceLeft X) hX.traceLeft,
+    density_traceNorm_eq_one ρ hρ, one_mul,
+    psd_traceNorm_eq_trace (Matrix.traceLeft X) hX.traceLeft,
+    psd_traceNorm_eq_trace X hX, ← Matrix.traceLeft_trace X]
+
+theorem reset_term_sub_traceNorm {D r : ℕ} (ρ : Operator D) (hρ : IsDensityOperator ρ)
+    (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (hX : X.PosSemidef) :
+    Matrix.traceNorm (TensorGate ρ (Matrix.traceLeft X) - X) ≤ 2 * Matrix.traceNorm X := by
+  calc
+    Matrix.traceNorm (TensorGate ρ (Matrix.traceLeft X) - X)
+        = Matrix.traceNorm (TensorGate ρ (Matrix.traceLeft X) + -X) := by rw [sub_eq_add_neg]
+    _ ≤ Matrix.traceNorm (TensorGate ρ (Matrix.traceLeft X)) + Matrix.traceNorm (-X) :=
+      Matrix.traceNorm_add_le _ _
+    _ = Matrix.traceNorm (TensorGate ρ (Matrix.traceLeft X)) + Matrix.traceNorm X := by
+      rw [Matrix.traceNorm_neg]
+    _ = Matrix.traceNorm X + Matrix.traceNorm X := by rw [reset_term_traceNorm ρ hρ X hX]
+    _ = 2 * Matrix.traceNorm X := by ring
+
+theorem commutator_tensorLeft_traceNorm {D r : ℕ} (ρ : Operator D) (hρ : IsDensityOperator ρ)
+    (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
+    Matrix.traceNorm (TensorGate ρ (1 : Operator r) * X - X * TensorGate ρ (1 : Operator r))
+      ≤ 2 * Matrix.traceNorm X := by
+  set T : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ := TensorGate ρ (1 : Operator r) with hTdef
+  have hT : ‖T‖ ≤ 1 := by rw [hTdef]; exact tensorGate_density_l2_norm_le_one ρ hρ
+  have h1 : ‖T‖ * Matrix.traceNorm X ≤ 1 * Matrix.traceNorm X :=
+    mul_le_mul_of_nonneg_right hT (Matrix.traceNorm_nonneg X)
+  have h2 : Matrix.traceNorm X * ‖T‖ ≤ Matrix.traceNorm X * 1 :=
+    mul_le_mul_of_nonneg_left hT (Matrix.traceNorm_nonneg X)
+  calc
+    Matrix.traceNorm (T * X - X * T)
+        ≤ ‖T‖ * Matrix.traceNorm X + Matrix.traceNorm X * ‖T‖ :=
+      (traceNorm_sub_le _ _).trans
+        (add_le_add (Matrix.traceNorm_mul_le_opNorm_traceNorm _ _)
+          (Matrix.traceNorm_mul_le_traceNorm_opNorm _ _))
+    _ ≤ 2 * Matrix.traceNorm X := by nlinarith [h1, h2, norm_nonneg X, norm_nonneg T]
+
+private theorem abs_trig_coefficient (θ : ℝ) :
+    ‖Complex.I * ((θ : ℂ) - (Real.sin θ : ℂ) * (Real.cos θ : ℂ))‖
+      = |θ - Real.sin θ * Real.cos θ| := by
+  have hcoeff : (θ : ℂ) - (Real.sin θ : ℂ) * (Real.cos θ : ℂ)
+      = ((θ - Real.sin θ * Real.cos θ : ℝ) : ℂ) := by push_cast; ring
+  rw [norm_mul, Complex.norm_I, one_mul, hcoeff, Complex.norm_real, Real.norm_eq_abs]
+
+private theorem abs_sin_sq_coefficient (θ : ℝ) : ‖((Real.sin θ)^2 : ℂ)‖ = (Real.sin θ)^2 := by
+  have hc : ((Real.sin θ)^2 : ℂ) = (Real.sin θ : ℂ) * (Real.sin θ : ℂ) := by push_cast; ring
+  rw [hc, norm_mul, Complex.norm_real, Real.norm_eq_abs]
+  exact (abs_mul_abs_self (Real.sin θ)).trans (pow_two (Real.sin θ)).symm
+
+theorem partialSwapReferenceOutput_first_order_key {D r : ℕ} (ρ : Operator D)
+    (hρ : IsDensityOperator ρ) (θ : ℝ) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
+    partialSwapReferenceOutput ρ θ r X - X + (Complex.I * (θ : ℂ)) •
+        (TensorGate ρ (1 : Operator r) * X - X * TensorGate ρ (1 : Operator r))
+      = ((Real.sin θ)^2 : ℂ) • (TensorGate ρ (Matrix.traceLeft X) - X)
+        + (Complex.I * ((θ : ℂ) - (Real.sin θ : ℂ) * (Real.cos θ : ℂ))) •
+          (TensorGate ρ (1 : Operator r) * X - X * TensorGate ρ (1 : Operator r)) := by
+  have hcast : ((Real.cos θ)^2 : ℂ) = ((Real.cos θ : ℂ)) * ((Real.cos θ : ℂ)) := by
+    push_cast; ring
+  have hcast' : ((Real.sin θ)^2 : ℂ) = ((Real.sin θ : ℂ)) * ((Real.sin θ : ℂ)) := by
+    push_cast; ring
+  have hc2' : ((Real.cos θ)^2 : ℂ) = 1 - ((Real.sin θ)^2 : ℂ) := by
+    have h1 : ((Real.cos θ)^2 : ℂ) + ((Real.sin θ)^2 : ℂ) = (1 : ℂ) := by
+      push_cast
+      exact_mod_cast Real.cos_sq_add_sin_sq θ
+    calc
+      ((Real.cos θ)^2 : ℂ) = ((Real.cos θ)^2 : ℂ) + ((Real.sin θ)^2 : ℂ)
+            - ((Real.sin θ)^2 : ℂ) := by ring
+      _ = 1 - ((Real.sin θ)^2 : ℂ) := by rw [h1]
+  have hc2 : ((Real.cos θ : ℂ)) * ((Real.cos θ : ℂ))
+      = 1 - ((Real.sin θ : ℂ)) * ((Real.sin θ : ℂ)) := by
+    rw [← hcast, ← hcast']
+    exact hc2'
+  rw [(partial_swap_reference_output_formula ρ hρ θ r X).1, hcast, hcast', hc2]
+  module
+
+theorem copy_actual_first_order_reference_trace_remainder (D r : ℕ) (ρ : Operator D) (θ : ℝ)
+    (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (hρ : IsDensityOperator ρ)
+    (hX : X.PosSemidef) :
+    Matrix.traceNorm (partialSwapReferenceOutput ρ θ r X - X +
+        (Complex.I*(θ:ℂ)) • (TensorGate ρ (1:Operator r)*X-X*TensorGate ρ (1:Operator r)))
+      ≤ 6*θ^2*Matrix.traceNorm X := by
+  rw [partialSwapReferenceOutput_first_order_key ρ hρ θ X]
+  set R : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ := TensorGate ρ (Matrix.traceLeft X)
+    with hRdef
+  set C : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ :=
+    TensorGate ρ (1 : Operator r) * X - X * TensorGate ρ (1 : Operator r) with hCdef
+  set a : ℂ := ((Real.sin θ)^2 : ℂ) with hadef
+  set b : ℂ := Complex.I * ((θ : ℂ) - (Real.sin θ : ℂ) * (Real.cos θ : ℂ)) with hbdef
+  have hR : Matrix.traceNorm (R - X) ≤ 2 * Matrix.traceNorm X := by
+    rw [hRdef]; exact reset_term_sub_traceNorm ρ hρ X hX
+  have hC : Matrix.traceNorm C ≤ 2 * Matrix.traceNorm X := by
+    rw [hCdef]; exact commutator_tensorLeft_traceNorm ρ hρ X
+  have hna : ‖a‖ = (Real.sin θ)^2 := by rw [hadef]; exact abs_sin_sq_coefficient θ
+  have hnb : ‖b‖ = |θ - Real.sin θ * Real.cos θ| := by rw [hbdef]; exact abs_trig_coefficient θ
+  calc
+    Matrix.traceNorm (a • (R - X) + b • C)
+        ≤ Matrix.traceNorm (a • (R - X)) + Matrix.traceNorm (b • C) :=
+      Matrix.traceNorm_add_le _ _
+    _ = ‖a‖ * Matrix.traceNorm (R - X) + ‖b‖ * Matrix.traceNorm C := by
+      rw [Matrix.traceNorm_smul, Matrix.traceNorm_smul]
+    _ ≤ (Real.sin θ)^2 * (2 * Matrix.traceNorm X)
+        + |θ - Real.sin θ * Real.cos θ| * (2 * Matrix.traceNorm X) := by
+      rw [hna, hnb]
+      exact add_le_add (mul_le_mul_of_nonneg_left hR (sq_nonneg (Real.sin θ)))
+        (mul_le_mul_of_nonneg_left hC (abs_nonneg (θ - Real.sin θ * Real.cos θ)))
+    _ ≤ θ^2 * (2 * Matrix.traceNorm X)
+        + (2 * θ^2) * (2 * Matrix.traceNorm X) := by
+      have h1 := Real.sin_sq_le_sq (x := θ)
+      have h2 := partial_swap_trig_and_quadratic_error.1 θ
+      have hn : (0:ℝ) ≤ 2 * Matrix.traceNorm X :=
+        mul_nonneg (by norm_num) (Matrix.traceNorm_nonneg X)
+      nlinarith [mul_le_mul_of_nonneg_right h1 hn, mul_le_mul_of_nonneg_right h2 hn]
+    _ = 6 * θ^2 * Matrix.traceNorm X := by ring
+
+theorem copy_actual_step_to_exponential_reference_error (D r : ℕ) (ρ : Operator D) (θ : ℝ)
+    (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (hρ : IsDensityOperator ρ)
+    (hX : X.PosSemidef) :
+    Matrix.traceNorm (partialSwapReferenceOutput ρ θ r X -
+        TensorGate (HamiltonianEvolution ρ θ) (1:Operator r)*X*
+          (TensorGate (HamiltonianEvolution ρ θ) (1:Operator r))ᴴ)
+      ≤ 8*θ^2*Matrix.traceNorm X := by
+  set C : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ :=
+    TensorGate ρ (1 : Operator r) * X - X * TensorGate ρ (1 : Operator r) with hCdef
+  set U : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ :=
+    TensorGate (HamiltonianEvolution ρ θ) (1 : Operator r) with hUdef
+  have hn : ‖ρ‖ ≤ 1 := density_l2_opNorm_le_one ρ hρ
+  have hρsq : ‖ρ‖ ^ 2 ≤ 1 := by
+    calc
+      ‖ρ‖ ^ 2 = ‖ρ‖ * ‖ρ‖ := by ring
+      _ ≤ 1 * ‖ρ‖ := mul_le_mul_of_nonneg_right hn (norm_nonneg ρ)
+      _ = ‖ρ‖ := one_mul _
+      _ ≤ 1 := hn
+  have hA0 : Matrix.traceNorm (partialSwapReferenceOutput ρ θ r X - X
+        + (Complex.I*(θ:ℂ)) • C) ≤ 6*θ^2*Matrix.traceNorm X := by
+    rw [hCdef]
+    exact copy_actual_first_order_reference_trace_remainder D r ρ θ X hρ hX
+  have hB0 : Matrix.traceNorm (U * X * Uᴴ - X + (Complex.I*(θ:ℂ)) • C)
+      ≤ 2*θ^2*‖ρ‖^2*Matrix.traceNorm X := by
+    rw [hCdef, hUdef]
+    exact hamiltonian_reference_first_order_remainder D r ρ θ X hρ.1.isHermitian
+  have hkey : (partialSwapReferenceOutput ρ θ r X - X + (Complex.I*(θ:ℂ)) • C) -
+      (U * X * Uᴴ - X + (Complex.I*(θ:ℂ)) • C)
+      = partialSwapReferenceOutput ρ θ r X - U * X * Uᴴ := by module
+  calc
+    Matrix.traceNorm (partialSwapReferenceOutput ρ θ r X - U * X * Uᴴ)
+        ≤ Matrix.traceNorm (partialSwapReferenceOutput ρ θ r X - X + (Complex.I*(θ:ℂ)) • C)
+          + Matrix.traceNorm (U * X * Uᴴ - X + (Complex.I*(θ:ℂ)) • C) := by
+      rw [← hkey]; exact traceNorm_sub_le _ _
+    _ ≤ 6*θ^2*Matrix.traceNorm X + 2*θ^2*‖ρ‖^2*Matrix.traceNorm X :=
+      add_le_add hA0 hB0
+    _ ≤ 8*θ^2*Matrix.traceNorm X := by
+      have hpos : (0:ℝ) ≤ 2*θ^2*Matrix.traceNorm X :=
+        mul_nonneg (mul_nonneg (by norm_num) (sq_nonneg θ)) (Matrix.traceNorm_nonneg X)
+      have h1 : 2*θ^2*‖ρ‖^2*Matrix.traceNorm X ≤ 2*θ^2*Matrix.traceNorm X := by
+        calc
+          2*θ^2*‖ρ‖^2*Matrix.traceNorm X = (2*θ^2*Matrix.traceNorm X) * ‖ρ‖^2 := by ring
+          _ ≤ (2*θ^2*Matrix.traceNorm X) * 1 := mul_le_mul_of_nonneg_left hρsq hpos
+          _ = 2*θ^2*Matrix.traceNorm X := by ring
+      linarith
+
+theorem tensorGate_evolution_pow {D r : ℕ} (ρ : Operator D) (τ : ℝ) (n : ℕ) :
+    (TensorGate (HamiltonianEvolution ρ τ) (1 : Operator r)) ^ n
+      = TensorGate (HamiltonianEvolution ρ ((n : ℝ) * τ)) (1 : Operator r) := by
+  induction n with
+  | zero =>
+      simp only [pow_zero, Nat.cast_zero, zero_mul, hamiltonianEvolution_zero]
+      exact (tensorGate_one (I := Fin D) (J := Fin r)).symm
+  | succ n ih =>
+      rw [pow_succ, ih, tensorGate_mul, Matrix.one_mul, ← hamiltonianEvolution_add]
+      congr 1
+      push_cast
+      ring
+
+theorem freshCopyReferenceRun_replicate_error {D r : ℕ} (ρ : Operator D)
+    (hρ : IsDensityOperator ρ) (τ : ℝ) (n : ℕ)
+    (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (hX : X.PosSemidef) :
+    Matrix.traceNorm (freshCopyReferenceRun ρ (List.replicate n τ) r X -
+        (TensorGate (HamiltonianEvolution ρ τ) (1 : Operator r)) ^ n * X *
+          ((TensorGate (HamiltonianEvolution ρ τ) (1 : Operator r)) ^ n)ᴴ)
+      ≤ (n : ℝ) * 8 * τ ^ 2 * Matrix.traceNorm X := by
+  induction n generalizing X with
+  | zero =>
+      have h1 : freshCopyReferenceRun ρ (List.replicate 0 τ) r X = X := by
+        simp [freshCopyReferenceRun]
+      have h2 : ((TensorGate (HamiltonianEvolution ρ τ) (1 : Operator r)) ^ 0) * X *
+          (((TensorGate (HamiltonianEvolution ρ τ) (1 : Operator r)) ^ 0)ᴴ) = X := by simp
+      rw [h1, h2, sub_self, Matrix.traceNorm_zero]
+      simp
+  | succ n ih =>
+      set A : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ :=
+        TensorGate (HamiltonianEvolution ρ τ) (1 : Operator r) with hAdef
+      set P : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ := partialSwapReferenceOutput ρ τ r X
+        with hPdef
+      have hAh : A ∈ Matrix.unitaryGroup (Fin D × Fin r) ℂ := by
+        rw [hAdef]; exact tensorGate_evolution_unitary ρ hρ τ
+      have hrun : freshCopyReferenceRun ρ (List.replicate (n + 1) τ) r X
+          = freshCopyReferenceRun ρ (List.replicate n τ) r P := by
+        calc
+          freshCopyReferenceRun ρ (List.replicate (n + 1) τ) r X
+              = List.foldl (fun σ θ => partialSwapReferenceOutput ρ θ r σ) X
+                  (List.replicate (n + 1) τ) := by rw [freshCopyReferenceRun]
+          _ = List.foldl (fun σ θ => partialSwapReferenceOutput ρ θ r σ) X
+                  (τ :: List.replicate n τ) := by rw [List.replicate_succ]
+          _ = List.foldl (fun σ θ => partialSwapReferenceOutput ρ θ r σ)
+                  (partialSwapReferenceOutput ρ τ r X) (List.replicate n τ) :=
+            List.foldl_cons
+          _ = freshCopyReferenceRun ρ (List.replicate n τ) r P := rfl
+      have hPPSD : P.PosSemidef := by
+        rw [hPdef]; exact (partial_swap_reference_output_formula ρ hρ τ r X).2.1 hX
+      have hPtn : Matrix.traceNorm P = Matrix.traceNorm X := by
+        rw [hPdef, psd_traceNorm_eq_trace (partialSwapReferenceOutput ρ τ r X)
+          ((partial_swap_reference_output_formula ρ hρ τ r X).2.1 hX),
+          (partial_swap_reference_output_formula ρ hρ τ r X).2.2, psd_traceNorm_eq_trace X hX]
+      have hih := ih P hPPSD
+      rw [hPtn] at hih
+      have hstep := copy_actual_step_to_exponential_reference_error D r ρ τ X hρ hX
+      rw [← hPdef, ← hAdef] at hstep
+      have hAnorm : ‖A‖ ≤ 1 := l2_norm_unitary_le_one hAh
+      have hAop : ∀ m : ℕ, ‖A ^ m‖ ≤ 1 := by
+        intro m
+        induction m with
+        | zero => simpa using (l2_norm_one_le (I := Fin D × Fin r))
+        | succ m ih =>
+            calc
+              ‖A ^ (m + 1)‖ = ‖A ^ m * A‖ := by rw [pow_succ]
+              _ ≤ ‖A ^ m‖ * ‖A‖ := Matrix.l2_opNorm_mul _ _
+              _ ≤ 1 * 1 := mul_le_mul ih hAnorm (norm_nonneg _) (by norm_num)
+              _ = 1 := by ring
+      have hp := hAop n
+      have hp0 : (0:ℝ) ≤ ‖A ^ n‖ := norm_nonneg _
+      have hd : (0:ℝ) ≤ Matrix.traceNorm (P - A * X * Aᴴ) := Matrix.traceNorm_nonneg _
+      have hsand : Matrix.traceNorm (A ^ n * (P - A * X * Aᴴ) * (A ^ n)ᴴ)
+          ≤ 8 * τ ^ 2 * Matrix.traceNorm X := by
+        calc
+          Matrix.traceNorm (A ^ n * (P - A * X * Aᴴ) * (A ^ n)ᴴ)
+              = Matrix.traceNorm (A ^ n * ((P - A * X * Aᴴ) * (A ^ n)ᴴ)) := by
+                  rw [Matrix.mul_assoc]
+          _ ≤ ‖A ^ n‖ * Matrix.traceNorm ((P - A * X * Aᴴ) * (A ^ n)ᴴ) :=
+            Matrix.traceNorm_mul_le_opNorm_traceNorm _ _
+          _ ≤ ‖A ^ n‖ * (Matrix.traceNorm (P - A * X * Aᴴ) * ‖A ^ n‖) := by
+            have hmul := Matrix.traceNorm_mul_le_traceNorm_opNorm (P - A * X * Aᴴ) (A ^ n)ᴴ
+            rw [Matrix.l2_opNorm_conjTranspose] at hmul
+            exact mul_le_mul_of_nonneg_left hmul (norm_nonneg _)
+          _ = (‖A ^ n‖ * ‖A ^ n‖) * Matrix.traceNorm (P - A * X * Aᴴ) := by ring
+          _ ≤ (1 * 1) * Matrix.traceNorm (P - A * X * Aᴴ) := by
+            have hsq : ‖A ^ n‖ * ‖A ^ n‖ ≤ 1 * 1 := by nlinarith [hp, hp0]
+            exact mul_le_mul hsq (le_refl _) hd (by norm_num)
+          _ = Matrix.traceNorm (P - A * X * Aᴴ) := by ring
+          _ ≤ 8 * τ ^ 2 * Matrix.traceNorm X := hstep
+      have hsplit : A ^ n * (P - A * X * Aᴴ) * (A ^ n)ᴴ
+          = A ^ n * P * (A ^ n)ᴴ - A ^ n * (A * X * Aᴴ) * (A ^ n)ᴴ := by
+        rw [Matrix.mul_sub, Matrix.sub_mul, Matrix.mul_assoc]
+      have hkey : A ^ n * P * (A ^ n)ᴴ - A ^ n * (P - A * X * Aᴴ) * (A ^ n)ᴴ
+          = A ^ (n + 1) * X * (A ^ (n + 1))ᴴ := by
+        calc
+          A ^ n * P * (A ^ n)ᴴ - A ^ n * (P - A * X * Aᴴ) * (A ^ n)ᴴ
+              = A ^ n * P * (A ^ n)ᴴ
+                  - (A ^ n * P * (A ^ n)ᴴ - A ^ n * (A * X * Aᴴ) * (A ^ n)ᴴ) := by
+                rw [hsplit]
+          _ = A ^ n * (A * X * Aᴴ) * (A ^ n)ᴴ := by abel
+          _ = A ^ (n + 1) * X * (A ^ (n + 1))ᴴ := by
+                rw [pow_succ, Matrix.conjTranspose_mul]
+                simp only [Matrix.mul_assoc]
+      have hrw : freshCopyReferenceRun ρ (List.replicate (n + 1) τ) r X
+            - A ^ (n + 1) * X * (A ^ (n + 1))ᴴ
+          = (freshCopyReferenceRun ρ (List.replicate n τ) r P
+              - A ^ n * P * (A ^ n)ᴴ)
+            + A ^ n * (P - A * X * Aᴴ) * (A ^ n)ᴴ := by
+        rw [hrun, ← hkey]
+        abel
+      rw [hrw]
+      calc
+        Matrix.traceNorm ((freshCopyReferenceRun ρ (List.replicate n τ) r P
+              - A ^ n * P * (A ^ n)ᴴ)
+            + A ^ n * (P - A * X * Aᴴ) * (A ^ n)ᴴ)
+          ≤ Matrix.traceNorm (freshCopyReferenceRun ρ (List.replicate n τ) r P
+                - A ^ n * P * (A ^ n)ᴴ)
+            + Matrix.traceNorm (A ^ n * (P - A * X * Aᴴ) * (A ^ n)ᴴ) :=
+          Matrix.traceNorm_add_le _ _
+        _ ≤ (n : ℝ) * 8 * τ ^ 2 * Matrix.traceNorm X + 8 * τ ^ 2 * Matrix.traceNorm X :=
+          add_le_add hih hsand
+        _ = ((n + 1 : ℕ) : ℝ) * 8 * τ ^ 2 * Matrix.traceNorm X := by push_cast; ring
+
+theorem copy_fresh_actual_global_exponential_error (D r : ℕ) (ρ : Operator D) (t : ℝ) (n : ℕ)
+    (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (hρ : IsDensityOperator ρ)
+    (hX : X.PosSemidef) (hn : 0 < n) :
+    Matrix.traceNorm (freshCopyReferenceRun ρ (List.replicate n (t/(n:ℝ))) r X -
+        TensorGate (HamiltonianEvolution ρ t) (1:Operator r)*X*
+          (TensorGate (HamiltonianEvolution ρ t) (1:Operator r))ᴴ) ≤
+      8*t^2/(n:ℝ)*Matrix.traceNorm X := by
+  have herr := freshCopyReferenceRun_replicate_error ρ hρ (t / (n : ℝ)) n X hX
+  have hpow : (TensorGate (HamiltonianEvolution ρ (t/(n:ℝ))) (1 : Operator r)) ^ n
+      = TensorGate (HamiltonianEvolution ρ t) (1 : Operator r) := by
+    rw [tensorGate_evolution_pow ρ (t / (n : ℝ)) n, nat_mul_div_self hn t]
+  rw [hpow] at herr
+  have h1 : (n : ℝ) * 8 * (t / (n : ℝ)) ^ 2 = 8 * t ^ 2 / (n : ℝ) := by
+    have hn0 : (n : ℝ) ≠ 0 := by exact_mod_cast (ne_of_gt hn)
+    field_simp
+  rw [h1] at herr
+  exact herr
+
+def copyPrecisionBudget (T k : ℕ) : ℕ := max 1 (8 * T * T * 2 ^ k)
+
+theorem copyPrecisionBudget_pos (T k : ℕ) : 0 < copyPrecisionBudget T k :=
+  Nat.succ_le_iff.2 (by simp [copyPrecisionBudget])
+
+theorem copyPrecisionBudget_eq_of_pos {T k : ℕ} (hT : 0 < T) :
+    copyPrecisionBudget T k = 8 * T * T * 2 ^ k := by
+  have hpos : 1 ≤ 8 * T * T * 2 ^ k := by
+    have hstrict : 0 < 8 * T * T * 2 ^ k := by positivity
+    omega
+  simp [copyPrecisionBudget, max_eq_right hpos]
+
+theorem copy_computed_finite_precision_budget (T k : ℕ) :
+    copyPrecisionBudget T k = max 1 (8 * T * T * 2 ^ k) ∧
+      0 < copyPrecisionBudget T k ∧
+      8 * (T : ℝ) ^ 2 / (copyPrecisionBudget T k : ℝ) ≤ ((2 : ℝ)⁻¹) ^ k := by
+  refine ⟨rfl, copyPrecisionBudget_pos T k, ?_⟩
+  rcases Nat.eq_zero_or_pos T with hT0 | hTpos
+  · rw [hT0]; simp [copyPrecisionBudget]
+  · rw [copyPrecisionBudget_eq_of_pos hTpos]
+    have hkey : 8 * (T : ℝ) ^ 2 / ((8 * T * T * 2 ^ k : ℕ) : ℝ) = ((2 : ℝ)⁻¹) ^ k := by
+      have hne : ((8 * T * T * 2 ^ k : ℕ) : ℝ) ≠ 0 := by positivity
+      rw [inv_pow]
+      push_cast
+      field_simp
+    rw [hkey]
+
+theorem copy_precision_same_protocol_and_four_resource_counts (D r T k : ℕ) (ρ : Operator D)
+    (t : ℝ) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (hρ : IsDensityOperator ρ)
+    (hX : X.PosSemidef) (ht : |t| ≤ T) :
+    let n := copyPrecisionBudget T k
+    Matrix.traceNorm (freshCopyReferenceRun ρ (List.replicate n (t/(n:ℝ))) r X -
+        TensorGate (HamiltonianEvolution ρ t) (1:Operator r)*X*
+          (TensorGate (HamiltonianEvolution ρ t) (1:Operator r))ᴴ) ≤
+          ((2:ℝ)⁻¹)^k*Matrix.traceNorm X ∧
+    freshCopyResourceCounts D (List.replicate n (t/(n:ℝ))) = (n,n,n,0) := by
+  (try dsimp only)
+  have hpos : 0 < copyPrecisionBudget T k := copyPrecisionBudget_pos T k
+  have hG4 := copy_fresh_actual_global_exponential_error D r ρ t (copyPrecisionBudget T k) X
+    hρ hX hpos
+  have h5 := copy_computed_finite_precision_budget T k
+  have hsq : (t : ℝ) ^ 2 ≤ (T : ℝ) ^ 2 := by
+    obtain ⟨h1, h2⟩ := abs_le.mp ht
+    nlinarith [sq_nonneg ((T : ℝ) - t), sq_nonneg ((T : ℝ) + t)]
+  have hbudget : (0:ℝ) < (copyPrecisionBudget T k : ℝ) := by positivity
+  have hdiv : 8 * (t : ℝ) ^ 2 / (copyPrecisionBudget T k : ℝ)
+      ≤ 8 * (T : ℝ) ^ 2 / (copyPrecisionBudget T k : ℝ) := by
+    rw [div_le_div_iff_of_pos_right hbudget]
+    nlinarith [hsq]
+  refine ⟨?_, ?_⟩
+  · calc
+      Matrix.traceNorm (freshCopyReferenceRun ρ
+            (List.replicate (copyPrecisionBudget T k) (t/(copyPrecisionBudget T k:ℝ))) r X -
+          TensorGate (HamiltonianEvolution ρ t) (1:Operator r)*X*
+            (TensorGate (HamiltonianEvolution ρ t) (1:Operator r))ᴴ)
+          ≤ 8 * (t : ℝ) ^ 2 / (copyPrecisionBudget T k : ℝ) * Matrix.traceNorm X := hG4
+      _ ≤ 8 * (T : ℝ) ^ 2 / (copyPrecisionBudget T k : ℝ) * Matrix.traceNorm X :=
+        mul_le_mul hdiv (le_refl _) (Matrix.traceNorm_nonneg X) (by positivity)
+      _ ≤ ((2 : ℝ)⁻¹)^k * Matrix.traceNorm X :=
+        mul_le_mul_of_nonneg_right h5.2.2 (Matrix.traceNorm_nonneg X)
+  · rw [freshCopyResourceCounts_eq, List.length_replicate]
+
+private theorem trace_mul_sub_eq {I : Type*} [Fintype I] (A Y Z : Matrix I I ℂ) :
+    Matrix.trace (A * Y) - Matrix.trace (A * Z) = Matrix.trace (A * (Y - Z)) := by
+  rw [Matrix.mul_sub, Matrix.trace_sub]
+
+theorem copy_precision_actual_observable_error (D r : ℕ) (ρ : Operator D) (t : ℝ) (n : ℕ)
+    (X A : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (hρ : IsDensityOperator ρ)
+    (hX : X.PosSemidef) (hn : 0 < n) :
+    |(Matrix.trace (A*freshCopyReferenceRun ρ (List.replicate n (t/(n:ℝ))) r X)).re -
+        (Matrix.trace (A*(TensorGate (HamiltonianEvolution ρ t) (1:Operator r)*X*
+          (TensorGate (HamiltonianEvolution ρ t) (1:Operator r))ᴴ))).re| ≤
+        ‖A‖*(8*t^2/(n:ℝ)*Matrix.traceNorm X) := by
+  have hG4 := copy_fresh_actual_global_exponential_error D r ρ t n X hρ hX hn
+  rw [← Complex.sub_re, trace_mul_sub_eq]
+  calc
+    |(Matrix.trace (A*(freshCopyReferenceRun ρ (List.replicate n (t/(n:ℝ))) r X -
+      TensorGate (HamiltonianEvolution ρ t) (1:Operator r)*X*
+        (TensorGate (HamiltonianEvolution ρ t) (1:Operator r))ᴴ))).re|
+        = ‖(Matrix.trace (A*(freshCopyReferenceRun ρ (List.replicate n (t/(n:ℝ))) r X -
+          TensorGate (HamiltonianEvolution ρ t) (1:Operator r)*X*
+            (TensorGate (HamiltonianEvolution ρ t) (1:Operator r))ᴴ))).re‖ :=
+      Real.norm_eq_abs _
+    _ ≤ ‖((Matrix.trace (A*(freshCopyReferenceRun ρ (List.replicate n (t/(n:ℝ))) r X -
+      TensorGate (HamiltonianEvolution ρ t) (1:Operator r)*X*
+        (TensorGate (HamiltonianEvolution ρ t) (1:Operator r))ᴴ))) : ℂ)‖ :=
+      Complex.abs_re_le_norm _
+    _ ≤ Matrix.traceNorm (A*(freshCopyReferenceRun ρ (List.replicate n (t/(n:ℝ))) r X -
+      TensorGate (HamiltonianEvolution ρ t) (1:Operator r)*X*
+        (TensorGate (HamiltonianEvolution ρ t) (1:Operator r))ᴴ)) :=
+      Matrix.abs_trace_le_traceNorm _
+    _ ≤ ‖A‖ * Matrix.traceNorm (freshCopyReferenceRun ρ (List.replicate n (t/(n:ℝ))) r X -
+      TensorGate (HamiltonianEvolution ρ t) (1:Operator r)*X*
+        (TensorGate (HamiltonianEvolution ρ t) (1:Operator r))ᴴ) :=
+      Matrix.traceNorm_mul_le_opNorm_traceNorm _ _
+    _ ≤ ‖A‖ * (8*t^2/(n:ℝ)*Matrix.traceNorm X) := by
+      exact mul_le_mul_of_nonneg_left hG4 (norm_nonneg A)
+
+end Qatlib.Concepts.CopyEvolution.Discriminate

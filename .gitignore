@@ -1,0 +1,9 @@
+.lake/
+.ci/
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+*.tar.gz
+*.part*
+*.sha256

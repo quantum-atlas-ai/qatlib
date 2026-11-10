@@ -1,0 +1,141 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.MidpointQuadrature
+import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationCommutatorCoefficients
+import Qatlib.Concepts.ShadowModels.ShadowChannel.PauliRealMoments
+import Mathlib.Analysis.Calculus.MeanValue
+set_option backward.isDefEq.respectTransparency false
+set_option warningAsError false
+
+noncomputable section
+open MeasureTheory Matrix Set
+open scoped Matrix.Norms.L2Operator Interval ComplexOrder
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Concepts.TrotterFormula.GeneralOrder
+open Qatlib.Concepts.TrotterFormula.LieStrang
+open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
+open Qatlib.Concepts.ShadowModels.ShadowChannel
+open Qatlib.Concepts.WalkSearch.Spectral
+
+namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ProjectorHistoryBorn
+
+variable {I : Type} [Fintype I] [DecidableEq I]
+
+noncomputable def physicalReadout (H O rho : Matrix I I ℂ) (t : ℝ) : ℝ :=
+  (Matrix.trace (O * (HamiltonianEvolution H t * rho * (HamiltonianEvolution H t)ᴴ))).re
+
+theorem physicalReadout_heisenberg (H O rho : Matrix I I ℂ) (t : ℝ) :
+    physicalReadout H O rho t =
+      (Matrix.trace (((HamiltonianEvolution H t)ᴴ * O * HamiltonianEvolution H t) * rho)).re := by
+  have he := Matrix.trace_mul_cycle' O (HamiltonianEvolution H t * rho)
+    (HamiltonianEvolution H t)ᴴ
+  exact congrArg Complex.re (by simpa only [Matrix.mul_assoc] using! he)
+
+theorem evolution_real_smul (H : Matrix I I ℂ) (s : ℝ) :
+    HamiltonianEvolution H s = NormedSpace.exp (s • ((-Complex.I) • H)) := by
+  unfold HamiltonianEvolution
+  rw [mul_comm, mul_smul]
+  rw [show (Complex.ofReal s) = s • (1 : ℂ) by simp,
+    IsScalarTower.smul_assoc, one_smul]
+
+theorem physicalReadout_conjugation (H : Matrix I I ℂ) (hH : H.IsHermitian)
+    (O rho : Matrix I I ℂ) (t : ℝ) :
+    physicalReadout H O rho t =
+      (Matrix.trace (pfConjExp (Complex.I • H) O t * rho)).re := by
+  have ha : (HamiltonianEvolution H t)ᴴ = HamiltonianEvolution H (-t) := by
+    simp [HamiltonianEvolution, ← Matrix.exp_conjTranspose, Matrix.conjTranspose_smul,
+      hH.eq, RCLike.star_def]
+  rw [physicalReadout_heisenberg, ha, evolution_real_smul, evolution_real_smul]
+  simp only [pfConjExp, neg_smul, smul_neg, neg_neg]
+
+def densityReadoutLinear (rho : Matrix I I ℂ) : Matrix I I ℂ →ₗ[ℝ] ℝ where
+  toFun A := (Matrix.trace (A * rho)).re
+  map_add' := by intro A B; simp [Matrix.add_mul, Matrix.trace_add]
+  map_smul' := by intro c A; simp [Matrix.trace_smul]
+
+def densityReadoutCLM (rho : Matrix I I ℂ) (h : rho.PosSemidef) (ht : Matrix.trace rho = 1) :
+    Matrix I I ℂ →L[ℝ] ℝ :=
+  (densityReadoutLinear rho).mkContinuous 1 (fun A => by
+    simpa only [Real.norm_eq_abs, one_mul] using! abs_trace_density_le_norm A rho h ht)
+
+theorem physicalReadout_continuous (H : Matrix I I ℂ) (hH : H.IsHermitian)
+    (O rho : Matrix I I ℂ) (hrho : rho.PosSemidef) (htr : Matrix.trace rho = 1) :
+    Continuous (physicalReadout H O rho) := by
+  have he : physicalReadout H O rho = fun t =>
+      densityReadoutCLM rho hrho htr (pfConjExp (Complex.I • H) O t) :=
+    funext (physicalReadout_conjugation H hH O rho)
+  rw [he]
+  exact (densityReadoutCLM rho hrho htr).continuous.comp
+    (pfConjExp_contDiff (Complex.I • H) O).continuous
+
+theorem physicalReadout_lipschitz (H : Matrix I I ℂ) (hH : H.IsHermitian)
+    (O rho : Matrix I I ℂ) (hrho : rho.PosSemidef) (htr : Matrix.trace rho = 1)
+    (alpha : ℝ) (halpha : ‖H‖ ≤ alpha) (s t : ℝ) :
+    |physicalReadout H O rho s - physicalReadout H O rho t| ≤
+      2 * alpha * ‖O‖ * |s-t| := by
+  have hskew : (Complex.I • H)ᴴ = -(Complex.I • H) := by
+    rw [Matrix.conjTranspose_smul, hH.eq]
+    simp
+  have hnorm : ‖Complex.I • H‖ = ‖H‖ := by simp [norm_smul]
+  have hcomm : ‖pfComm (Complex.I • H) O‖ ≤ 2*alpha*‖O‖ := by
+    calc
+      _ ≤ ‖(Complex.I • H)*O‖ + ‖O*(Complex.I • H)‖ := norm_sub_le _ _
+      _ ≤ ‖Complex.I • H‖*‖O‖ + ‖O‖*‖Complex.I • H‖ :=
+        add_le_add (norm_mul_le _ _) (norm_mul_le _ _)
+      _ ≤ alpha*‖O‖ + ‖O‖*alpha := by rw [hnorm]; gcongr
+      _ = _ := by ring
+  have hd (u : ℝ) := pfConjExp_hasDerivAt (Complex.I • H) O u
+  have hb (u : ℝ) :
+      ‖pfConjExp (Complex.I • H) (pfComm (Complex.I • H) O) u‖ ≤ 2*alpha*‖O‖ :=
+    (pfConjExp_norm_skew _ _ u hskew).trans hcomm
+  have hflow := Convex.norm_image_sub_le_of_norm_hasDerivWithin_le
+    (s := (Set.univ : Set ℝ)) (fun u _ => (hd u).hasDerivWithinAt)
+    (fun u _ => hb u) (convex_univ : Convex ℝ (Set.univ : Set ℝ))
+    (mem_univ t) (mem_univ s)
+  rw [physicalReadout_conjugation H hH, physicalReadout_conjugation H hH]
+  have hread :
+      |(Matrix.trace (pfConjExp (Complex.I • H) O s * rho)).re -
+        (Matrix.trace (pfConjExp (Complex.I • H) O t * rho)).re| ≤
+        ‖pfConjExp (Complex.I • H) O s - pfConjExp (Complex.I • H) O t‖ := by
+    simpa only [Matrix.sub_mul, Matrix.trace_sub, Complex.sub_re] using!
+      abs_trace_density_le_norm
+        (pfConjExp (Complex.I • H) O s - pfConjExp (Complex.I • H) O t) rho hrho htr
+  exact hread.trans (by simpa only [Real.norm_eq_abs] using! hflow)
+
+theorem midpoint_quadrature (H : Matrix I I ℂ) (hH : H.IsHermitian)
+    (O rho : Matrix I I ℂ) (hrho : rho.PosSemidef) (htr : Matrix.trace rho = 1)
+    (alpha T : ℝ) (halpha : ‖H‖ ≤ alpha) (hT : 0 ≤ T)
+    (N : ℕ) (hN : 0 < N) :
+    |(∫ t in (0:ℝ)..T, physicalReadout H O rho t) -
+      T * Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.Clock.midpointMean N
+        (fun u => physicalReadout H O rho (T*u))| ≤
+      alpha * ‖O‖ * T^2 / (2*N) := by
+  let f := fun u : ℝ => physicalReadout H O rho (T*u)
+  have hc : Continuous f := (physicalReadout_continuous H hH O rho hrho htr).comp
+    (continuous_const.mul continuous_id)
+  have hl : ∀ s ∈ Set.Icc (0:ℝ) 1, ∀ t ∈ Set.Icc (0:ℝ) 1,
+      ‖f s-f t‖ ≤ (2*alpha*‖O‖*T)*|s-t| := by
+    intro s _ t _
+    have he := physicalReadout_lipschitz H hH O rho hrho htr alpha halpha (T*s) (T*t)
+    simpa only [f, Real.norm_eq_abs, ← mul_sub, abs_mul, abs_of_nonneg hT,
+      mul_assoc] using! he
+  have hb :=
+      Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.Clock.midpointMean_error f hc N hN (2*alpha*‖O‖*T) hl
+  have hi : (∫ t in (0:ℝ)..T, physicalReadout H O rho t) =
+      T * ∫ u in (0:ℝ)..1, f u := by
+    have he := intervalIntegral.smul_integral_comp_mul_right
+      (physicalReadout H O rho) T (a := (0:ℝ)) (b := 1)
+    simpa only [mul_zero, mul_one, smul_eq_mul, mul_comm, f] using! he.symm
+  rw [hi, ← mul_sub, abs_mul, abs_of_nonneg hT]
+  calc
+    _ ≤ T * ((2*alpha*‖O‖*T)/(4*N)) :=
+      mul_le_mul_of_nonneg_left (by simpa only [Real.norm_eq_abs] using! hb) hT
+    _ = _ := by ring
+
+end Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ProjectorHistoryBorn
+
+end

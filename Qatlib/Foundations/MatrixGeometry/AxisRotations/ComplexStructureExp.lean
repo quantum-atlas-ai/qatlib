@@ -1,0 +1,99 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Mathlib.Algebra.Algebra.Basic
+import Mathlib.Algebra.Algebra.Defs
+import Mathlib.Algebra.Field.Defs
+import Mathlib.Algebra.Group.Action.Defs
+import Mathlib.Algebra.Group.Basic
+import Mathlib.Algebra.Group.Defs
+import Mathlib.Algebra.Group.DivInvMonoid
+import Mathlib.Algebra.Group.Monoid
+import Mathlib.Algebra.Group.Semigroup
+import Mathlib.Algebra.GroupWithZero.Action.Defs
+import Mathlib.Algebra.GroupWithZero.Defs
+import Mathlib.Algebra.Module.Defs
+import Mathlib.Algebra.Module.NatInt
+import Mathlib.Algebra.Notation.Pi.Defs
+import Mathlib.Algebra.Ring.Defs
+import Mathlib.Algebra.Ring.Hom.Defs
+import Mathlib.Algebra.Ring.Nat
+import Mathlib.Analysis.Calculus.Deriv.Add
+import Mathlib.Analysis.Calculus.Deriv.Basic
+import Mathlib.Analysis.Calculus.Deriv.Mul
+import Mathlib.Analysis.Calculus.Deriv.Pow
+import Mathlib.Analysis.Calculus.MeanValue
+import Mathlib.Analysis.Complex.Trigonometric
+import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
+import Mathlib.Analysis.LocallyConvex.WithSeminorms
+import Mathlib.Analysis.Normed.Algebra.Exponential
+import Mathlib.Analysis.Normed.Field.Basic
+import Mathlib.Analysis.Normed.Field.Lemmas
+import Mathlib.Analysis.Normed.Group.Defs
+import Mathlib.Analysis.Normed.Group.Uniform
+import Mathlib.Analysis.Normed.Module.Basic
+import Mathlib.Analysis.Normed.Ring.Basic
+import Mathlib.Analysis.Normed.Ring.Lemmas
+import Mathlib.Analysis.RCLike.Basic
+import Mathlib.Analysis.SpecialFunctions.Exponential
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+import Mathlib.Basic.FunLike.Basic
+import Mathlib.Basic.Real.Basic
+import Mathlib.Data.Int.Cast.Defs
+import Mathlib.Data.Nat.Cast.Basic
+import Mathlib.Data.Nat.Cast.Defs
+import Mathlib.Tactic
+import Mathlib.Tactic.Module
+import Mathlib.Tactic.NormNum.Basic
+import Mathlib.Tactic.NormNum.Result
+import Mathlib.Tactic.Ring.Basic
+import Mathlib.Tactic.Ring.Common
+import Mathlib.Topology.MetricSpace.Algebra
+import Mathlib.Topology.MetricSpace.Pseudo.Defs
+import Mathlib.Topology.UniformSpace.Cauchy
+import Mathlib.Topology.UniformSpace.Defs
+set_option warningAsError false
+set_option autoImplicit false
+set_option maxHeartbeats 1600000
+noncomputable section
+namespace Qatlib.Foundations.MatrixGeometry.AxisRotations.ComplexStructureExp
+variable {A : Type*} [NormedRing A] [NormedAlgebra ℝ A] [NormedAlgebra ℚ A] [CompleteSpace A]
+
+theorem exp_square_neg_one (J : A) (hJ : J*J=-(1:A)) (θ : ℝ) :
+    NormedSpace.exp (θ•J)=Real.cos θ•(1:A)+Real.sin θ•J := by
+  let rot : ℝ→A := fun t=>Real.cos t•(1:A)+Real.sin t•J
+  let F : ℝ→A := fun t=>NormedSpace.exp (t•(-J))*rot t
+  have hrot (t : ℝ) : HasDerivAt rot ((-Real.sin t)•(1:A)+Real.cos t•J) t :=
+    ((Real.hasDerivAt_cos t).smul_const (1:A)).add ((Real.hasDerivAt_sin t).smul_const J)
+  have hcancel (t : ℝ) : (-J)*rot t+((-Real.sin t)•(1:A)+Real.cos t•J)=0 := by
+    dsimp [rot]
+    simp only [mul_add,mul_smul_comm,mul_one,neg_mul,hJ,neg_neg,smul_neg]
+    module
+  have hF (t : ℝ) : HasDerivAt F 0 t := by
+    have hh := (hasDerivAt_exp_smul_const (-J) t).mul (hrot t)
+    have he : NormedSpace.exp (t•(-J))*(-J)*rot t+
+        NormedSpace.exp (t•(-J))*((-Real.sin t)•(1:A)+Real.cos t•J)=0 := by
+      rw [mul_assoc,← mul_add,hcancel,mul_zero]
+    simpa only [he] using! hh
+  have hc : F θ=F 0 := is_const_of_deriv_eq_zero (fun t=>(hF t).differentiableAt)
+    (fun t=>(hF t).deriv) θ 0
+  have hprod : NormedSpace.exp (θ•(-J))*rot θ=1 := by
+    simpa only [F,rot,zero_smul,NormedSpace.exp_zero,Real.cos_zero,Real.sin_zero,
+      one_smul,zero_smul,add_zero,one_mul] using hc
+  have hcomm : Commute (θ•J) (θ•(-J)) := by
+    change (θ•J)*(θ•(-J))=(θ•(-J))*(θ•J)
+    simp only [mul_smul_comm,smul_mul_assoc,mul_neg,neg_mul,smul_neg]
+  have hinv : NormedSpace.exp (θ•J)*NormedSpace.exp (θ•(-J))=1 := by
+    rw [← NormedSpace.exp_add_of_commute hcomm]
+    simp only [smul_neg,add_neg_cancel,NormedSpace.exp_zero]
+  calc
+    NormedSpace.exp (θ•J)=NormedSpace.exp (θ•J)*1 := (mul_one _).symm
+    _=NormedSpace.exp (θ•J)*(NormedSpace.exp (θ•(-J))*rot θ) := by rw [hprod]
+    _=(NormedSpace.exp (θ•J)*NormedSpace.exp (θ•(-J)))*rot θ := (mul_assoc _ _ _).symm
+    _=rot θ := by rw [hinv,one_mul]
+
+end Qatlib.Foundations.MatrixGeometry.AxisRotations.ComplexStructureExp

@@ -1,0 +1,79 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.LowEnergyProd24.ProductError.GeneratorExpansion
+import Qatlib.Papers.LowEnergyProd24.RetainedBound.Duhamel
+import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+set_option warningAsError false
+
+set_option autoImplicit false
+set_option maxHeartbeats 300000
+noncomputable section
+open Matrix
+open scoped Classical BigOperators Matrix.Norms.L2Operator MatrixOrder ComplexOrder
+namespace Qatlib.Papers.LowEnergyProd24.WordLeakage
+open Qatlib.Papers.LowEnergyProd24.LocalModel
+open Qatlib.Papers.LowEnergyProd24.ProductError
+open Qatlib.Papers.LowEnergyProd24.RetainedBound
+open Qatlib.Foundations.MatrixAlgebra.CommutatorExp
+open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
+variable {N R M k d : ℕ} {J : ℝ}
+local instance : NormedAlgebra ℝ (Matrix (Register N) (Register N) ℂ) := .restrictScalars ℝ ℂ _
+
+theorem actual_weighted_defect_tail (h : Hamiltonian N R M k d J) (stages : List (ℝ × Fin M))
+    (p : ℕ) (hp : 0 < p) (horder : lowerOrderCancellation h stages p) (lam t : ℝ) :
+    HasSum (fun n : ℕ => t^(n+p) • weighted h.total (computedCoefficient h stages (n+p)) lam)
+      (weighted h.total (defect h stages t) lam) := by
+  have hzero : computedCoefficient h stages 0=totalGenerator h := by
+    simpa only [if_pos rfl] using! horder 0 hp
+  have hprefix : (∑ n ∈ Finset.range p, t^n • weighted h.total (computedCoefficient h stages n) lam) =
+      weighted h.total (totalGenerator h) lam := by
+    rw [Finset.sum_eq_single 0]
+    · rw [hzero]
+      simp only [pow_zero, one_smul]
+    · intro n hn hnzero
+      have hc := horder n (Finset.mem_range.mp hn)
+      rw [if_neg hnzero] at hc
+      simp only [hc, weighted, mul_zero, zero_mul, smul_zero]
+    · intro hn
+      exact (hn (Finset.mem_range.mpr hp)).elim
+  have hs := (hasSum_nat_add_iff' p).mpr (actual_weighted_generator_hasSum h stages lam t)
+  rw [hprefix] at hs
+  have he : weighted h.total (defect h stages t) lam =
+      weighted h.total (generator (stages.map (stageGenerator h)) t) lam-
+        weighted h.total (totalGenerator h) lam := by
+    simp only [weighted, defect, mul_sub, sub_mul]
+  rw [he]
+  exact hs
+
+theorem actual_weighted_defect_bound (h : Hamiltonian N R M k d J)
+    (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
+    (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M))
+    (p : ℕ) (hp : 0 < p) (horder : lowerOrderCancellation h stages p)
+    (t : ℝ) (ht : 0 ≤ t) (hsmall : 2*J*k*d*timeBudget stages*t < 1) :
+    ‖weighted h.total (defect h stages t) (1/(2*J*k*d))‖ ≤
+      ((L : ℝ)*(2*J)*timeBudget stages)*(2*J*k*d*timeBudget stages*t)^p /
+        (1-2*J*k*d*timeBudget stages*t) := by
+  let D : ℝ := (L : ℝ)*(2*J)*timeBudget stages
+  let C : ℝ := 2*J*k*d*timeBudget stages
+  let x : ℝ := C*t
+  have hA := timeBudget_nonneg stages
+  have hx : 0 ≤ x := by dsimp [x, C]; positivity
+  have hxnorm : ‖x‖ < 1 := by rw [Real.norm_eq_abs, abs_of_nonneg hx]; exact hsmall
+  have hm : HasSum (fun n : ℕ => (D*x^p)*x^n) ((D*x^p)/(1-x)) := by
+    convert! (hasSum_geometric_of_norm_lt_one hxnorm).mul_left (D*x^p) using 1
+  have hs := actual_weighted_defect_tail h stages p hp horder (1/(2*J*k*d)) t
+  apply HasSum.norm_le_of_bounded hs hm
+  intro n
+  rw [norm_smul, Real.norm_eq_abs, abs_of_nonneg (pow_nonneg ht _)]
+  calc
+    _ ≤ t^(n+p)*((L : ℝ)*(2*J)*timeBudget stages*(2*J*k*d*timeBudget stages)^(n+p)) :=
+      mul_le_mul_of_nonneg_left (actual_coefficient_weighted_bound h hJ hk hd L hL stages (n+p)) (pow_nonneg ht _)
+    _ = _ := by
+      dsimp only [D, x, C]
+      rw [mul_pow, pow_add, pow_add]
+      ring
+end Qatlib.Papers.LowEnergyProd24.WordLeakage

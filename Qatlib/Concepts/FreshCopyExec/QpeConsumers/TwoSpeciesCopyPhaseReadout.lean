@@ -1,0 +1,601 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesCopyExponential
+import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
+import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
+import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+set_option backward.isDefEq.respectTransparency false
+
+set_option autoImplicit false
+set_option maxHeartbeats 2000000
+noncomputable section
+open Qatlib.Concepts.AdaptiveCP.BranchTrace
+open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
+open Qatlib.Foundations.PureStateMath.Reflection
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
+
+open Qatlib.Concepts.ReferenceError.DensityToRaw
+open Qatlib.Concepts.LocalMachine.LocalTransport
+open Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+open Qatlib.Concepts.QspSimulation.Achievability
+open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
+
+namespace Qatlib.Concepts.FreshCopyExec.QpeConsumers
+open Matrix
+open Qatlib
+open Qatlib.Concepts.BlockEncoding
+open Qatlib.Concepts.BlockEncoding.Encoding
+open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib.Concepts.PhaseGeometry.Phase
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
+open Qatlib
+open Qatlib
+open Qatlib
+open scoped Classical ComplexOrder Matrix.Norms.L2Operator
+set_option warningAsError false
+
+def twoSpeciesQPEQuery (D M n : ℕ) (ρ σ : Operator D)
+    (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) :=
+  relabelGate (copyQPERegisterEquiv D M).symm
+    (ChannelAmplification (twoSpeciesRunMap D ρ σ Real.pi n) M
+      (relabelGate (copyQPERegisterEquiv D M) X))
+
+def twoSpeciesQPEProgram (D M n : ℕ) (ρ σ : Operator D) :
+    Circuit (Fin M × (Bool × Fin D)) →
+      Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ →
+      Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ
+  | [], X => X
+  | Step.gate U :: C, X => twoSpeciesQPEProgram D M n ρ σ C (MatrixMap.conj U X)
+  | Step.query :: C, X => twoSpeciesQPEProgram D M n ρ σ C (twoSpeciesQPEQuery D M n ρ σ X)
+
+def twoSpeciesQPEIdealProgram (D M : ℕ) (ρ σ : Operator D) :
+    Circuit (Fin M × (Bool × Fin D)) →
+      Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ →
+      Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ
+  | [], X => X
+  | Step.gate U :: C, X => twoSpeciesQPEIdealProgram D M ρ σ C (MatrixMap.conj U X)
+  | Step.query :: C, X => twoSpeciesQPEIdealProgram D M ρ σ C
+      (MatrixMap.conj (TensorGate (1 : Operator M) (controlOracle (hamiltonianEvolution (ρ-σ) Real.pi))) X)
+
+def twoSpeciesQPEInput (D M : ℕ) (χ : Operator D) :=
+  if hM : 0 < M then TensorGate (outerProduct (Ket (⟨0,hM⟩ : Fin M)))
+    (TensorGate (outerProduct (Ket false)) χ) else 0
+
+def twoSpeciesQPEOutput (D M n : ℕ) (ρ σ χ : Operator D) :=
+  twoSpeciesQPEProgram D M n ρ σ (countedPhaseCircuit M) (twoSpeciesQPEInput D M χ)
+
+def twoSpeciesQPEIdealOutput (D M : ℕ) (ρ σ χ : Operator D) :=
+  twoSpeciesQPEIdealProgram D M ρ σ (countedPhaseCircuit M) (twoSpeciesQPEInput D M χ)
+
+def twoSpeciesQPEResources (M n : ℕ) : ℕ × ℕ × ℕ × ℕ :=
+  (2*(M-1)*n,2*(M-1)*n,2*(M-1)*n,0)
+
+theorem twoSpeciesQPEResources_same_path (D M n : ℕ) (hM : 0 < M) :
+    twoSpeciesQPEResources M n=copyQPEProgramResources (2*n) (countedPhaseCircuit (I := Fin D) M) := by
+  have h := counted_offgrid_qpe_clean_flag M hM (1 : Operator D) (0 : QState (Fin D))
+  rw [copyQPEProgramResources_eq,h.2.1]
+  unfold twoSpeciesQPEResources
+  congr 1 <;> ring
+
+private theorem twoSpecies_relabel_positive {I J : Type*} [Fintype I] [DecidableEq I]
+    [Fintype J] [DecidableEq J] (e : I ≃ J) {X : Matrix I I ℂ} (hX : X.PosSemidef) :
+    (relabelGate e X).PosSemidef := hX.submatrix e.symm
+
+private theorem twoSpecies_relabel_trace {I J : Type*} [Fintype I] [DecidableEq I]
+    [Fintype J] [DecidableEq J] (e : I ≃ J) (X : Matrix I I ℂ) :
+    Matrix.trace (relabelGate e X) = Matrix.trace X := by
+  simp only [Matrix.trace, Matrix.diag_apply, relabelGate_apply']
+  exact Equiv.sum_comp e.symm (fun i => X i i)
+
+theorem twoSpeciesQPEQuery_positive_trace (D M n : ℕ) (ρ σ : Operator D)
+    (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ)
+    (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ)
+    (hX : X.PosSemidef) :
+    (twoSpeciesQPEQuery D M n ρ σ X).PosSemidef ∧
+      Matrix.trace (twoSpeciesQPEQuery D M n ρ σ X) = Matrix.trace X := by
+  have hmap := twoSpeciesRun_map D ρ hρ σ hσ Real.pi n
+  unfold twoSpeciesQPEQuery
+  rw [← hmap]
+  constructor
+  · exact twoSpecies_relabel_positive _
+      ((twoSpeciesRun D ρ hρ σ hσ Real.pi n).completelyPositive M _
+        (twoSpecies_relabel_positive _ hX))
+  · rw [twoSpecies_relabel_trace, amplification_trace _
+      (twoSpeciesRun D ρ hρ σ hσ Real.pi n).tracePreserving, twoSpecies_relabel_trace]
+
+theorem twoSpeciesQPEProgram_positive_trace (D M n : ℕ) (ρ σ : Operator D)
+    (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) (C : Circuit (Fin M × (Bool × Fin D)))
+    (hC : IsUnitaryCircuit C)
+    (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ)
+    (hX : X.PosSemidef) :
+    (twoSpeciesQPEProgram D M n ρ σ C X).PosSemidef ∧
+      Matrix.trace (twoSpeciesQPEProgram D M n ρ σ C X) = Matrix.trace X := by
+  induction C generalizing X with
+  | nil => exact ⟨hX, rfl⟩
+  | cons s C ih =>
+    cases s with
+    | query =>
+      have hq := twoSpeciesQPEQuery_positive_trace D M n ρ σ hρ hσ X hX
+      have ht := ih (isUnitaryCircuit_query C |>.mp hC) _ hq.1
+      exact ⟨ht.1, ht.2.trans hq.2⟩
+    | gate U =>
+      obtain ⟨hU, hC'⟩ := (isUnitaryCircuit_gate U C).mp hC
+      have ht := ih hC' (MatrixMap.conj U X) (hX.mul_mul_conjTranspose_same U)
+      refine ⟨ht.1, ht.2.trans ?_⟩
+      change Matrix.trace (U * X * Uᴴ) = Matrix.trace X
+      rw [Matrix.trace_mul_cycle]
+      have hu : Uᴴ * U = 1 := by
+        simpa only [Matrix.star_eq_conjTranspose] using!
+          (Matrix.mem_unitaryGroup_iff').mp hU
+      rw [hu, Matrix.one_mul]
+
+theorem twoSpeciesQPEInput_density (D M : ℕ) (hM : 0 < M) (χ : Operator D)
+    (hχ : IsDensityOperator χ) :
+    (twoSpeciesQPEInput D M χ).PosSemidef ∧ Matrix.trace (twoSpeciesQPEInput D M χ) = 1 := by
+  rw [twoSpeciesQPEInput, dif_pos hM]
+  constructor
+  · exact (outerProduct_posSemidef _).kronecker
+      ((outerProduct_posSemidef _).kronecker hχ.1)
+  · rw [Qatlib.Foundations.PureStateMath.BornBridge.trace_tensorGate, Qatlib.Foundations.PureStateMath.BornBridge.trace_tensorGate,
+      (outerProduct_density (normalized_ket (⟨0, hM⟩ : Fin M))).2,
+      (outerProduct_density (normalized_ket false)).2, hχ.2]
+    simp
+
+theorem twoSpeciesQPEOutput_density (D M n : ℕ) (hM : 0 < M) (ρ σ χ : Operator D)
+    (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) (hχ : IsDensityOperator χ) :
+    (twoSpeciesQPEOutput D M n ρ σ χ).PosSemidef ∧ Matrix.trace (twoSpeciesQPEOutput D M n ρ σ χ) = 1 := by
+  have hC := (counted_offgrid_qpe_clean_flag M hM
+    (1 : Operator D) (0 : QState (Fin D))).2.2.2
+  have hX := twoSpeciesQPEInput_density D M hM χ hχ
+  have h := twoSpeciesQPEProgram_positive_trace D M n ρ σ hρ hσ _ hC _ hX.1
+  exact ⟨h.1, h.2.trans hX.2⟩
+
+private theorem twoSpeciesQPE_ideal_gate_relabel (D M : ℕ) (ρ σ : Operator D) :
+    relabelGate (copyQPERegisterEquiv D M)
+      (TensorGate (1 : Operator M) (controlOracle (hamiltonianEvolution (ρ-σ) Real.pi))) =
+      TensorGate (1 : Operator M) (copyControlledEvolution (ρ-σ) Real.pi) := by
+  ext ⟨a,i⟩ ⟨b,j⟩
+  rfl
+
+private theorem twoSpeciesQPE_relabel_conj {I J : Type*} [Fintype I] [DecidableEq I]
+    [Fintype J] [DecidableEq J] (e : I ≃ J) (U X : Matrix I I ℂ) :
+    relabelGate e (MatrixMap.conj U X) =
+      MatrixMap.conj (relabelGate e U) (relabelGate e X) := by
+  let f := Matrix.reindexAlgEquiv ℂ ℂ e
+  have hs : f Uᴴ = (f U)ᴴ := by ext i j; rfl
+  change f (U * X * Uᴴ) = f U * f X * (f U)ᴴ
+  rw [map_mul, map_mul, hs]
+
+private theorem twoSpeciesQPE_relabel_sub {I J : Type*} [Fintype I] [DecidableEq I]
+    [Fintype J] [DecidableEq J] (e : I ≃ J) (X Y : Matrix I I ℂ) :
+    relabelGate e (X - Y) = relabelGate e X - relabelGate e Y :=
+  (Matrix.reindexAlgEquiv ℂ ℂ e).map_sub X Y
+
+private theorem twoSpeciesQPE_relabel_round {I J : Type*} [Fintype I] [DecidableEq I]
+    [Fintype J] [DecidableEq J] (e : I ≃ J) (X : Matrix J J ℂ) :
+    relabelGate e (relabelGate e.symm X) = X := by
+  ext i j
+  simp only [relabelGate_apply', Equiv.symm_symm, Equiv.apply_symm_apply]
+
+private theorem twoSpeciesQPEQuery_sub (D M n : ℕ) (ρ σ : Operator D)
+    (X Y : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) :
+    twoSpeciesQPEQuery D M n ρ σ (X - Y) = twoSpeciesQPEQuery D M n ρ σ X - twoSpeciesQPEQuery D M n ρ σ Y := by
+  unfold twoSpeciesQPEQuery
+  rw [twoSpeciesQPE_relabel_sub, amplification_sub, twoSpeciesQPE_relabel_sub]
+
+private theorem twoSpeciesQPEQuery_contraction (D M n : ℕ) (ρ σ : Operator D)
+    (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ)
+    (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) (hX : X.IsHermitian) :
+    (twoSpeciesQPEQuery D M n ρ σ X).traceNorm ≤ X.traceNorm := by
+  let e := copyQPERegisterEquiv D M
+  have hY : (relabelGate e X).IsHermitian := hX.submatrix e.symm
+  have hmap := twoSpeciesRun_map D ρ hρ σ hσ Real.pi n
+  have ha := channel_reference_hermitian_preserving (twoSpeciesRun D ρ hρ σ hσ Real.pi n) hY
+  unfold twoSpeciesQPEQuery
+  rw [← hmap, traceNorm_relabel_hermitian _ _ ha]
+  have h := channel_reference_hermitian_trace_contraction (twoSpeciesRun D ρ hρ σ hσ Real.pi n) hY
+  exact h.trans_eq (traceNorm_relabel_hermitian e X hX)
+
+theorem two_species_qpe_query_error (D M n : ℕ) (hn : 0 < n) (ρ σ : Operator D)
+    (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ)
+    (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) (hX : X.PosSemidef) :
+    Matrix.traceNorm (twoSpeciesQPEQuery D M n ρ σ X -
+      MatrixMap.conj (TensorGate (1 : Operator M)
+        (controlOracle (hamiltonianEvolution (ρ-σ) Real.pi))) X) ≤
+      32 * Real.pi ^ 2 / (n : ℝ) * (Matrix.trace X).re := by
+  let e := copyQPERegisterEquiv D M
+  let V := TensorGate (1 : Operator M) (controlOracle (hamiltonianEvolution (ρ-σ) Real.pi))
+  let Y := relabelGate e X
+  have hY : Y.PosSemidef := hX.submatrix e.symm
+  have hA := (twoSpeciesQPEQuery_positive_trace D M n ρ σ hρ hσ X hX).1
+  have hB : (MatrixMap.conj V X).PosSemidef := hX.mul_mul_conjTranspose_same V
+  have hnorm := traceNorm_relabel_hermitian e
+    (twoSpeciesQPEQuery D M n ρ σ X - MatrixMap.conj V X) (hA.isHermitian.sub hB.isHermitian)
+  have hshape : relabelGate e (twoSpeciesQPEQuery D M n ρ σ X - MatrixMap.conj V X) =
+      ChannelAmplification (twoSpeciesRun D ρ hρ σ hσ Real.pi n).map M Y -
+        MatrixMap.conj (TensorGate (1 : Operator M) (copyControlledEvolution (ρ-σ) Real.pi)) Y := by
+    rw [twoSpeciesQPE_relabel_sub, twoSpeciesQPEQuery, twoSpeciesQPE_relabel_round,
+      ← twoSpeciesRun_map, twoSpeciesQPE_relabel_conj, twoSpeciesQPE_ideal_gate_relabel]
+  rw [hshape] at hnorm
+  calc
+    _ = _ := hnorm.symm
+    _ ≤ 32 * Real.pi ^ 2 / (n : ℝ) * (Matrix.trace Y).re :=
+      two_species_controlled_fresh_global_error D M n hn ρ σ hρ hσ Real.pi Y hY
+    _ = _ := by rw [twoSpecies_relabel_trace]
+
+private theorem twoSpeciesQPE_conj_trace {I : Type*} [Fintype I] [DecidableEq I]
+    (U X : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) :
+    Matrix.trace (MatrixMap.conj U X) = Matrix.trace X := by
+  change Matrix.trace (U * X * Uᴴ) = Matrix.trace X
+  rw [Matrix.trace_mul_cycle]
+  have hu : Uᴴ * U = 1 := by
+    simpa only [Matrix.star_eq_conjTranspose] using! (Matrix.mem_unitaryGroup_iff').mp hU
+  rw [hu, Matrix.one_mul]
+
+private theorem twoSpeciesQPEIdealProgram_trace (D M : ℕ) (ρ σ : Operator D)
+    (hH : (ρ - σ).IsHermitian)
+    (C : Circuit (Fin M × (Bool × Fin D))) (hC : IsUnitaryCircuit C)
+    (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) :
+    Matrix.trace (twoSpeciesQPEIdealProgram D M ρ σ C X) = Matrix.trace X := by
+  let V := TensorGate (1 : Operator M)
+    (controlOracle (hamiltonianEvolution (ρ - σ) Real.pi))
+  have hV : V ∈ Matrix.unitaryGroup (Fin M × (Bool × Fin D)) ℂ :=
+    tensorGate_unitary (Submonoid.one_mem _)
+      (controlOracle_unitary (hamiltonianEvolution_unitary hH Real.pi))
+  induction C generalizing X with
+  | nil => rfl
+  | cons s C ih =>
+    cases s with
+    | gate U =>
+      obtain ⟨hU, hC'⟩ := (isUnitaryCircuit_gate U C).mp hC
+      change Matrix.trace (twoSpeciesQPEIdealProgram D M ρ σ C (MatrixMap.conj U X)) =
+        Matrix.trace X
+      rw [ih hC', twoSpeciesQPE_conj_trace U X hU]
+    | query =>
+      change Matrix.trace (twoSpeciesQPEIdealProgram D M ρ σ C (MatrixMap.conj V X)) =
+        Matrix.trace X
+      rw [ih ((isUnitaryCircuit_query C).mp hC), twoSpeciesQPE_conj_trace V X hV]
+
+private theorem twoSpeciesQPE_conj_difference_norm {I : Type*} [Fintype I] [DecidableEq I]
+    (U A B : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) :
+    (MatrixMap.conj U A - MatrixMap.conj U B).traceNorm = (A - B).traceNorm := by
+  rw [← (MatrixMap.conj U).map_sub]
+  have hh : Uᴴ * U = 1 := by
+    simpa only [Matrix.star_eq_conjTranspose] using! (Matrix.mem_unitaryGroup_iff').mp hU
+  letI : DecidableEq I := Classical.decEq I
+  have hu : U.Isometry := by
+    change Uᴴ * U = 1
+    convert! hh using 1
+    first
+      | exact Subsingleton.elim _ _
+      | (ext i j; simp [Matrix.one_apply])
+  change (U * (A - B) * Uᴴ).traceNorm = (A - B).traceNorm
+  rw [Matrix.traceNorm_isometry_right hu, Matrix.traceNorm_isometry_left hu]
+
+theorem twoSpeciesQPEProgram_input_and_access_error (D M n : ℕ) (hn : 0 < n)
+    (ρ σ : Operator D) (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ)
+    (C : Circuit (Fin M × (Bool × Fin D))) (hC : IsUnitaryCircuit C)
+    (A B : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ)
+    (hA : A.PosSemidef) (hB : B.PosSemidef) :
+    (twoSpeciesQPEProgram D M n ρ σ C A - twoSpeciesQPEIdealProgram D M ρ σ C B).traceNorm ≤
+      (A - B).traceNorm +
+        (32 * Real.pi ^ 2 / (n : ℝ)) * (QueryCount C : ℝ) * (Matrix.trace B).re := by
+  let V := TensorGate (1 : Operator M) (controlOracle (hamiltonianEvolution (ρ-σ) Real.pi))
+  have hV : V ∈ Matrix.unitaryGroup (Fin M × (Bool × Fin D)) ℂ :=
+    tensorGate_unitary (Submonoid.one_mem _)
+      (controlOracle_unitary (hamiltonianEvolution_unitary (hρ.1.isHermitian.sub hσ.1.isHermitian) Real.pi))
+  induction C generalizing A B with
+  | nil => simp [twoSpeciesQPEProgram, twoSpeciesQPEIdealProgram, QueryCount]
+  | cons s C ih =>
+    cases s with
+    | gate U =>
+      obtain ⟨hU, hC'⟩ := (isUnitaryCircuit_gate U C).mp hC
+      have h := ih hC' (MatrixMap.conj U A) (MatrixMap.conj U B)
+        (hA.mul_mul_conjTranspose_same U) (hB.mul_mul_conjTranspose_same U)
+      rw [twoSpeciesQPE_conj_trace U B hU, twoSpeciesQPE_conj_difference_norm U A B hU] at h
+      exact h
+    | query =>
+      have hC' := (isUnitaryCircuit_query C).mp hC
+      have hA' := (twoSpeciesQPEQuery_positive_trace D M n ρ σ hρ hσ A hA).1
+      have hB' : (MatrixMap.conj V B).PosSemidef := hB.mul_mul_conjTranspose_same V
+      have h := ih hC' _ _ hA' hB'
+      rw [twoSpeciesQPE_conj_trace V B hV] at h
+      have he : twoSpeciesQPEQuery D M n ρ σ A - MatrixMap.conj V B =
+          (twoSpeciesQPEQuery D M n ρ σ A - twoSpeciesQPEQuery D M n ρ σ B) +
+            (twoSpeciesQPEQuery D M n ρ σ B - MatrixMap.conj V B) := by abel
+      have hc : (twoSpeciesQPEQuery D M n ρ σ A - twoSpeciesQPEQuery D M n ρ σ B).traceNorm ≤
+          (A - B).traceNorm := by
+        rw [← twoSpeciesQPEQuery_sub]
+        exact twoSpeciesQPEQuery_contraction D M n ρ σ hρ hσ _ (hA.isHermitian.sub hB.isHermitian)
+      have hl := two_species_qpe_query_error D M n hn ρ σ hρ hσ B hB
+      have ht := (Matrix.traceNorm_add_le _ _).trans (add_le_add hc hl)
+      rw [← he] at ht
+      have hsum := h.trans (add_le_add ht (le_refl _))
+      exact hsum.trans_eq (by simp only [QueryCount, Nat.cast_add, Nat.cast_one]; ring)
+
+theorem two_species_qpe_actual_program_state_error
+    (D M n : ℕ) (hM : 2 ≤ M) (hn : 0 < n) (ρ σ χ : Operator D) (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) (hχ : IsDensityOperator χ) :
+    (twoSpeciesQPEOutput D M n ρ σ χ).PosSemidef ∧ Matrix.trace (twoSpeciesQPEOutput D M n ρ σ χ) = 1 ∧
+      Matrix.traceNorm (twoSpeciesQPEOutput D M n ρ σ χ - twoSpeciesQPEIdealOutput D M ρ σ χ) ≤
+        32 * (M - 1 : ℕ) * Real.pi ^ 2 / (n : ℝ) := by
+  have hM0 : 0 < M := by omega
+  have hC := counted_offgrid_qpe_clean_flag M hM0 (1 : Operator D) (0 : QState (Fin D))
+  have hX := twoSpeciesQPEInput_density D M hM0 χ hχ
+  have hout := twoSpeciesQPEOutput_density D M n hM0 ρ σ χ hρ hσ hχ
+  refine ⟨hout.1, hout.2, ?_⟩
+  have h := twoSpeciesQPEProgram_input_and_access_error D M n hn ρ σ hρ hσ _ hC.2.2.2
+    (twoSpeciesQPEInput D M χ) (twoSpeciesQPEInput D M χ) hX.1 hX.1
+  rw [hC.2.1, hX.2, sub_self, Matrix.traceNorm_zero, Complex.one_re, mul_one, zero_add] at h
+  exact h.trans_eq (by ring)
+
+private def twoSpeciesDyad {I : Type*} (ψ φ : QState I) : Matrix I I ℂ :=
+  fun a b => ψ a*star (φ b)
+
+private theorem twoSpecies_dyad_conj {I : Type*} [Fintype I] [DecidableEq I]
+    (U : Matrix I I ℂ) (ψ φ : QState I) :
+    MatrixMap.conj U (twoSpeciesDyad ψ φ)=twoSpeciesDyad (ApplyGate U ψ) (ApplyGate U φ) := by
+  ext i j
+  simp only [conjMap_apply,twoSpeciesDyad,Matrix.mul_apply,Matrix.conjTranspose_apply,
+    ApplyGate,Matrix.mulVec,dotProduct,Finset.sum_mul]
+  simp only [RCLike.star_def,map_sum,map_mul]
+  simp only [Finset.mul_sum]
+  conv_lhs => rw [Finset.sum_comm]
+  apply Finset.sum_congr rfl
+  intro c _
+  apply Finset.sum_congr rfl
+  intro d _
+  ring
+
+private theorem twoSpecies_ideal_dyad (D M : ℕ) (ρ σ : Operator D)
+    (C : Circuit (Fin M × (Bool × Fin D)))
+    (ψ φ : QState (Fin M × (Bool × Fin D))) :
+    twoSpeciesQPEIdealProgram D M ρ σ C (twoSpeciesDyad ψ φ)=
+      twoSpeciesDyad (Run (TensorGate (1 : Operator M)
+        (controlOracle (hamiltonianEvolution (ρ-σ) Real.pi))) C ψ)
+        (Run (TensorGate (1 : Operator M)
+        (controlOracle (hamiltonianEvolution (ρ-σ) Real.pi))) C φ) := by
+  induction C generalizing ψ φ with
+  | nil => rfl
+  | cons s C ih => cases s <;> simp only [twoSpeciesQPEIdealProgram,Run,twoSpecies_dyad_conj,ih]
+
+private def twoSpeciesIdealProgramMap (D M : ℕ) (ρ σ : Operator D) :
+    Circuit (Fin M × (Bool × Fin D)) → MatrixMap (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ
+  | [] => LinearMap.id
+  | Step.gate U :: C => (twoSpeciesIdealProgramMap D M ρ σ C).comp (MatrixMap.conj U)
+  | Step.query :: C => (twoSpeciesIdealProgramMap D M ρ σ C).comp
+      (MatrixMap.conj (TensorGate (1 : Operator M) (controlOracle (hamiltonianEvolution (ρ-σ) Real.pi))))
+
+private theorem twoSpecies_ideal_map_apply (D M : ℕ) (ρ σ : Operator D)
+    (C : Circuit (Fin M × (Bool × Fin D)))
+    (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) :
+    twoSpeciesIdealProgramMap D M ρ σ C X=twoSpeciesQPEIdealProgram D M ρ σ C X := by
+  induction C generalizing X with
+  | nil => rfl
+  | cons s C ih => cases s <;> simp only [twoSpeciesIdealProgramMap,LinearMap.comp_apply,twoSpeciesQPEIdealProgram,ih]
+
+private theorem twoSpecies_basis_expansion (D : ℕ) (V χ : Operator D)
+    (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
+    χ=∑ j, ∑ k, ((Vᴴ*χ*V) j k) • twoSpeciesDyad (fun a => V a j) (fun a => V a k) := by
+  have hVV : V*Vᴴ=1 := by
+    simpa only [Matrix.star_eq_conjTranspose] using! (Matrix.mem_unitaryGroup_iff).mp hV
+  have hb : χ=V*(Vᴴ*χ*V)*Vᴴ := by
+    symm
+    calc
+      _ = (V*Vᴴ)*χ*(V*Vᴴ) := by noncomm_ring
+      _ = χ := by rw [hVV]; simp
+  conv_lhs => rw [hb]
+  ext a b
+  simp only [Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.sum_apply,Matrix.smul_apply,
+    smul_eq_mul,twoSpeciesDyad,Finset.sum_mul]
+  conv_lhs => rw [Finset.sum_comm]
+  apply Finset.sum_congr rfl
+  intro j _
+  apply Finset.sum_congr rfl
+  intro k _
+  simp only [RCLike.star_def]
+  simp only [Finset.mul_sum,Finset.sum_mul]
+  apply Finset.sum_congr rfl
+  intro x _
+  apply Finset.sum_congr rfl
+  intro x_1 _
+  ring
+
+private theorem twoSpecies_input_expansion (D M : ℕ) (hM : 0 < M) (V χ : Operator D)
+    (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
+    twoSpeciesQPEInput D M χ=∑ j, ∑ k, ((Vᴴ*χ*V) j k) •
+      twoSpeciesDyad (TensorState (Ket (⟨0,hM⟩ : Fin M)) (TensorState (Ket false) (fun a => V a j)))
+        (TensorState (Ket (⟨0,hM⟩ : Fin M)) (TensorState (Ket false) (fun a => V a k))) := by
+  rw [twoSpeciesQPEInput,dif_pos hM]
+  conv_lhs => rw [twoSpecies_basis_expansion D V χ hV]
+  ext ⟨a,b,i⟩ ⟨c,e,l⟩
+  simp only [tensorGate_apply,Matrix.sum_apply,Matrix.smul_apply,outerProduct_apply,
+    twoSpeciesDyad,TensorState,smul_eq_mul,Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro j _
+  apply Finset.sum_congr rfl
+  intro k _
+  simp only [RCLike.star_def]
+  simp only [map_mul]
+  ring
+
+private theorem twoSpecies_eigenphase (D : ℕ) (ρ σ V : Operator D) (x : Fin D → ℝ)
+    (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
+    (hs : ρ-σ=V*Matrix.diagonal (fun j => (x j : ℂ))*Vᴴ) (j : Fin D) :
+    ApplyGate (hamiltonianEvolution (ρ-σ) Real.pi) (fun a => V a j)=
+      Complex.exp (2*Real.pi*Complex.I*((-x j/2 : ℝ) : ℂ)) • (fun a => V a j) := by
+  have hVV : Vᴴ*V=1 := by
+    simpa only [Matrix.star_eq_conjTranspose] using! (Matrix.mem_unitaryGroup_iff').mp hV
+  have he : hamiltonianEvolution (ρ-σ) Real.pi*V=
+      V*Matrix.diagonal (fun k => Complex.exp (-Complex.I*(Real.pi : ℂ)*(x k : ℂ))) := by
+    rw [copyQPE_evolution_spectral D (ρ-σ) V x hV hs,Matrix.mul_assoc,hVV,Matrix.mul_one]
+  have hphase : -Complex.I*(Real.pi : ℂ)*(x j : ℂ)=2*Real.pi*Complex.I*((-x j/2 : ℝ) : ℂ) := by
+    push_cast; ring
+  funext a
+  have h := congrArg (fun A : Operator D => A a j) he
+  (try dsimp only at h)
+  rw [Matrix.mul_diagonal] at h
+  simp only [Matrix.mul_apply] at h
+  change (∑ k, hamiltonianEvolution (ρ-σ) Real.pi a k*V k j)=
+    Complex.exp (2*Real.pi*Complex.I*((-x j/2 : ℝ) : ℂ))*V a j
+  rw [h,hphase,mul_comm]
+
+private theorem twoSpecies_ideal_basis_dyad (D M : ℕ) (hM : 0 < M) (ρ σ V : Operator D)
+    (x : Fin D → ℝ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
+    (hs : ρ-σ=V*Matrix.diagonal (fun j => (x j : ℂ))*Vᴴ) (j k : Fin D) :
+    twoSpeciesQPEIdealProgram D M ρ σ (countedPhaseCircuit M)
+      (twoSpeciesDyad (TensorState (Ket (⟨0,hM⟩ : Fin M)) (TensorState (Ket false) (fun a => V a j)))
+        (TensorState (Ket (⟨0,hM⟩ : Fin M)) (TensorState (Ket false) (fun a => V a k))))=
+      twoSpeciesDyad (fun p : Fin M × (Bool × Fin D) => if p.2.1 then 0 else qpeKernel M (-x j/2) p.1*V p.2.2 j)
+        (fun p : Fin M × (Bool × Fin D) => if p.2.1 then 0 else qpeKernel M (-x k/2) p.1*V p.2.2 k) := by
+  rw [twoSpecies_ideal_dyad,(counted_offgrid_qpe_clean_flag M hM (hamiltonianEvolution (ρ-σ) Real.pi) (fun a => V a j)).1,
+    (counted_offgrid_qpe_clean_flag M hM (hamiltonianEvolution (ρ-σ) Real.pi) (fun a => V a k)).1,
+    qpeOutput_eigen M _ _ (-x j/2) (twoSpecies_eigenphase D ρ σ V x hV hs j),
+    qpeOutput_eigen M _ _ (-x k/2) (twoSpecies_eigenphase D ρ σ V x hV hs k)]
+  rfl
+
+private theorem twoSpecies_kernel_dyad_trace (D M : ℕ) (ψ φ : QState (Fin D))
+    (a b : Fin M → ℂ) (z : Fin M) :
+    Matrix.trace ((twoSpeciesDyad
+      (fun p : Fin M × (Bool × Fin D) => if p.2.1 then 0 else a p.1*ψ p.2.2)
+      (fun p : Fin M × (Bool × Fin D) => if p.2.1 then 0 else b p.1*φ p.2.2)).submatrix
+        (fun p => (z,p)) (fun p => (z,p)))=a z*star (b z)*Inner φ ψ := by
+  simp only [Matrix.trace,Matrix.diag_apply,Matrix.submatrix_apply,twoSpeciesDyad,
+    Fintype.sum_prod_type,Fintype.sum_bool,Bool.false_eq_true,ite_false,ite_true,
+    star_zero,mul_zero,Finset.sum_const_zero,zero_add,inner_apply]
+  rw [Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro i _
+  simp only [RCLike.star_def]
+  rw [map_mul]
+  ring
+
+private theorem twoSpecies_label_sum (D M : ℕ) (c : Fin D → Fin D → ℂ)
+    (X : Fin D → Fin D → Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) (z : Fin M) :
+    Matrix.trace ((∑ j, ∑ k, c j k • X j k).submatrix (fun p => (z,p)) (fun p => (z,p)))=
+      ∑ j, ∑ k, c j k*Matrix.trace ((X j k).submatrix (fun p => (z,p)) (fun p => (z,p))) := by
+  simp only [Matrix.trace,Matrix.diag_apply,Matrix.submatrix_apply,Matrix.sum_apply,Matrix.smul_apply,smul_eq_mul]
+  rw [Finset.sum_comm]
+  apply Finset.sum_congr rfl
+  intro j _
+  rw [Finset.sum_comm]
+  apply Finset.sum_congr rfl
+  intro k _
+  exact (Finset.mul_sum _ _ _).symm
+
+theorem twoSpeciesQPEIdealOutput_spectral_label (D M : ℕ) (hM : 0 < M)
+    (ρ σ V : Operator D) (x : Fin D → ℝ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
+    (hs : ρ-σ=V*Matrix.diagonal (fun j => (x j : ℂ))*Vᴴ)
+    (χ : Operator D) (_hχ : IsDensityOperator χ) (z : Fin M) :
+    copyQPELabelMass D M (twoSpeciesQPEIdealOutput D M ρ σ χ) z=
+      ∑ j, ((Vᴴ*χ*V) j j).re*‖qpeKernel M (-x j/2) z‖^2 := by
+  have hout : twoSpeciesQPEIdealOutput D M ρ σ χ=
+      ∑ j, ∑ k, ((Vᴴ*χ*V) j k) • twoSpeciesDyad
+        (fun p : Fin M × (Bool × Fin D) => if p.2.1 then 0 else qpeKernel M (-x j/2) p.1*V p.2.2 j)
+        (fun p : Fin M × (Bool × Fin D) => if p.2.1 then 0 else qpeKernel M (-x k/2) p.1*V p.2.2 k) := by
+    unfold twoSpeciesQPEIdealOutput
+    rw [← twoSpecies_ideal_map_apply,twoSpecies_input_expansion D M hM V χ hV,map_sum]
+    simp only [map_sum,map_smul,twoSpecies_ideal_map_apply,twoSpecies_ideal_basis_dyad D M hM ρ σ V x hV hs]
+  have he : Matrix.trace ((twoSpeciesQPEIdealOutput D M ρ σ χ).submatrix (fun p => (z,p)) (fun p => (z,p)))=
+      ∑ j, ((Vᴴ*χ*V) j j)*(qpeKernel M (-x j/2) z*star (qpeKernel M (-x j/2) z)) := by
+    rw [hout,twoSpecies_label_sum]
+    apply Finset.sum_congr rfl
+    intro j _
+    have htr : ∀ k : Fin D, Matrix.trace ((twoSpeciesDyad
+        (fun p : Fin M × (Bool × Fin D) => if p.2.1 then 0 else qpeKernel M (-x j/2) p.1*V p.2.2 j)
+        (fun p : Fin M × (Bool × Fin D) => if p.2.1 then 0 else qpeKernel M (-x k/2) p.1*V p.2.2 k)).submatrix
+          (fun p => (z,p)) (fun p => (z,p))) =
+        qpeKernel M (-x j/2) z*star (qpeKernel M (-x k/2) z)*Inner (fun d => V d k) (fun d => V d j) :=
+      fun k => twoSpecies_kernel_dyad_trace D M (fun d => V d j) (fun d => V d k) _ _ z
+    rw [Finset.sum_eq_single j]
+    · rw [htr j, unitaryColumn_inner D V hV]
+      simp
+    · intro k _ hk
+      rw [htr k, unitaryColumn_inner D V hV]
+      simp [hk]
+    · simp
+  unfold copyQPELabelMass
+  rw [he,Complex.re_sum]
+  apply Finset.sum_congr rfl
+  intro j _
+  have hkernel : qpeKernel M (-x j/2) z*star (qpeKernel M (-x j/2) z)=
+      (‖qpeKernel M (-x j/2) z‖^2 : ℝ) := by
+    rw [RCLike.star_def,mul_comm,← Complex.normSq_eq_conj_mul_self,Complex.normSq_eq_norm_sq]
+  rw [hkernel]
+  simp only [Complex.mul_re,Complex.ofReal_re,Complex.ofReal_im,mul_zero,sub_zero]
+
+theorem two_species_qpe_actual_spectral_label_event_refined
+    (D M n : ℕ) (hM : 2 ≤ M) (hn : 0 < n) (ρ σ V : Operator D) (x : Fin D → ℝ)
+    (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ)
+    (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
+    (hs : ρ-σ=V*Matrix.diagonal (fun j => (x j : ℂ))*Vᴴ)
+    (χ : Operator D) (hχ : IsDensityOperator χ) (E : Finset (Fin M)) :
+    |(∑ z ∈ E, copyQPELabelMass D M (twoSpeciesQPEOutput D M n ρ σ χ) z)-
+      (∑ j, ((Vᴴ*χ*V) j j).re*(∑ z ∈ E, ‖qpeKernel M (-x j/2) z‖^2))|
+        ≤ 16*(M-1 : ℕ)*Real.pi^2/(n : ℝ) ∧
+      twoSpeciesQPEResources M n=(2*(M-1)*n,2*(M-1)*n,2*(M-1)*n,0) := by
+  refine ⟨?_,rfl⟩
+  have hstate := two_species_qpe_actual_program_state_error D M n hM hn ρ σ χ hρ hσ hχ
+  have hM0 : 0 < M := by omega
+  have hC := (counted_offgrid_qpe_clean_flag M hM0
+    (1 : Operator D) (0 : QState (Fin D))).2.2.2
+  have hideal : Matrix.trace (twoSpeciesQPEIdealOutput D M ρ σ χ) = 1 := by
+    exact (twoSpeciesQPEIdealProgram_trace D M ρ σ
+      (hρ.1.isHermitian.sub hσ.1.isHermitian) (countedPhaseCircuit M) hC
+      (twoSpeciesQPEInput D M χ)).trans
+        (twoSpeciesQPEInput_density D M hM0 χ hχ).2
+  have h := copyQPELabelMass_event_error_of_trace_eq D M E
+    (twoSpeciesQPEOutput D M n ρ σ χ) (twoSpeciesQPEIdealOutput D M ρ σ χ)
+    (hstate.2.1.trans hideal.symm)
+  have he : (∑ z ∈ E, copyQPELabelMass D M (twoSpeciesQPEIdealOutput D M ρ σ χ) z)=
+      ∑ j, ((Vᴴ*χ*V) j j).re*(∑ z ∈ E, ‖qpeKernel M (-x j/2) z‖^2) := by
+    simp only [twoSpeciesQPEIdealOutput_spectral_label D M (by omega) ρ σ V x hV hs χ hχ]
+    rw [Finset.sum_comm]
+    exact Finset.sum_congr rfl fun j _ => (Finset.mul_sum _ _ _).symm
+  rw [he] at h
+  exact (h.trans (div_le_div_of_nonneg_right hstate.2.2
+    (by norm_num : (0 : ℝ) ≤ 2))).trans_eq (by ring)
+
+theorem two_species_qpe_actual_spectral_label_event
+    (D M n : ℕ) (hM : 2 ≤ M) (hn : 0 < n) (ρ σ V : Operator D) (x : Fin D → ℝ)
+    (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ)
+    (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
+    (hs : ρ-σ=V*Matrix.diagonal (fun j => (x j : ℂ))*Vᴴ)
+    (χ : Operator D) (hχ : IsDensityOperator χ) (E : Finset (Fin M)) :
+    |(∑ z ∈ E, copyQPELabelMass D M (twoSpeciesQPEOutput D M n ρ σ χ) z)-
+      (∑ j, ((Vᴴ*χ*V) j j).re*(∑ z ∈ E, ‖qpeKernel M (-x j/2) z‖^2))|
+        ≤ 32*(M-1 : ℕ)*Real.pi^2/(n : ℝ) ∧
+      twoSpeciesQPEResources M n=(2*(M-1)*n,2*(M-1)*n,2*(M-1)*n,0) := by
+  have h := two_species_qpe_actual_spectral_label_event_refined
+    D M n hM hn ρ σ V x hρ hσ hV hs χ hχ E
+  refine ⟨h.1.trans ?_, h.2⟩
+  have hnonneg : 0 ≤ (M - 1 : ℕ) * Real.pi ^ 2 / (n : ℝ) := by positivity
+  calc
+    16 * (M - 1 : ℕ) * Real.pi ^ 2 / (n : ℝ) =
+        16 * ((M - 1 : ℕ) * Real.pi ^ 2 / (n : ℝ)) := by ring
+    _ ≤ 32 * ((M - 1 : ℕ) * Real.pi ^ 2 / (n : ℝ)) :=
+      mul_le_mul_of_nonneg_right (by norm_num) hnonneg
+    _ = _ := by ring
+
+end Qatlib.Concepts.FreshCopyExec.QpeConsumers

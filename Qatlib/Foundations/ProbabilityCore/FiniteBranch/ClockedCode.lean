@@ -1,0 +1,116 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Foundations.ProbabilityCore.FiniteBranch.Composition
+set_option warningAsError false
+
+set_option autoImplicit false
+noncomputable section
+namespace Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedCode
+open scoped Classical
+
+inductive Code (I α : Type) where
+  | ret : α → Code I α
+  | pay : ℕ → Code I α → Code I α
+  | draw (m : ℕ) (p : PMF (Fin m)) : (Fin m → Code I α) → Code I α
+  | save : I → (I → Code I α) → Code I α
+
+inductive Event (I α : Type) where
+  | pay : ℕ → Event I α
+  | save : I → Event I α
+  | ret : α → Event I α
+
+structure Result (I α : Type) where
+  value : Option α
+  paid : ℕ
+  best : I
+
+def selectLower {I : Type} (cost : I → ℝ) (old candidate : I) : I :=
+  if cost candidate<cost old then candidate else old
+
+def charge {I α : Type} (n : ℕ) (r : Result I α) : Result I α :=
+  {r with paid:=n+r.paid}
+
+def complete {I α : Type} (cost : I → ℝ) (current : I) : Code I α → Tree (List (Event I α))
+  | .ret a => .pure [.ret a]
+  | .pay n c => (complete cost current c).map (List.cons (.pay n))
+  | .draw m p c => .sample m p (fun i => complete cost current (c i))
+  | .save i c => (complete cost (selectLower cost current i) (c (selectLower cost current i))).map
+      (List.cons (.save i))
+
+def run {I α : Type} (cost : I → ℝ) (current : I) (B : ℕ) : Code I α → Tree (Result I α)
+  | .ret a => .pure ⟨some a,0,current⟩
+  | .pay n c => if n≤B then (run cost current (B-n) c).map (charge n)
+      else .pure ⟨none,B,current⟩
+  | .draw m p c => .sample m p (fun i => run cost current B (c i))
+  | .save i c => run cost (selectLower cost current i) B (c (selectLower cost current i))
+
+def replay {I α : Type} (cost : I → ℝ) (current : I) (B : ℕ) : List (Event I α) → Result I α
+  | [] => ⟨none,0,current⟩
+  | .ret a::_ => ⟨some a,0,current⟩
+  | .pay n::es => if n≤B then charge n (replay cost current (B-n) es) else ⟨none,B,current⟩
+  | .save i::es => replay cost (selectLower cost current i) B es
+
+theorem interrupted_pay_independent {I α : Type} (cost : I → ℝ) (current : I)
+    (B n : ℕ) (hn : B<n) (c d : Code I α) :
+    (run cost current B (.pay n c)).law=(run cost current B (.pay n d)).law := by
+  simp [run,show ¬n≤B by omega]
+
+theorem run_paid_le {I α : Type} (cost : I → ℝ) (c : Code I α) (current : I) (B : ℕ) :
+    (run cost current B c).All (fun r => r.paid≤B) := by
+  induction c generalizing current B with
+  | ret a => simp [run,Tree.All]
+  | pay n c ih =>
+    rw [run]
+    split_ifs with hn
+    · rw [Tree.all_map]
+      apply Tree.all_mono _ (ih current (B-n))
+      intro r hr
+      change n+r.paid≤B
+      omega
+    · simp [Tree.All]
+  | draw m p c ih => exact fun i => ih i current B
+  | save i c ih => exact ih (selectLower cost current i) (selectLower cost current i) B
+
+theorem online_prefix_law {I α : Type} (cost : I → ℝ) (c : Code I α) (current : I) (B : ℕ) :
+    (complete cost current c).law.map (replay cost current B)=(run cost current B c).law := by
+  induction c generalizing current B with
+  | ret a => simp [complete,run,Tree.law,PMF.pure_map,replay]
+  | pay n c ih =>
+    by_cases hn : n≤B
+    · simpa only [complete,run,hn,if_true,Tree.law_map,PMF.map_comp,Function.comp_def,replay] using
+        congrArg (fun p => p.map (charge n)) (ih current (B-n))
+    · simp only [complete,run,hn,if_false,Tree.law_map,PMF.map_comp,Function.comp_def,replay,Tree.law]
+      exact PMF.map_const _ _
+  | draw m p c ih =>
+    simp only [complete,run,Tree.law,PMF.map_bind]
+    congr 1
+    funext i
+    exact ih i current B
+  | save i c ih =>
+    simpa only [complete,run,Tree.law_map,PMF.map_comp,Function.comp_def,replay] using
+      ih (selectLower cost current i) (selectLower cost current i) B
+
+theorem selectLower_preserves_minimum {I : Type} (cost : I → ℝ) (current candidate : I)
+    (hmin : ∀ i,cost current≤cost i) : selectLower cost current candidate=current := by
+  exact if_neg (not_lt_of_ge (hmin candidate))
+
+theorem run_preserves_minimum {I α : Type} (cost : I → ℝ) (c : Code I α) (current : I)
+    (hmin : ∀ i,cost current≤cost i) (B : ℕ) :
+    (run cost current B c).All (fun r => r.best=current) := by
+  induction c generalizing current B with
+  | ret a => simp [run,Tree.All]
+  | pay n c ih =>
+    rw [run]
+    split_ifs with hn
+    · rw [Tree.all_map]
+      exact ih current hmin (B-n)
+    · simp [Tree.All]
+  | draw m p c ih => exact fun i => ih i current hmin B
+  | save i c ih =>
+    rw [run,selectLower_preserves_minimum cost current i hmin]
+    exact ih current current hmin B
+end Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedCode

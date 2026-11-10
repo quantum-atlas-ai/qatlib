@@ -1,0 +1,421 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
+import Qatlib.Concepts.BitWordCompiler.WordComposition.NativeModels
+import Mathlib.Data.List.FinRange
+set_option backward.isDefEq.respectTransparency false
+set_option warningAsError false
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Cleanup
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Counter
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.EmitterCore
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.GuardedCounter
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.PairZip
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StateEcho
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.ValidatorSemantics
+open Qatlib.Concepts.QspSimulation.Achievability
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Scheduler
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Increment
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatTag
+open Qatlib.Concepts.ClassicalTape.TapeCompilation
+
+set_option autoImplicit false
+namespace Qatlib.Concepts.BitWordCompiler.WordComposition
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+open Qatlib.Concepts.BitWordCompiler.WordComposition
+open Qatlib
+open Qatlib
+open Qatlib.Concepts.BitWordCompiler.WordComposition
+open Qatlib.Concepts.QlsReadoutSpec.Amplification
+open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
+def loopInput (n : ℕ) (x : Bits) : Bits :=
+    Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n ++ framed x
+def iterCost (f : Bits → Bits) (cost : Bits → ℕ) (n : ℕ) (x : Bits) : ℕ :=
+  ((List.range n).map (fun j => cost ((f^[j]) x))).sum
+
+def scEcho (d : SourceRationalProblem) (k : ℕ) : SourceNativeProgram :=
+  { width := sourceAddressBits d + sourceValueBits d + 1
+    steps := (List.replicate (k+1)
+      [SourceNativeStep.local (.h ⟨0,by omega⟩),
+       SourceNativeStep.query (List.ofFn (fun i : Fin (sourceAddressBits d+sourceValueBits d) =>
+         ⟨i.val, by omega⟩)) false]).flatten }
+def lsEcho (d : NativeLinearInput) (_simple : Bool) (k : ℕ) : NativeProgram d.h :=
+  { ancilla := 1
+    steps := (List.replicate (k+1)
+      [NativeStep.local (.h ⟨d.h,by omega⟩),NativeStep.call 0 none false false]).flatten
+    success := [fun _ => false] }
+
+private theorem length_flat_fields {α : Type} (f : α → List ℕ)
+    (hf : ∀ a, 0 < (f a).length) (xs : List α) : xs.length ≤ (xs.flatMap f).length := by
+  induction xs with
+  | nil => rfl
+  | cons a xs ih =>
+    simp only [List.length_cons, List.flatMap_cons, List.length_append]
+    have h := hf a
+    omega
+
+theorem sc_code_length_ge_steps (p : SourceNativeProgram) :
+    p.steps.length ≤ (sourceNativeProgramBits p).length := by
+  have hf (s : SourceNativeStep p.width) : 0 < (sourceNativeStepFields s).length := by
+    cases s with
+    | «local» g => cases g <;> simp [sourceNativeStepFields]
+    | query ws adj => simp [sourceNativeStepFields]
+  have hsteps := length_flat_fields sourceNativeStepFields hf p.steps
+  have hn :=
+      flatNatBits_length_ge ([p.width,p.steps.length] ++ p.steps.flatMap sourceNativeStepFields)
+  have he : sourceNatBits = Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits := rfl
+  unfold sourceNativeProgramBits
+  rw [he]
+  simp only [List.length_append, List.length_cons, List.length_nil] at hn
+  omega
+
+theorem ls_code_length_ge_steps {h : ℕ} (p : NativeProgram h) :
+    p.steps.length ≤ (nativeProgramBits p).length := by
+  have hf (s : NativeStep h p.ancilla) : 0 < (nativeStepFields s).length := by
+    cases s with
+    | «local» g => cases g <;> simp [nativeStepFields]
+    | call slot control value adj => simp [nativeStepFields]
+  have hsteps := length_flat_fields nativeStepFields hf p.steps
+  have hn :=
+      flatNatBits_length_ge ([h,p.ancilla,p.steps.length] ++ p.steps.flatMap nativeStepFields)
+  have he :
+      Qatlib.Concepts.BitWordCompiler.WordComposition.natBits = Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits := rfl
+  unfold nativeProgramBits
+  rw [he]
+  simp only [List.length_append]
+  simp only [List.length_append, List.length_cons, List.length_nil] at hn
+  omega
+
+theorem scEcho_resources (d : SourceRationalProblem) (k : ℕ) :
+    sourceNativeLegal d (scEcho d k) ∧ sourceNativeCalls (scEcho d k) = k+1 ∧
+    sourceNativeGates (scEcho d k) = k+1 ∧
+    k+1 ≤ (sourceNativeProgramBits (scEcho d k)).length := by
+  have hlegal : sourceNativeLegal d (scEcho d k) := by
+    intro s hs
+    obtain ⟨block,hblock,hs⟩ := List.mem_flatten.mp hs
+    have he := List.eq_of_mem_replicate hblock
+    subst block
+    rcases List.mem_cons.mp hs with rfl|hs
+    · trivial
+    have he := List.mem_singleton.mp hs
+    subst s
+    let ws : List (Fin (sourceAddressBits d+sourceValueBits d+1)) :=
+      List.ofFn (fun i : Fin (sourceAddressBits d+sourceValueBits d) => ⟨i.val,by omega⟩)
+    have hn : ws.Nodup := by
+      apply List.nodup_ofFn_ofInjective
+      intro i j hij
+      apply Fin.ext
+      exact congrArg (fun z : Fin (sourceAddressBits d+sourceValueBits d+1) => z.val) hij
+    have hl : ws.length=sourceAddressBits d+sourceValueBits d := List.length_ofFn
+    exact ⟨hn,hl⟩
+  refine ⟨hlegal, ?_, ?_, ?_⟩
+  · simp [scEcho, sourceNativeCalls]
+  · simp [scEcho, sourceNativeGates]
+  · have hsteps : (scEcho d k).steps.length = 2*(k+1) := by
+      simp [scEcho, List.length_flatten, List.sum_replicate, Nat.mul_comm]
+    apply le_trans (b := (scEcho d k).steps.length)
+    · rw [hsteps]
+      omega
+    · exact sc_code_length_ge_steps _
+
+theorem lsEcho_resources (d : NativeLinearInput) (simple : Bool) (k : ℕ) :
+    nativeLegal (lsEcho d simple k) ∧ nativeCalls (lsEcho d simple k) 0 = k+1 ∧
+    nativeCalls (lsEcho d simple k) 1 = 0 ∧ nativeGates (lsEcho d simple k) = k+1 ∧
+    k+1 ≤ (nativeProgramBits (lsEcho d simple k)).length := by
+  have hlegal : nativeLegal (lsEcho d simple k) := by
+    intro s hs
+    obtain ⟨block,hblock,hs⟩ := List.mem_flatten.mp hs
+    have he := List.eq_of_mem_replicate hblock
+    subst block
+    rcases List.mem_cons.mp hs with rfl|hs
+    · trivial
+    have he := List.mem_singleton.mp hs
+    subst s
+    trivial
+  refine ⟨hlegal, ?_, ?_, ?_, ?_⟩
+  · simp [lsEcho, nativeCalls]
+  · simp [lsEcho, nativeCalls]
+  · simp [lsEcho, nativeGates]
+  · have hsteps : (lsEcho d simple k).steps.length = 2*(k+1) := by
+      simp [lsEcho, List.length_flatten, List.sum_replicate, Nat.mul_comm]
+    apply le_trans (b := (lsEcho d simple k).steps.length)
+    · rw [hsteps]
+      omega
+    · exact ls_code_length_ge_steps _
+
+def blockPlan (header block suffix : Bits) (count : ℕ) : Plan :=
+  .append (.literal header) (.append (.repeat (.literal count) (.literal block)) (.literal suffix))
+
+theorem emit_blockPlan (header block suffix : Bits) (count : ℕ) (params : List Bits) (k : ℕ) :
+    emit params k [] (blockPlan header block suffix count) =
+      header ++ (List.replicate count block).flatten ++ suffix := by
+  simp [blockPlan,emit,value,List.flatMap_def,List.append_assoc]
+
+theorem work_blockPlan (header block suffix : Bits) (count : ℕ) (params : List Bits) (k : ℕ) :
+    Qatlib.Concepts.BitWordCompiler.CanonicalCodec.work params k [] (blockPlan header block suffix count) =
+      (emit params k [] (blockPlan header block suffix count)).length+count+5 := by
+  rw [emit_blockPlan]
+  simp only [blockPlan,Qatlib.Concepts.BitWordCompiler.CanonicalCodec.work,value,Scheduler.fold_add_sum,List.map_const',List.length_range,
+    List.sum_replicate,List.length_append,List.length_flatten,List.map_replicate,
+    Nat.zero_add,nsmul_eq_mul,Nat.cast_id,Nat.mul_add,Nat.mul_one]
+  omega
+
+def scEchoPlan (d : SourceRationalProblem) (k : ℕ) : Plan :=
+  blockPlan ([sourceAddressBits d+sourceValueBits d+1,2*(k+1)].flatMap sourceNatBits)
+    (([0,0,3,0,sourceAddressBits d+sourceValueBits d] ++
+      List.range (sourceAddressBits d+sourceValueBits d)).flatMap sourceNatBits) [] (k+1)
+
+def lsEchoPlan (d : NativeLinearInput) (k : ℕ) : Plan :=
+  blockPlan ([d.h,1,2*(k+1)].flatMap Qatlib.Concepts.BitWordCompiler.WordComposition.natBits)
+    ([0,d.h,3,0,0,0,0].flatMap Qatlib.Concepts.BitWordCompiler.WordComposition.natBits)
+    (Qatlib.Concepts.BitWordCompiler.WordComposition.natBits 1 ++ [false]) (k+1)
+
+private theorem map_val_ofFn (n : ℕ) (extra : ℕ) :
+    (List.ofFn (fun i : Fin n => (⟨i.val,by omega⟩ : Fin (n+extra+1)))).map Fin.val = List.range n := by
+  rw [List.map_ofFn]
+  apply List.ext_getElem
+  · simp
+  · intro i hi hi'
+    simp
+
+private theorem repeat_flatMap {α β : Type} (f : α → List β) (block : List α) (count : ℕ) :
+    (List.replicate count block).flatten.flatMap f = (List.replicate count (block.flatMap f)).flatten := by
+  induction count with
+  | zero => rfl
+  | succ count ih => simp only [List.replicate_succ,List.flatten_cons,List.flatMap_append,ih]
+
+theorem scEchoPlan_output (d : SourceRationalProblem) (k : ℕ) :
+    emit [] k [] (scEchoPlan d k) = sourceNativeProgramBits (scEcho d k) := by
+  have hlen : (scEcho d k).steps.length=2*(k+1) := by
+    simp [scEcho,List.length_flatten,List.sum_replicate,Nat.mul_comm]
+  have hblock :
+      ([SourceNativeStep.local (.h (⟨0,by omega⟩ : Fin (sourceAddressBits d+sourceValueBits d+1))),
+        SourceNativeStep.query (List.ofFn (fun i : Fin (sourceAddressBits d+sourceValueBits d) =>
+          (⟨i.val,by omega⟩ : Fin (sourceAddressBits d+sourceValueBits d+1)))) false].flatMap
+        sourceNativeStepFields).flatMap sourceNatBits =
+      ([0,0,3,0,sourceAddressBits d+sourceValueBits d] ++
+        List.range (sourceAddressBits d+sourceValueBits d)).flatMap sourceNatBits := by
+    simp only [List.flatMap_cons,List.flatMap_nil,sourceNativeStepFields,List.append_nil,
+      List.length_ofFn]
+    rw [map_val_ofFn (sourceAddressBits d+sourceValueBits d) 0]
+    rfl
+  rw [scEchoPlan,emit_blockPlan,sourceNativeProgramBits,hlen]
+  simp only [List.flatMap_append,List.append_nil] at hblock ⊢
+  apply congrArg₂ List.append
+  · rfl
+  · change _ = ((List.replicate (k+1) _).flatten.flatMap sourceNativeStepFields).flatMap sourceNatBits
+    rw [repeat_flatMap,repeat_flatMap]
+    exact congrArg (fun bits : Bits => (List.replicate (k+1) bits).flatten) hblock.symm
+
+theorem lsEchoPlan_output (d : NativeLinearInput) (simple : Bool) (k : ℕ) :
+    emit [] k [] (lsEchoPlan d k) = nativeProgramBits (lsEcho d simple k) := by
+  have hlen : (lsEcho d simple k).steps.length=2*(k+1) := by
+    simp [lsEcho,List.length_flatten,List.sum_replicate,Nat.mul_comm]
+  rw [lsEchoPlan,emit_blockPlan,nativeProgramBits,hlen]
+  simp only [List.flatMap_append,List.append_assoc]
+  apply congrArg₂ List.append
+  · rfl
+  · apply congrArg₂ List.append
+    · change _ = ((List.replicate (k+1) _).flatten.flatMap nativeStepFields).flatMap
+        Qatlib.Concepts.BitWordCompiler.WordComposition.natBits
+      rw [repeat_flatMap,repeat_flatMap]
+      rfl
+    · rfl
+
+end Qatlib.Concepts.BitWordCompiler.WordComposition
+
+namespace Qatlib.Concepts.BitWordCompiler.WordComposition.BitWordCompiler
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+open Qatlib.Concepts.BitWordCompiler.WordComposition
+open Qatlib.Concepts.QlsReadoutSpec.Amplification
+open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
+
+theorem lsEcho_native_output (d : NativeLinearInput) (simple : Bool) (k : ℕ) :
+    TM.NativeEcho.output d.h k=nativeProgramBits (lsEcho d simple k) := by
+  have h := lsEchoPlan_output d simple k
+  rw [lsEchoPlan,emit_blockPlan] at h
+  simpa only [TM.NativeEcho.output,TM.NativeEcho.block,List.append_assoc] using! h
+
+theorem lsEcho_input_tail (d : NativeLinearInput) :
+    ∃ tail : Bits,nativeInputBits d=Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits d.h++tail := by
+  simp only [nativeInputBits,List.flatMap_cons,List.flatMap_nil,List.append_nil,List.append_assoc]
+  exact ⟨_,rfl⟩
+
+theorem lsEcho_compiler_time : ∃ C D : ℕ,0<C ∧ nativeCompilerTime lsEcho C D := by
+  obtain ⟨q,M,C,hC,hM⟩ := TM.NativeEcho.raw_machine
+  refine ⟨C,5,hC,q,M,?_⟩
+  intro d simple k
+  obtain ⟨tail,htail⟩ := lsEcho_input_tail d
+  let raw := (if simple then [true] else [false])++
+    Qatlib.Concepts.BitWordCompiler.WordComposition.natBits k++nativeInputBits d
+  have hinput : raw=TM.NativeEcho.input simple k d.h tail := by
+    dsimp only [raw]
+    have he :
+        Qatlib.Concepts.BitWordCompiler.WordComposition.natBits=Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits := rfl
+    rw [htail,he]
+    cases simple <;> simp only
+        [Bool.false_eq_true,if_false,if_true,List.cons_append,List.nil_append,TM.NativeEcho.input]
+  have hRuns := hM simple k d.h tail
+  rcases hRuns with ⟨_,ticks,last,ht,hr,hh,_,ho,_,_⟩
+  refine ⟨ticks,last,?_,?_,hh,?_⟩
+  · have hbase : TM.NativeEcho.size simple k d.h tail≤
+        1+raw.length+k+nativeCalls (lsEcho d simple k) 0+nativeCalls (lsEcho d simple k) 1 := by
+      dsimp only [TM.NativeEcho.size]
+      rw [← hinput]
+      omega
+    exact ht.trans (Nat.mul_le_mul_left C (Nat.pow_le_pow_left hbase 5))
+  · change BitMachineAfter M (raw.map some) ticks=some last
+    rw [hinput]
+    exact hr
+  · intro i
+    simpa only [lsEcho_native_output d simple k] using! ho i
+end Qatlib.Concepts.BitWordCompiler.WordComposition.BitWordCompiler
+
+namespace Qatlib.Concepts.BitWordCompiler.WordComposition.BitWordCompiler
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+open Qatlib.Concepts.BitWordCompiler.WordComposition
+open Qatlib
+open Qatlib
+
+theorem scEcho_native_width (d : SourceRationalProblem) :
+    TM.StateEcho.width d.addresses d.alphabet=sourceAddressBits d+sourceValueBits d := by
+  simp only [TM.StateEcho.width,sourceAddressBits,sourceValueBits,TM.Increment.clog_two_succ]
+
+theorem scEcho_native_output (d : SourceRationalProblem) (k : ℕ) :
+    TM.StateEcho.output (TM.StateEcho.width d.addresses d.alphabet) k=sourceNativeProgramBits (scEcho d k) := by
+  have h := scEchoPlan_output d k
+  rw [scEchoPlan,emit_blockPlan] at h
+  simpa only [TM.StateEcho.output,TM.StateEcho.header,TM.StateEcho.block,scEcho_native_width,List.append_nil] using! h
+
+theorem scEcho_input_tail (d : SourceRationalProblem) :
+    ∃ tail : Bits,sourceProblemBits d=Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits d.count++(Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits d.dimension++
+      (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits d.addresses++(Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits d.alphabet++tail))) := by
+  simp only [sourceProblemBits,List.flatMap_cons,List.flatMap_nil,List.append_nil,List.append_assoc]
+  exact ⟨_,rfl⟩
+
+theorem scEcho_compiler_time : ∃ C D : ℕ,0<C ∧ sourceNativeCompilerTime scEcho C D := by
+  obtain ⟨q,M,C,hC,hM⟩ := TM.StateEcho.raw_machine
+  refine ⟨128*C,7,Nat.mul_pos (by decide) hC,q,M,?_⟩
+  intro d k
+  obtain ⟨tail,htail⟩ := scEcho_input_tail d
+  let raw := sourceNatBits k++sourceProblemBits d
+  have hinput : raw=TM.StateEcho.input k d.count d.dimension d.addresses d.alphabet tail := by
+    dsimp only [raw]
+    have he : sourceNatBits=Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits := rfl
+    rw [htail,he]
+    rfl
+  have hRuns := hM k d.count d.dimension d.addresses d.alphabet tail
+  rcases hRuns with ⟨_,ticks,last,ht,hr,hh,_,ho,_,_⟩
+  refine ⟨ticks,last,?_,?_,hh,?_⟩
+  · let S := 1+(sourceProblemBits d).length+k+sourceNativeCalls (scEcho d k)
+    have hbase : TM.StateEcho.size k d.count d.dimension d.addresses d.alphabet tail≤2*S := by
+      dsimp only [TM.StateEcho.size]
+      rw [← hinput]
+      have hk := TM.Counter.bits_length_le k
+      have hcalls := (scEcho_resources d k).2.1
+      have he : sourceNatBits=Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits := rfl
+      simp only [raw,List.length_append,he,natBits_length]
+      dsimp only [S]
+      rw [hcalls]
+      omega
+    calc
+      ticks ≤ C*(TM.StateEcho.size k d.count d.dimension d.addresses d.alphabet tail)^7 := ht
+      _ ≤ C*(2*S)^7 := Nat.mul_le_mul_left C (Nat.pow_le_pow_left hbase 7)
+      _ = (128*C)*S^7 := by ring
+  · change BitMachineAfter M (raw.map some) ticks=some last
+    rw [hinput]
+    exact hr
+  · intro i
+    simpa only [scEcho_native_output d k] using! ho i
+end Qatlib.Concepts.BitWordCompiler.WordComposition.BitWordCompiler
+
+namespace Qatlib.Concepts.BitWordCompiler.WordComposition.BitWordCompiler
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+open Qatlib.Concepts.BitWordCompiler.WordComposition
+open Qatlib
+open Qatlib
+open Qatlib.Concepts.BitWordCompiler.WordComposition
+open Qatlib.Concepts.QlsReadoutSpec.Amplification
+open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
+
+theorem composition_and_native_adapters :
+  (∀ (f g : Bits → Bits) (tf sf tg sg : Bits → ℕ),
+    ComputesAt f tf sf → ComputesAt g tg sg →
+    ∃ C : ℕ, 0<C ∧ ComputesAt (fun x => g (f x))
+      (fun x => C*(1+x.length+(f x).length+(g (f x)).length+tf x+tg (f x))^2)
+      (fun x => C*(1+x.length+(f x).length+(g (f x)).length+sf x+sg (f x))^2)) ∧
+  (∀ word : Bits, ∃ C : ℕ, 0<C ∧ ComputesAt (fun _ => word)
+    (fun x => C*(1+x.length+word.length)^2) (fun x => C*(1+x.length+word.length)^2)) ∧
+  (∀ (f : Bits → Bits) (tf sf : Bits → ℕ), ComputesAt f tf sf →
+    ∃ (q : ℕ) (M : Turing.TM0.Machine (Option Bool) (Fin (q+1))) (C : ℕ), 0<C ∧
+      ∀ n x, Runs M ((Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n ++ framed x)) ((f^[n]) x)
+        (C*(1+((Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n ++ framed x)).length+n+((f^[n]) x).length+
+          TM.iterSum f tf n x+TM.iterSum f List.length n x)^2)
+        (C*(1+((Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n ++ framed x)).length+n+((f^[n]) x).length+
+          TM.iterSum f sf n x+TM.iterSum f List.length n x)^2)) ∧
+  (∃ C D : ℕ, 0<C ∧ sourceNativeCompilerTime scEcho C D) ∧
+  (∀ d k, sourceNativeLegal d (scEcho d k) ∧
+    sourceNativeCalls (scEcho d k)=k+1 ∧ sourceNativeGates (scEcho d k)=k+1 ∧
+    k+1 ≤ (sourceNativeProgramBits (scEcho d k)).length) ∧
+  (∃ C D : ℕ, 0<C ∧ nativeCompilerTime lsEcho C D) ∧
+  (∀ d simple k, nativeLegal (lsEcho d simple k) ∧
+    nativeCalls (lsEcho d simple k) 0=k+1 ∧ nativeCalls (lsEcho d simple k) 1=0 ∧
+    nativeGates (lsEcho d simple k)=k+1 ∧ k+1≤(nativeProgramBits (lsEcho d simple k)).length) := by
+  exact ⟨TM.computesAt_comp,TM.constant_loader,TM.uniform_iterates,
+    scEcho_compiler_time,scEcho_resources,lsEcho_compiler_time,lsEcho_resources⟩
+end Qatlib.Concepts.BitWordCompiler.WordComposition.BitWordCompiler
+
+namespace Qatlib.Concepts.BitWordCompiler.WordComposition.BitWordCompiler
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+
+theorem canonical_word_validator_machine :
+    ∃ (q : ℕ) (M : Turing.TM0.Machine (Option Bool) (Fin (q+1))) (C : ℕ),0<C ∧
+      (∀ w,Legal w → Runs M (wordBits w) (true::wordBits w)
+        (C*(1+(wordBits w).length)^8) (C*(1+(wordBits w).length)^8)) ∧
+      (∀ input,decodeWord input=none → Runs M input [false]
+        (C*(1+input.length)^8) (C*(1+input.length)^8)) := by
+  obtain ⟨q,M,C,hC,hM⟩ := TM.WordValidator.raw_machine
+  refine ⟨q,M,C,hC,?_,?_⟩
+  · intro w hw
+    have hd := (decodeWord_eq_some_iff (wordBits w) w).mpr ⟨hw,rfl⟩
+    simpa only [TM.WordValidator.output,hd] using! hM (wordBits w)
+  · intro input hd
+    simpa only [TM.WordValidator.output,hd] using! hM input
+end Qatlib.Concepts.BitWordCompiler.WordComposition.BitWordCompiler
+
+namespace Qatlib.Concepts.BitWordCompiler.WordComposition.BitWordCompiler
+open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+open Qatlib.Concepts.BitWordCompiler.WordComposition
+open Qatlib
+open Qatlib
+open Qatlib.Concepts.BitWordCompiler.WordComposition
+open Qatlib.Concepts.QlsReadoutSpec.Amplification
+open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
+
+theorem uniform_native_echo_plan_machine :
+    ∃ (q : ℕ) (M : Turing.TM0.Machine (Option Bool) (Fin (q+1))) (C : ℕ),0<C ∧
+      (∀ (d : SourceRationalProblem) (k : ℕ),
+        let input := emitterInput (scEchoPlan d k) [] k
+        let output := sourceNativeProgramBits (scEcho d k)
+        let budget :=
+            C*(1+input.length+output.length+Qatlib.Concepts.BitWordCompiler.CanonicalCodec.work [] k [] (scEchoPlan d k))^12
+        Runs M input output budget budget) ∧
+      (∀ (d : NativeLinearInput) (simple : Bool) (k : ℕ),
+        let input := emitterInput (lsEchoPlan d k) [] k
+        let output := nativeProgramBits (lsEcho d simple k)
+        let budget :=
+            C*(1+input.length+output.length+Qatlib.Concepts.BitWordCompiler.CanonicalCodec.work [] k [] (lsEchoPlan d k))^12
+        Runs M input output budget budget) := by
+  obtain ⟨q,M,C,hC,hM⟩ := uniform_emitter_machine
+  refine ⟨q,M,C,hC,?_,?_⟩
+  · intro d k
+    simpa only [scEchoPlan_output] using! (hM (scEchoPlan d k) [] k).1
+  · intro d simple k
+    simpa only [lsEchoPlan_output d simple k] using! (hM (lsEchoPlan d k) [] k).1
+end Qatlib.Concepts.BitWordCompiler.WordComposition.BitWordCompiler

@@ -1,0 +1,185 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Mathlib.GroupTheory.Solvable
+import Mathlib.GroupTheory.Index
+import Mathlib.Algebra.Group.Subgroup.Finite
+import Mathlib.Algebra.Group.Subgroup.Map
+import Mathlib.Algebra.Group.Subgroup.Lattice
+import Mathlib.Tactic
+import Qatlib.Foundations.PureStateMath.Qubit
+set_option backward.isDefEq.respectTransparency false
+set_option warningAsError false
+
+set_option autoImplicit false
+
+open scoped BigOperators
+
+namespace Qatlib.Papers.QSolvableGrp00.MainResults.Membership
+
+variable {G : Type*} [Group G] [Fintype G] [DecidableEq G]
+
+theorem mem_closure_iff_card_eq (s : Finset G) (h : G) :
+    h ∈ Subgroup.closure (s : Set G) ↔
+      Nat.card ↥(Subgroup.closure (s : Set G))
+        = Nat.card ↥(Subgroup.closure ((s ∪ {h} : Finset G) : Set G)) := by
+  classical
+  have hcoe : ((s ∪ {h} : Finset G) : Set G) = (s : Set G) ∪ {h} := by
+    simp
+  constructor
+  · intro hh
+    have hsub : Subgroup.closure ((s : Set G) ∪ {h}) ≤ Subgroup.closure (s : Set G) := by
+      apply (Subgroup.closure_le (k := (s : Set G) ∪ {h})
+        (K := Subgroup.closure (s : Set G))).mpr
+      intro x hx
+      rcases hx with hx | hx
+      · exact Subgroup.subset_closure hx
+      · rw [Set.mem_singleton_iff] at hx
+        subst hx
+        exact hh
+    have hsup : Subgroup.closure (s : Set G) ≤ Subgroup.closure ((s : Set G) ∪ {h}) :=
+      Subgroup.closure_mono (Set.subset_union_left)
+    have heq : Subgroup.closure ((s : Set G) ∪ {h}) = Subgroup.closure (s : Set G) :=
+      le_antisymm hsub hsup
+    rw [hcoe, heq]
+  · intro hcard
+    rw [hcoe] at hcard
+    have hle : Subgroup.closure (s : Set G) ≤ Subgroup.closure ((s : Set G) ∪ {h}) :=
+      Subgroup.closure_mono (Set.subset_union_left)
+    have heq : Subgroup.closure (s : Set G) = Subgroup.closure ((s : Set G) ∪ {h}) := by
+      apply Subgroup.eq_of_le_of_card_ge hle
+      rw [← hcard]
+    have hmem : h ∈ Subgroup.closure ((s : Set G) ∪ {h}) :=
+      Subgroup.subset_closure (Set.mem_union_right _ (Set.mem_singleton h))
+    rwa [← heq] at hmem
+
+structure OrderOracle (G : Type*) [Group G] where
+
+  order : Finset G → ℕ
+
+def OrderOracle.CorrectOn (Ω : OrderOracle G) : Prop :=
+  ∀ s : Finset G, Group.IsSolvable ↥(Subgroup.closure (s : Set G)) →
+    Ω.order s = Nat.card ↥(Subgroup.closure (s : Set G))
+
+def OrderOracle.testMembership (Ω : OrderOracle G) (s : Finset G) (h : G) : Bool :=
+  Ω.order s == Ω.order (s ∪ {h} : Finset G)
+
+theorem membership_reduces_to_order (Ω : OrderOracle G) (hΩ : Ω.CorrectOn)
+    (s : Finset G) (h : G)
+    (hsolv : Group.IsSolvable ↥(Subgroup.closure ((s ∪ {h} : Finset G) : Set G))) :
+    Ω.testMembership s h = true ↔ h ∈ Subgroup.closure (s : Set G) := by
+  classical
+  have hcoe : ((s ∪ {h} : Finset G) : Set G) = (s : Set G) ∪ {h} := by
+    simp
+  have hle : Subgroup.closure (s : Set G)
+      ≤ Subgroup.closure ((s ∪ {h} : Finset G) : Set G) := by
+    rw [hcoe]
+    exact Subgroup.closure_mono (Set.subset_union_left)
+  have hsolv' : Group.IsSolvable ↥(Subgroup.closure (s : Set G)) := by
+    haveI := hsolv
+    exact solvable_of_solvable_injective (f := Subgroup.inclusion hle)
+      (Subgroup.inclusion_injective hle)
+  unfold OrderOracle.testMembership
+  rw [beq_iff_eq, hΩ s hsolv', hΩ (s ∪ {h}) hsolv]
+  exact (mem_closure_iff_card_eq s h).symm
+
+theorem closure_le_iff_card_eq_union (s t : Finset G) :
+    Subgroup.closure (t : Set G) ≤ Subgroup.closure (s : Set G) ↔
+      Nat.card ↥(Subgroup.closure (s : Set G))
+        = Nat.card ↥(Subgroup.closure ((s ∪ t : Finset G) : Set G)) := by
+  classical
+  have hcoe : ((s ∪ t : Finset G) : Set G) = (s : Set G) ∪ (t : Set G) := by
+    simp
+  constructor
+  · intro hle
+    have hsub : Subgroup.closure ((s : Set G) ∪ (t : Set G))
+        ≤ Subgroup.closure (s : Set G) := by
+      apply (Subgroup.closure_le (k := (s : Set G) ∪ (t : Set G))
+        (K := Subgroup.closure (s : Set G))).mpr
+      intro x hx
+      rcases hx with hx | hx
+      · exact Subgroup.subset_closure hx
+      · exact hle (Subgroup.subset_closure hx)
+    have hsup : Subgroup.closure (s : Set G)
+        ≤ Subgroup.closure ((s : Set G) ∪ (t : Set G)) :=
+      Subgroup.closure_mono (Set.subset_union_left)
+    have heq : Subgroup.closure ((s : Set G) ∪ (t : Set G))
+        = Subgroup.closure (s : Set G) :=
+      le_antisymm hsub hsup
+    rw [hcoe, heq]
+  · intro hcard
+    rw [hcoe] at hcard
+    have hle : Subgroup.closure (s : Set G)
+        ≤ Subgroup.closure ((s : Set G) ∪ (t : Set G)) :=
+      Subgroup.closure_mono (Set.subset_union_left)
+    have heq : Subgroup.closure (s : Set G)
+        = Subgroup.closure ((s : Set G) ∪ (t : Set G)) := by
+      apply Subgroup.eq_of_le_of_card_ge hle
+      rw [← hcard]
+    intro x hx
+    have hxt : x ∈ Subgroup.closure ((s : Set G) ∪ (t : Set G)) :=
+      Subgroup.closure_mono (fun y hy => Set.mem_union_right (s : Set G) hy) hx
+    rwa [← heq] at hxt
+
+theorem closure_eq_iff_le_and_le (s t : Finset G) :
+    Subgroup.closure (s : Set G) = Subgroup.closure (t : Set G) ↔
+      Subgroup.closure (s : Set G) ≤ Subgroup.closure (t : Set G) ∧
+        Subgroup.closure (t : Set G) ≤ Subgroup.closure (s : Set G) :=
+  ⟨fun h => ⟨h.le, h.ge⟩, fun h => le_antisymm h.1 h.2⟩
+
+theorem normal_iff_generators (s t : Finset G) (H K : Subgroup G)
+    (hH : H = Subgroup.closure (t : Set G)) (hK : K = Subgroup.closure (s : Set G))
+    (hHK : H ≤ K) :
+    (H.subgroupOf K).Normal ↔ ∀ g ∈ s, ∀ h ∈ t, g * h * g⁻¹ ∈ H := by
+  classical
+  constructor
+  · intro hN g hg h ht
+    exact (Subgroup.normal_subgroupOf_iff hHK).mp hN h g
+      (by rw [hH]; exact Subgroup.subset_closure ht)
+      (by rw [hK]; exact Subgroup.subset_closure hg)
+  · intro hgen
+    rw [Subgroup.normal_subgroupOf_iff_le_normalizer hHK, hK]
+    refine (Subgroup.closure_le (k := (s : Set G))
+      (K := Subgroup.normalizer (↑H : Set G))).mpr fun g hg => ?_
+
+    have hgenH : ∀ h ∈ H, g * h * g⁻¹ ∈ H := by
+      intro h hh
+      have hc : Subgroup.closure (t : Set G)
+          ≤ Subgroup.comap (MulAut.conj g).toMonoidHom H := by
+        apply (Subgroup.closure_le (k := (t : Set G))
+          (K := Subgroup.comap (MulAut.conj g).toMonoidHom H)).mpr
+        intro x hx
+        change (MulAut.conj g).toMonoidHom x ∈ H
+        simpa [MulAut.conj_apply] using hgen g hg x hx
+      have hh' : h ∈ Subgroup.closure (t : Set G) := by rwa [hH] at hh
+      simpa [Subgroup.mem_comap, MulAut.conj_apply] using hc hh'
+
+    have hmap_le : H.map (MulAut.conj g).toMonoidHom ≤ H := by
+      intro y hy
+      rw [Subgroup.mem_map] at hy
+      rcases hy with ⟨x, hx, rfl⟩
+      simpa [MulAut.conj_apply] using hgenH x hx
+    have hcard : Nat.card ↥(H.map (MulAut.conj g).toMonoidHom) = Nat.card ↥H :=
+      Subgroup.card_map_of_injective (MulAut.conj g).injective
+    have hmap_eq : H.map (MulAut.conj g).toMonoidHom = H :=
+      Subgroup.eq_of_le_of_card_ge hmap_le (by rw [hcard])
+    change g ∈ Subgroup.normalizer (↑H : Set G)
+    rw [Subgroup.mem_normalizer_iff]
+    intro n
+    constructor
+    · intro hn
+      exact hgenH n hn
+    · intro hn
+      have h1 : (MulAut.conj g).symm (g * n * g⁻¹) ∈ H := by
+        have h2 : g * n * g⁻¹ ∈ H.map (MulAut.conj g).toMonoidHom := by
+          rw [hmap_eq]; exact hn
+        exact (Subgroup.mem_map_equiv (f := MulAut.conj g) (K := H)).mp h2
+      have hval : (MulAut.conj g).symm (g * n * g⁻¹) = n := by
+        rw [← MulAut.conj_apply]
+        exact (MulAut.conj g).symm_apply_apply n
+      rwa [hval] at h1
+
+end Qatlib.Papers.QSolvableGrp00.MainResults.Membership

@@ -1,0 +1,105 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.QLinearODE17.Structure.Theorem9Aux
+import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+set_option warningAsError false
+set_option backward.isDefEq.respectTransparency false
+
+
+open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution Qatlib.Papers.QLinearODE17.TaylorAnalysis
+
+open Qatlib.Foundations.PureStateMath.Reflection
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
+
+set_option autoImplicit false
+noncomputable section
+namespace Qatlib.Papers.QLinearODE17.StructureCore
+open Matrix
+open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
+
+def taylorStepMatrixCorrected {N : Type} [Fintype N] [DecidableEq N]
+    (m k p : ℕ) (M : Matrix N N ℂ) :
+    Matrix (Fin (m*(k+1)+p+1) × N) (Fin (m*(k+1)+p+1) × N) ℂ :=
+  fun r c => (if r = c then 1 else 0)
+    - (if r.1.val < m*(k+1) ∧ 1 ≤ r.1.val % (k+1) ∧ c.1.val+1 = r.1.val then
+        M r.2 c.2 / (r.1.val % (k+1) : ℕ) else 0)
+    - (if r.1.val ≤ m*(k+1) ∧ 0 < r.1.val ∧ (k+1) ∣ r.1.val ∧
+        r.1.val-(k+1) ≤ c.1.val ∧ c.1.val < r.1.val then
+        (if r.2 = c.2 then 1 else 0) else 0)
+    - (if m*(k+1) < r.1.val ∧ c.1.val+1 = r.1.val then
+        (if r.2 = c.2 then 1 else 0) else 0)
+
+def taylorMeasuredDensity {N : Type} [Fintype N] [DecidableEq N]
+    (m k p : ℕ) (φ : QState (Fin (m*(k+1)+p+1) × N)) : Matrix N N ℂ :=
+  ∑ l : Fin (m*(k+1)+p+1), if m*(k+1) ≤ l.val then outerProduct (taylorBlock φ l) else 0
+
+theorem taylorMeasuredDensity_trace {N : Type} [Fintype N] [DecidableEq N]
+    (m k p : ℕ) (φ : QState (Fin (m*(k+1)+p+1) × N)) :
+    Matrix.trace (taylorMeasuredDensity m k p φ) =
+      (MeasureProb φ (taylorSuccessSet m k p) : ℂ) := by
+  simp only [taylorMeasuredDensity, Matrix.trace_sum, apply_ite Matrix.trace,
+    trace_outerProduct, Matrix.trace_zero]
+  simp only [MeasureProb, BornProb, taylorSuccessSet, Finset.sum_filter,
+    Fintype.sum_prod_type, Complex.ofReal_sum, apply_ite, Complex.ofReal_zero,
+    taylorBlock]
+  apply Finset.sum_congr rfl
+  intro l _
+  split_ifs <;> simp
+
+theorem taylorMeasuredDensity_posSemidef {N : Type} [Fintype N] [DecidableEq N]
+    (m k p : ℕ) (φ : QState (Fin (m*(k+1)+p+1) × N)) :
+    (taylorMeasuredDensity m k p φ).PosSemidef := by
+  unfold taylorMeasuredDensity
+  apply Matrix.posSemidef_sum
+  intro l _
+  split_ifs
+  · exact outerProduct_posSemidef _
+  · exact Matrix.PosSemidef.zero
+
+def correctedZeroSolution : QState (Fin 8 × Unit) :=
+  fun r => if r.1.val = 0 ∨ 6 ≤ r.1.val then 1 else 0
+
+theorem correctedZeroSolution_solves :
+    taylorStepMatrixCorrected 1 5 1 (0 : Matrix Unit Unit ℂ) *ᵥ correctedZeroSolution =
+      taylorRHS 1 5 1 1 (fun _ : Unit => 1) 0 := by
+  ext ⟨r, n⟩
+  cases n
+  fin_cases r <;> simp only [Matrix.mulVec, dotProduct, Fintype.sum_prod_type,
+    Fin.sum_univ_succ, Fintype.sum_unique] <;>
+    norm_num [taylorStepMatrixCorrected, taylorRHS, correctedZeroSolution, Fin.ext_iff]
+
+theorem corrected_jump_entry :
+    taylorStepMatrixCorrected 1 5 1 (0 : Matrix Unit Unit ℂ) (6, ()) (0, ()) = -1 := by
+  norm_num [taylorStepMatrixCorrected, Fin.ext_iff]
+
+theorem opposite_sign_density_trace :
+    Matrix.trace (taylorMeasuredDensity 1 5 1 extractionOppositeSign) = 2 := by
+  rw [taylorMeasuredDensity_trace, extractionOppositeSign_mass]
+  norm_num
+
+def normalizedOpposite : QState (Fin 10 × Unit) :=
+  fun r => if r.1.val = 6 ∨ r.1.val = 8 then 1/2
+    else if r.1.val = 7 ∨ r.1.val = 9 then -1/2 else 0
+
+theorem normalizedOpposite_normalized : Normalized normalizedOpposite := by
+  norm_num [Normalized, normalizedOpposite, Fintype.sum_prod_type, Fin.sum_univ_succ]
+
+theorem normalizedOpposite_extract_zero : taylorExtract 1 5 3 normalizedOpposite = 0 := by
+  ext n
+  norm_num [taylorExtract, normalizedOpposite, Fin.sum_univ_succ]
+
+theorem normalizedOpposite_mass_one : MeasureProb normalizedOpposite (taylorSuccessSet 1 5 3) = 1 := by
+  norm_num [MeasureProb, BornProb, taylorSuccessSet, normalizedOpposite,
+    Finset.sum_filter, Fintype.sum_prod_type, Fin.sum_univ_succ]
+
+theorem normalizedOpposite_density_trace_one :
+    Matrix.trace (taylorMeasuredDensity 1 5 3 normalizedOpposite) = 1 := by
+  rw [taylorMeasuredDensity_trace, normalizedOpposite_mass_one]
+  norm_num
+
+end Qatlib.Papers.QLinearODE17.StructureCore

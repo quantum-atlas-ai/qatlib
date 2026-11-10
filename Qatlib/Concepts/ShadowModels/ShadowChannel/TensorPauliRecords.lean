@@ -1,0 +1,463 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.PauliClifford.ExactRank.PauliShadowStatistics
+import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+set_option warningAsError false
+set_option backward.isDefEq.respectTransparency false
+
+
+open Qatlib.Concepts.ChannelTheory.Stinespring
+
+open Qatlib.Concepts.AdaptiveCP.BranchTrace
+open Qatlib.Concepts.AdversaryBounds.AdvDuality
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Concepts.MonteCarloMean.FinDistBounds
+open Qatlib.Foundations.InstrumentCore.Measurement
+open Qatlib.Foundations.PureStateMath.BornBridge
+open Qatlib.Concepts.PauliClifford.ExactRank
+
+namespace Qatlib.Concepts.ShadowModels.ShadowChannel
+
+open Matrix
+open scoped ComplexOrder
+
+set_option maxHeartbeats 4000000
+
+theorem pauliProductRecordKraus_complete (n : ℕ) :
+    (∑ o : Fin n → Fin 3 × Bool,
+      (pauliProductRecordKraus o)ᴴ * pauliProductRecordKraus o) = 1 := by
+  change (∑ o : Fin n → Fin 3 × Bool,
+    (pauliProductDensity (fun i => pauliRecordKraus (o i)))ᴴ *
+      pauliProductDensity (fun i => pauliRecordKraus (o i))) = 1
+  simp_rw [pauliProductDensity_conjTranspose, pauliProductDensity_mul]
+  rw [pauliProductDensity_sum (fun (_ : Fin n) o =>
+    (pauliRecordKraus o)ᴴ * pauliRecordKraus o)]
+  simp_rw [pauliRecordKraus_complete]
+  exact pauliProductDensity_one n
+
+noncomputable def tensorPauliKraus (n : ℕ) (o : Fin n → Fin 3 × Bool) :
+    Operator (2 ^ n) := relabelGate (bitVecEquiv n) (pauliProductRecordKraus o)
+
+theorem tensorPauliKraus_complete (n : ℕ) :
+    (∑ o : Fin n → Fin 3 × Bool,
+      (tensorPauliKraus n o)ᴴ * tensorPauliKraus n o) = 1 := by
+  simp only [tensorPauliKraus, relabelGate, Matrix.reindex_apply,
+    Matrix.conjTranspose_submatrix, Matrix.submatrix_mul_equiv]
+  rw [show (∑ o : Fin n → Fin 3 × Bool,
+      ((pauliProductRecordKraus o)ᴴ * pauliProductRecordKraus o).submatrix
+        (bitVecEquiv n).symm (bitVecEquiv n).symm) =
+      (∑ o : Fin n → Fin 3 × Bool,
+        (pauliProductRecordKraus o)ᴴ * pauliProductRecordKraus o).submatrix
+          (bitVecEquiv n).symm (bitVecEquiv n).symm from by
+            ext; simp only [Matrix.sum_apply, Matrix.submatrix_apply]]
+  rw [pauliProductRecordKraus_complete]
+  exact Matrix.submatrix_one_equiv _
+
+noncomputable def tensorPauliInstrument (n : ℕ) :
+    Instrument (Fin n → Fin 3 × Bool) (2 ^ n) (2 ^ n) :=
+  Instrument.ofKraus (tensorPauliKraus n) (tensorPauliKraus_complete n)
+
+noncomputable def tensorPauliLaw (n : ℕ) (ρ : Operator (2 ^ n))
+    (hρ : IsDensityOperator ρ) : FinDist (Fin n → Fin 3 × Bool) where
+  prob o := instrumentProb (tensorPauliInstrument n) ρ o
+  nonneg o := instrumentProb_nonneg _ hρ.1 o
+  sum_one := sum_instrumentProb_isDensityOperator _ hρ
+
+theorem tensorPauliKraus_effect (n : ℕ) (o : Fin n → Fin 3 × Bool) :
+    (tensorPauliKraus n o)ᴴ * tensorPauliKraus n o =
+      tensorPauliProduct n (fun i => (1 / 3 : ℂ) • PauliProjector (o i).1 (o i).2) := by
+  change (tensorPauliProduct n (fun i => pauliRecordKraus (o i)))ᴴ *
+    tensorPauliProduct n (fun i => pauliRecordKraus (o i)) = _
+  rw [tensorPauliProduct_conjTranspose, tensorPauliProduct_mul]
+  simp only [pauliRecordKraus_conj_mul]
+
+theorem tensorPauliLaw_complex_mass (n : ℕ) (ρ : Operator (2 ^ n))
+    (hρ : IsDensityOperator ρ) (o : Fin n → Fin 3 × Bool) :
+    ((tensorPauliLaw n ρ hρ).prob o : ℂ) =
+      Matrix.trace ((tensorPauliKraus n o)ᴴ * tensorPauliKraus n o * ρ) := by
+  have hp : (tensorPauliKraus n o * ρ * (tensorPauliKraus n o)ᴴ).PosSemidef := by
+    have h := (completelyPositive_conjBranch (tensorPauliKraus n o)).positive hρ.1
+    rwa [conjBranch_apply] at h
+  have hi := (RCLike.nonneg_iff.mp hp.trace_nonneg).2
+  rw [← Matrix.trace_mul_cycle]
+  apply Complex.ext
+  · rfl
+  · simpa using hi.symm
+
+theorem tensorPauliLaw_axis_mass (n : ℕ) (ρ : Operator (2 ^ n))
+    (hρ : IsDensityOperator ρ) (a : Fin n → Fin 3) :
+    (∑ b : Reg n, (tensorPauliLaw n ρ hρ).prob (fun i => (a i, b i))) =
+      1 / (3 ^ n : ℝ) := by
+  have he : (∑ b : Reg n,
+      (tensorPauliKraus n (fun i => (a i, b i)))ᴴ *
+        tensorPauliKraus n (fun i => (a i, b i))) =
+      ((1 / 3 : ℂ) ^ n) • (1 : Operator (2 ^ n)) := by
+    simp_rw [tensorPauliKraus_effect]
+    rw [tensorPauliProduct_sum (n := n)
+      (fun i b => (1 / 3 : ℂ) • PauliProjector (a i) b)]
+    simp_rw [← Finset.smul_sum, pauliProjector_sum]
+    rw [tensorPauliProduct_smul, tensorPauliProduct_one]
+    simp
+  have hc : ((∑ b : Reg n,
+      (tensorPauliLaw n ρ hρ).prob (fun i => (a i, b i)) : ℝ) : ℂ) = (1 / 3 : ℂ) ^ n := by
+    rw [Complex.ofReal_sum]
+    simp_rw [tensorPauliLaw_complex_mass]
+    rw [← Matrix.trace_sum, ← Finset.sum_mul, he, Matrix.smul_mul,
+      Matrix.one_mul, Matrix.trace_smul, hρ.2, smul_eq_mul, mul_one]
+  have hc' : ((∑ b : Reg n,
+      (tensorPauliLaw n ρ hρ).prob (fun i => (a i, b i)) : ℝ) : ℂ) =
+      (((1 / 3 : ℝ) ^ n : ℝ) : ℂ) := by
+    rw [hc]
+    push_cast
+    rfl
+  have hr : (∑ b : Reg n,
+      (tensorPauliLaw n ρ hρ).prob (fun i => (a i, b i))) = (1 / 3 : ℝ) ^ n :=
+    Complex.ofReal_injective hc'
+  simpa only [_root_.one_div_pow] using hr
+
+theorem tensor_pauli_kraus_complete (n : ℕ) :
+    (∀ o : Fin n → Fin 3 × Bool,
+      tensorPauliKraus n o = relabelGate (bitVecEquiv n) (pauliProductRecordKraus o)) ∧
+    (∑ o : Fin n → Fin 3 × Bool, (tensorPauliKraus n o)ᴴ * tensorPauliKraus n o) = 1 ∧
+    (∀ o ρ, (tensorPauliInstrument n).branch o ρ =
+      tensorPauliKraus n o * ρ * (tensorPauliKraus n o)ᴴ) :=
+  ⟨fun _ => rfl, tensorPauliKraus_complete n, fun _ _ => rfl⟩
+
+noncomputable def tensorPauliWireGate (n : ℕ) (i : Fin n) (U : Operator 2) :
+    Operator (2 ^ n) := tensorPauliProduct n (fun j => if j = i then U else 1)
+
+theorem tensorPauliWireGate_unitary (n : ℕ) (i : Fin n) (U : Operator 2)
+    (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
+    tensorPauliWireGate n i U ∈ Matrix.unitaryGroup (Fin (2 ^ n)) ℂ := by
+  rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
+  rw [tensorPauliWireGate, tensorPauliProduct_conjTranspose, tensorPauliProduct_mul,
+    ← tensorPauliProduct_one n]
+  congr 1
+  funext j
+  by_cases h : j = i
+  · simp only [if_pos h]
+    have hh := Matrix.mem_unitaryGroup_iff'.mp hU
+    simpa only [Matrix.star_eq_conjTranspose] using hh
+  · simp [h]
+
+theorem tensorPauliWireGate_mul (n : ℕ) (i : Fin n) (U V : Operator 2) :
+    tensorPauliWireGate n i U * tensorPauliWireGate n i V =
+      tensorPauliWireGate n i (U * V) := by
+  rw [tensorPauliWireGate, tensorPauliWireGate, tensorPauliProduct_mul,
+    tensorPauliWireGate]
+  congr 1
+  funext j
+  by_cases h : j = i <;> simp [h]
+
+theorem tensorPauliWireGate_conjTranspose (n : ℕ) (i : Fin n) (U : Operator 2) :
+    (tensorPauliWireGate n i U)ᴴ = tensorPauliWireGate n i Uᴴ := by
+  rw [tensorPauliWireGate, tensorPauliProduct_conjTranspose, tensorPauliWireGate]
+  congr 1
+  funext j
+  by_cases h : j = i <;> simp [h]
+
+theorem tensorPauliProduct_diagonal (n : ℕ) (d : Fin n → Fin 2 → ℂ) :
+    tensorPauliProduct n (fun i => Matrix.diagonal (d i)) =
+      Matrix.diagonal (fun x => ∏ i, d i (boolEquivFin2 ((bitVecEquiv n).symm x i))) := by
+  ext x y
+  by_cases h : x = y
+  · subst y
+    simp [tensorPauliProduct, relabelGate, pauliProductDensity]
+  · have hn : (bitVecEquiv n).symm x ≠ (bitVecEquiv n).symm y :=
+      fun hh => h ((bitVecEquiv n).symm.injective hh)
+    obtain ⟨i, hi⟩ := Function.ne_iff.mp hn
+    have hb : boolEquivFin2 ((bitVecEquiv n).symm x i) ≠
+        boolEquivFin2 ((bitVecEquiv n).symm y i) :=
+      fun hh => hi (boolEquivFin2.injective hh)
+    rw [Matrix.diagonal_apply_ne _ h]
+    change (∏ j, Matrix.diagonal (d j)
+      (boolEquivFin2 ((bitVecEquiv n).symm x j))
+      (boolEquivFin2 ((bitVecEquiv n).symm y j))) = 0
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (Matrix.diagonal_apply_ne _ hb)
+
+theorem tensorPauliWireGate_projector (n : ℕ) (i : Fin n) (k : Fin 2) :
+    tensorPauliWireGate n i (Projector {k}) =
+      Projector (Finset.univ.filter
+        (fun x => boolEquivFin2 ((bitVecEquiv n).symm x i) = k)) := by
+  unfold tensorPauliWireGate
+  have hh : (fun j : Fin n => if j = i then Projector {k} else (1 : Operator 2)) =
+      (fun j => Matrix.diagonal (fun b : Fin 2 =>
+        if j = i then (if b = k then (1 : ℂ) else 0) else 1)) := by
+    funext j
+    by_cases h : j = i
+    · simp [h, Projector]
+    · simp [h]
+  rw [hh, tensorPauliProduct_diagonal]
+  ext x y
+  by_cases hxy : x = y <;>
+    simp [Projector, hxy, Finset.prod_ite_eq']
+
+noncomputable def tensorPauliWiresProgram (n : ℕ) (a : Fin n → Fin 3) :
+    List (Fin n) → ObservedCircuit (Fin (2 ^ n))
+  | [] => .halt true
+  | i :: is =>
+      .step (.gate (tensorPauliWireGate n i (pauliBasisMatrix (a i))))
+        (.measure 2 (fun x => boolEquivFin2 ((bitVecEquiv n).symm x i))
+          (fun _ => .step (.gate (tensorPauliWireGate n i (pauliBasisMatrix (a i)))ᴴ)
+            (tensorPauliWiresProgram n a is)))
+
+noncomputable def tensorPauliProgram (n : ℕ) (a : Fin n → Fin 3) :
+    ObservedCircuit (Fin (2 ^ n)) := tensorPauliWiresProgram n a (List.ofFn id)
+
+theorem tensorPauliWiresProgram_wellFormed (n : ℕ) (a : Fin n → Fin 3)
+    (is : List (Fin n)) : observedWellFormed (tensorPauliWiresProgram n a is) := by
+  induction is with
+  | nil => trivial
+  | cons i is ih =>
+    have h := tensorPauliWireGate_unitary n i (pauliBasisMatrix (a i))
+      (pauliBasisMatrix_unitary (a i))
+    have h' : (tensorPauliWireGate n i (pauliBasisMatrix (a i)))ᴴ ∈
+        Matrix.unitaryGroup (Fin (2 ^ n)) ℂ := by
+      rw [Matrix.mem_unitaryGroup_iff']
+      have hh := Matrix.mem_unitaryGroup_iff.mp h
+      simpa only [Matrix.star_eq_conjTranspose, Matrix.conjTranspose_conjTranspose] using hh
+    exact ⟨h, fun _ => ⟨h', ih⟩⟩
+
+theorem tensorPauliWiresProgram_count (n : ℕ) (a : Fin n → Fin 3)
+    (is : List (Fin n)) :
+    observedLeafCount (tensorPauliWiresProgram n a is) = 2 ^ is.length := by
+  induction is with
+  | nil => rfl
+  | cons i is ih =>
+    simp only [tensorPauliWiresProgram, observedLeafCount, ih, Fin.sum_univ_two,
+      List.length_cons, pow_succ]
+    omega
+
+theorem tensorPauliProgram_count (n : ℕ) (a : Fin n → Fin 3) :
+    observedLeafCount (tensorPauliProgram n a) = 2 ^ n := by
+  simp only [tensorPauliProgram, tensorPauliWiresProgram_count, List.length_ofFn]
+
+noncomputable def tensorPauliWiresLeaf (n : ℕ) (a : Fin n → Fin 3) :
+    (is : List (Fin n)) → Reg n → Fin (observedLeafCount (tensorPauliWiresProgram n a is))
+  | [], _ => ⟨0, by simp [tensorPauliWiresProgram, observedLeafCount]⟩
+  | i :: is, b =>
+      ⟨(if b i then 0 else observedLeafCount (tensorPauliWiresProgram n a is)) +
+          (tensorPauliWiresLeaf n a is b).val, by
+        have hb := (tensorPauliWiresLeaf n a is b).isLt
+        simp only [tensorPauliWiresProgram, observedLeafCount, Fin.sum_univ_two]
+        split <;> omega⟩
+
+noncomputable def tensorPauliLeaf (n : ℕ) (a : Fin n → Fin 3) (b : Reg n) :
+    Fin (observedLeafCount (tensorPauliProgram n a)) :=
+  tensorPauliWiresLeaf n a (List.ofFn id) b
+
+theorem tensorPauliWiresLeaf_agree (n : ℕ) (a : Fin n → Fin 3)
+    (is : List (Fin n)) (b c : Reg n)
+    (h : tensorPauliWiresLeaf n a is b = tensorPauliWiresLeaf n a is c) :
+    ∀ i ∈ is, b i = c i := by
+  induction is with
+  | nil => simp
+  | cons i is ih =>
+    have hb := (tensorPauliWiresLeaf n a is b).isLt
+    have hc := (tensorPauliWiresLeaf n a is c).isLt
+    have he := congrArg Fin.val h
+    simp only [tensorPauliWiresLeaf] at he
+    have hi : b i = c i := by
+      cases hbi : b i <;> cases hci : c i <;>
+        simp_all only [Bool.false_eq_true, if_false, if_true, zero_add]
+      all_goals omega
+    have ht : tensorPauliWiresLeaf n a is b = tensorPauliWiresLeaf n a is c := by
+      apply Fin.ext
+      rw [hi] at he
+      omega
+    intro j hj
+    rcases List.mem_cons.mp hj with hji | hj
+    · subst j
+      exact hi
+    · exact ih ht j hj
+
+theorem tensorPauliLeaf_bijective (n : ℕ) (a : Fin n → Fin 3) :
+    Function.Bijective (tensorPauliLeaf n a) := by
+  have hinj : Function.Injective (tensorPauliLeaf n a) := by
+    intro b c h
+    funext i
+    exact tensorPauliWiresLeaf_agree n a (List.ofFn id) b c h i
+      (List.mem_ofFn.mpr ⟨i, rfl⟩)
+  refine ⟨hinj, ?_⟩
+  by_contra h
+  have hh := Fintype.card_lt_of_injective_not_surjective (tensorPauliLeaf n a) hinj h
+  rw [card_reg, Fintype.card_fin, tensorPauliProgram_count] at hh
+  omega
+
+theorem tensorPauliWiresLeaves_cons (n : ℕ) (a : Fin n → Fin 3)
+    (i : Fin n) (is : List (Fin n)) :
+    observedKrausLeaves 1 (tensorPauliWiresProgram n a (i :: is)) =
+      (observedKrausLeaves 1 (tensorPauliWiresProgram n a is)).map
+        (fun leaf => ((leaf.prepend
+          (tensorPauliWireGate n i (pauliBasisMatrix (a i)))ᴴ 0 1 0 []).prepend
+            (tensorPauliWireGate n i (Projector {0})) 0 0 1 [(2, 0)]).prepend
+              (tensorPauliWireGate n i (pauliBasisMatrix (a i))) 0 1 0 []) ++
+      (observedKrausLeaves 1 (tensorPauliWiresProgram n a is)).map
+        (fun leaf => ((leaf.prepend
+          (tensorPauliWireGate n i (pauliBasisMatrix (a i)))ᴴ 0 1 0 []).prepend
+            (tensorPauliWireGate n i (Projector {1})) 0 0 1 [(2, 1)]).prepend
+              (tensorPauliWireGate n i (pauliBasisMatrix (a i))) 0 1 0 []) := by
+  simp only [tensorPauliWiresProgram, observedKrausLeaves, List.ofFn_succ,
+    List.ofFn_zero, List.flatten_cons, List.flatten_nil, List.append_nil,
+    List.map_append, List.map_map, Function.comp_def, tensorPauliWireGate_projector]
+  rfl
+
+theorem tensorPauliObservedLeaf_getElem {D : ℕ} (p : ObservedCircuit (Fin D))
+    (i : Fin (observedLeafCount p)) :
+    observedLeaf 1 p i = (observedKrausLeaves 1 p)[i.val]'(by
+      rw [observedKrausLeaves_length]; exact i.isLt) := rfl
+
+theorem tensorPauliWiresLeaf_cons (n : ℕ) (a : Fin n → Fin 3)
+    (i : Fin n) (is : List (Fin n)) (b : Reg n) :
+    observedLeaf 1 (tensorPauliWiresProgram n a (i :: is))
+        (tensorPauliWiresLeaf n a (i :: is) b) =
+      (((observedLeaf 1 (tensorPauliWiresProgram n a is)
+        (tensorPauliWiresLeaf n a is b)).prepend
+          (tensorPauliWireGate n i (pauliBasisMatrix (a i)))ᴴ 0 1 0 []).prepend
+            (tensorPauliWireGate n i (Projector {if b i then 0 else 1}))
+              0 0 1 [(2, if b i then 0 else 1)]).prepend
+                (tensorPauliWireGate n i (pauliBasisMatrix (a i))) 0 1 0 [] := by
+  rw [tensorPauliObservedLeaf_getElem]
+  simp only [tensorPauliWiresLeaves_cons]
+  have hb := (tensorPauliWiresLeaf n a is b).isLt
+  have hl := observedKrausLeaves_length (1 : Operator (2 ^ n))
+    (tensorPauliWiresProgram n a is)
+  cases hi : b i <;>
+    simp [tensorPauliWiresLeaf, hi, hl, hb, tensorPauliObservedLeaf_getElem]
+
+noncomputable def tensorPauliWiresExpectedLeaf (n : ℕ) (a : Fin n → Fin 3)
+    (is : List (Fin n)) (b : Reg n) : ObservedKrausLeaf (2 ^ n) where
+  operator := (is.reverse.map (fun i => tensorPauliWireGate n i
+    (PauliProjector (a i) (b i)))).prod
+  accepted := true
+  queries := 0
+  gates := 2 * is.length
+  measurements := is.length
+  outcomes := is.map (fun i => (2, if b i then 0 else 1))
+
+theorem tensorPauliWiresLeaf_actual (n : ℕ) (a : Fin n → Fin 3)
+    (is : List (Fin n)) (b : Reg n) :
+    observedLeaf 1 (tensorPauliWiresProgram n a is) (tensorPauliWiresLeaf n a is b) =
+      tensorPauliWiresExpectedLeaf n a is b := by
+  induction is with
+  | nil =>
+    simp [tensorPauliWiresProgram, tensorPauliWiresLeaf, observedLeaf,
+      observedKrausLeaves, tensorPauliWiresExpectedLeaf]
+  | cons i is ih =>
+    rw [tensorPauliWiresLeaf_cons, ih]
+    have ho : (tensorPauliWireGate n i (pauliBasisMatrix (a i)))ᴴ *
+        tensorPauliWireGate n i (Projector {if b i then 0 else 1}) *
+          tensorPauliWireGate n i (pauliBasisMatrix (a i)) =
+        tensorPauliWireGate n i (PauliProjector (a i) (b i)) := by
+      rw [tensorPauliWireGate_conjTranspose, tensorPauliWireGate_mul,
+        tensorPauliWireGate_mul, axis_leaf_operator]
+    simp only [tensorPauliWiresExpectedLeaf, ObservedKrausLeaf.prepend,
+      List.reverse_cons, List.map_append, List.map_cons, List.map_nil,
+      List.prod_append, List.prod_cons, List.prod_nil, Matrix.mul_one,
+      List.length_cons, List.nil_append, List.singleton_append, Nat.add_zero]
+    congr 1
+    · simpa only [Matrix.mul_assoc] using (congrArg
+        (fun U => (is.reverse.map fun j => tensorPauliWireGate n j
+          (PauliProjector (a j) (b j))).prod * U) ho)
+
+theorem tensorPauliWiresProjectorProduct (n : ℕ) (a : Fin n → Fin 3)
+    (is : List (Fin n)) (his : is.Nodup) (b : Reg n) :
+    (is.reverse.map (fun i => tensorPauliWireGate n i (PauliProjector (a i) (b i)))).prod =
+      tensorPauliProduct n (fun i => if i ∈ is then PauliProjector (a i) (b i) else 1) := by
+  induction is with
+  | nil => simp [tensorPauliProduct_one]
+  | cons i is ih =>
+    rw [List.nodup_cons] at his
+    simp only [List.reverse_cons, List.map_append, List.map_cons, List.map_nil,
+      List.prod_append, List.prod_cons, List.prod_nil, Matrix.mul_one]
+    rw [ih his.2, tensorPauliWireGate, tensorPauliProduct_mul]
+    congr 1
+    funext j
+    by_cases hji : j = i
+    · subst j
+      simp [his.1]
+    · simp [hji]
+
+theorem tensorPauliSqrtWeight_cancel (n : ℕ) :
+    (Real.sqrt (3 ^ n : ℝ) : ℂ) * (Real.sqrt (1 / 3) : ℂ) ^ n = 1 := by
+  have hq : (Real.sqrt (1 / 3) ^ n) ^ 2 = (1 / 3 : ℝ) ^ n := by
+    rw [← pow_mul, mul_comm n 2, pow_mul, Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 1 / 3)]
+  have hs : (Real.sqrt (3 ^ n : ℝ) * Real.sqrt (1 / 3) ^ n) ^ 2 = 1 := by
+    rw [mul_pow, Real.sq_sqrt (by positivity), hq, ← mul_pow]
+    norm_num
+  have hn : 0 ≤ Real.sqrt (3 ^ n : ℝ) * Real.sqrt (1 / 3) ^ n := by positivity
+  have hh : Real.sqrt (3 ^ n : ℝ) * Real.sqrt (1 / 3) ^ n = 1 := by nlinarith
+  exact_mod_cast hh
+
+theorem tensorPauliUnweightedProjectors (n : ℕ) (a : Fin n → Fin 3) (b : Reg n) :
+    tensorPauliProduct n (fun i => PauliProjector (a i) (b i)) =
+      (Real.sqrt (3 ^ n : ℝ) : ℂ) • tensorPauliKraus n (fun i => (a i, b i)) := by
+  change tensorPauliProduct n (fun i => PauliProjector (a i) (b i)) =
+    (Real.sqrt (3 ^ n : ℝ) : ℂ) •
+      tensorPauliProduct n (fun i => pauliRecordKraus (a i, b i))
+  simp only [pauliRecordKraus]
+  rw [tensorPauliProduct_smul, Finset.prod_const, Finset.card_univ,
+    Fintype.card_fin, smul_smul, tensorPauliSqrtWeight_cancel, one_smul]
+
+theorem tensor_pauli_actual_local_program (n : ℕ) (a : Fin n → Fin 3) :
+    observedWellFormed (tensorPauliProgram n a) ∧
+    observedLeafCount (tensorPauliProgram n a) = 2 ^ n ∧
+    Function.Bijective (tensorPauliLeaf n a) ∧
+    (∀ b : Reg n, let leaf := observedLeaf 1 (tensorPauliProgram n a) (tensorPauliLeaf n a b)
+      leaf.operator = (Real.sqrt (3 ^ n : ℝ) : ℂ) •
+        tensorPauliKraus n (fun i => (a i, b i)) ∧
+      leaf.queries = 0 ∧ leaf.gates = 2 * n ∧ leaf.measurements = n ∧ leaf.accepted = true) := by
+  refine ⟨tensorPauliWiresProgram_wellFormed n a _, tensorPauliProgram_count n a,
+    tensorPauliLeaf_bijective n a, ?_⟩
+  intro b
+  change (observedLeaf 1 (tensorPauliWiresProgram n a (List.ofFn id))
+    (tensorPauliWiresLeaf n a (List.ofFn id) b)).operator =
+      (Real.sqrt (3 ^ n : ℝ) : ℂ) • tensorPauliKraus n (fun i => (a i, b i)) ∧
+    (observedLeaf 1 (tensorPauliWiresProgram n a (List.ofFn id))
+      (tensorPauliWiresLeaf n a (List.ofFn id) b)).queries = 0 ∧
+    (observedLeaf 1 (tensorPauliWiresProgram n a (List.ofFn id))
+      (tensorPauliWiresLeaf n a (List.ofFn id) b)).gates = 2 * n ∧
+    (observedLeaf 1 (tensorPauliWiresProgram n a (List.ofFn id))
+      (tensorPauliWiresLeaf n a (List.ofFn id) b)).measurements = n ∧
+    (observedLeaf 1 (tensorPauliWiresProgram n a (List.ofFn id))
+      (tensorPauliWiresLeaf n a (List.ofFn id) b)).accepted = true
+  rw [tensorPauliWiresLeaf_actual]
+  refine ⟨?_, by simp [tensorPauliWiresExpectedLeaf]⟩
+  change (List.map (fun i => tensorPauliWireGate n i (PauliProjector (a i) (b i)))
+    (List.ofFn id).reverse).prod = _
+  rw [tensorPauliWiresProjectorProduct n a (List.ofFn id)
+    (List.nodup_ofFn.mpr Function.injective_id) b]
+  simpa [List.mem_ofFn] using tensorPauliUnweightedProjectors n a b
+
+theorem tensor_pauli_born_record_law (n : ℕ) (ρ : Operator (2 ^ n))
+    (hρ : IsDensityOperator ρ) (o : Fin n → Fin 3 × Bool) :
+    (tensorPauliLaw n ρ hρ).prob o = instrumentProb (tensorPauliInstrument n) ρ o ∧
+    (tensorPauliLaw n ρ hρ).prob o = (3 : ℝ) ^ (-(n : ℤ)) *
+      (Matrix.trace ((observedLeaf 1 (tensorPauliProgram n (fun i => (o i).1))
+        (tensorPauliLeaf n (fun i => (o i).1) (fun i => (o i).2))).operator * ρ *
+        (observedLeaf 1 (tensorPauliProgram n (fun i => (o i).1))
+          (tensorPauliLeaf n (fun i => (o i).1) (fun i => (o i).2))).operatorᴴ)).re ∧
+    (∀ a : Fin n → Fin 3, ∑ b : Reg n,
+      (tensorPauliLaw n ρ hρ).prob (fun i => (a i, b i)) = 1 / (3 ^ n : ℝ)) := by
+  refine ⟨rfl, ?_, tensorPauliLaw_axis_mass n ρ hρ⟩
+  have hl := (tensor_pauli_actual_local_program n (fun i => (o i).1)).2.2.2
+    (fun i => (o i).2)
+  rw [hl.1]
+  have ho : (fun i => ((o i).1, (o i).2)) = o := by funext i; exact Prod.mk.eta
+  rw [ho, Matrix.conjTranspose_smul]
+  rw [show star (Real.sqrt (3 ^ n : ℝ) : ℂ) = (Real.sqrt (3 ^ n : ℝ) : ℂ) from by simp]
+  rw [Matrix.smul_mul, Matrix.mul_smul, Matrix.smul_mul, smul_smul,
+    ← Complex.ofReal_mul, Real.mul_self_sqrt (by positivity), Matrix.trace_smul,
+    smul_eq_mul]
+  have hp : (Matrix.trace (tensorPauliKraus n o * ρ * (tensorPauliKraus n o)ᴴ)).re =
+      (tensorPauliLaw n ρ hρ).prob o := rfl
+  simp only [Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im, zero_mul,
+    sub_zero, hp, _root_.zpow_neg, zpow_natCast]
+  have hn : (3 : ℝ) ^ n ≠ 0 := by positivity
+  field_simp [hn]
+
+end Qatlib.Concepts.ShadowModels.ShadowChannel

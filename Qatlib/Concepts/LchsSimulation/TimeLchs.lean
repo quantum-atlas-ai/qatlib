@@ -1,0 +1,496 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
+import Mathlib.Analysis.Complex.LocallyUniformLimit
+
+set_option autoImplicit false
+set_option backward.isDefEq.respectTransparency false
+noncomputable section
+open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
+
+open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
+open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+namespace Qatlib.Concepts.LchsSimulation.TimeLchs
+open Matrix Set MeasureTheory
+open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
+set_option warningAsError false
+
+private theorem parameterDyson_polynomial {I : Type} [Fintype I] [DecidableEq I]
+    (L H : ℝ → Matrix I I ℂ) (hL : Continuous L) (hH : Continuous H) (s : ℝ) (n : ℕ) :
+    ∃ (J : Type) (_inst : Fintype J) (p : J → ℕ) (C : J → ℝ → Matrix I I ℂ),
+      (∀ j, Continuous (C j)) ∧
+      ∀ (z : ℂ) (t : ℝ), orderedDysonTerm (fun u => z • L u + Complex.I • H u) s n t =
+        ∑ j : J, z ^ p j • C j t := by
+  induction n with
+  | zero =>
+    refine ⟨Unit, inferInstance, fun _ => 0, fun _ _ => 1, fun _ => continuous_const, ?_⟩
+    intro z t
+    simp [orderedDysonTerm]
+  | succ n ih =>
+    obtain ⟨J, inst, p, C, hC, he⟩ := ih
+    letI := inst
+    let D : Sum J J → ℝ → Matrix I I ℂ := Sum.elim
+      (fun j t => ∫ u in s..t, -(Complex.I • H u * C j u))
+      (fun j t => ∫ u in s..t, -(L u * C j u))
+    refine ⟨Sum J J, inferInstance, Sum.elim p (fun j => p j + 1), D, ?_, ?_⟩
+    · intro j
+      cases j with
+      | inl j =>
+        have hcj : Continuous (fun u => -(Complex.I • H u * C j u)) := by have := hC j; fun_prop
+        exact (intervalIntegral.differentiable_integral_of_continuous hcj).continuous
+      | inr j =>
+        have hcj : Continuous (fun u => -(L u * C j u)) := by have := hC j; fun_prop
+        exact (intervalIntegral.differentiable_integral_of_continuous hcj).continuous
+    · intro z t
+      simp only [orderedDysonTerm, he, Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr]
+      have hi (j : J) : IntervalIntegrable
+          (fun u => z ^ p j • -(Complex.I • H u * C j u)) volume s t := by
+        have hcj : Continuous (fun u => z ^ p j • -(Complex.I • H u * C j u)) := by
+          have := hC j; fun_prop
+        exact hcj.intervalIntegrable _ _
+      have hl (j : J) : IntervalIntegrable
+          (fun u => z ^ (p j + 1) • -(L u * C j u)) volume s t := by
+        have hcj : Continuous (fun u => z ^ (p j + 1) • -(L u * C j u)) := by have := hC j; fun_prop
+        exact hcj.intervalIntegrable _ _
+      have hx (u : ℝ) :
+          -((z • L u + Complex.I • H u) * ∑ j, z ^ p j • C j u) =
+          (∑ j, z ^ p j • -(Complex.I • H u * C j u)) +
+          ∑ j, z ^ (p j + 1) • -(L u * C j u) := by
+        rw [Matrix.mul_sum, ← Finset.sum_neg_distrib, ← Finset.sum_add_distrib]
+        apply Finset.sum_congr rfl
+        intro j _
+        simp only [add_mul, mul_smul_comm, smul_mul_assoc, smul_neg, pow_succ]
+        module
+      simp_rw [hx]
+      have his : IntervalIntegrable (fun u => ∑ j, z ^ p j • -(Complex.I • H u * C j u)) volume s t := by
+        exact (continuous_finsetSum _ (fun j _ => by have := hC j; fun_prop)).intervalIntegrable _ _
+      have hls : IntervalIntegrable (fun u => ∑ j, z ^ (p j + 1) • -(L u * C j u)) volume s t := by
+        exact (continuous_finsetSum _ (fun j _ => by have := hC j; fun_prop)).intervalIntegrable _ _
+      rw [intervalIntegral.integral_add his hls,
+        intervalIntegral.integral_finsetSum (fun j _ => hi j),
+        intervalIntegral.integral_finsetSum (fun j _ => hl j)]
+      simp only [intervalIntegral.integral_smul, D, Sum.elim_inl, Sum.elim_inr]
+
+private theorem parameterDyson_differentiable {I : Type} [Fintype I] [DecidableEq I]
+    (L H : ℝ → Matrix I I ℂ) (hL : Continuous L) (hH : Continuous H) (s t : ℝ) (n : ℕ) :
+    Differentiable ℂ (fun z : ℂ => orderedDysonTerm (fun u => z • L u + Complex.I • H u) s n t) := by
+  obtain ⟨J, inst, p, C, _, he⟩ := parameterDyson_polynomial L H hL hH s n
+  letI := inst
+  have hf : (fun z : ℂ => orderedDysonTerm (fun u => z • L u + Complex.I • H u) s n t) =
+      fun z => ∑ j : J, z ^ p j • C j t := funext (fun z => he z t)
+  rw [hf]
+  exact Differentiable.fun_sum
+      (fun j _ => ((differentiable_id : Differentiable ℂ (fun z : ℂ => z)).pow (p j)).smul_const (C j t))
+
+theorem ordered_evolution_entire_parameter {I : Type} [Fintype I] [DecidableEq I]
+    (L H : ℝ → Matrix I I ℂ) (hL : Continuous L) (hH : Continuous H) (s t : ℝ) :
+    Differentiable ℂ (fun z : ℂ => orderedEvolution (fun u => z • L u + Complex.I • H u) s t) := by
+  intro z₀
+  obtain ⟨CL, hCL⟩ := (isCompact_uIcc.image hL).isBounded.exists_norm_le
+  obtain ⟨CH, hCH⟩ := (isCompact_uIcc.image hH).isBounded.exists_norm_le
+  let R := ‖z₀‖ + 1
+  let M := R * max 0 CL + max 0 CH
+  have hR : 0 ≤ R := by dsimp [R]; positivity
+  have hM : 0 ≤ M := by dsimp [M]; positivity
+  have hb (z : ℂ) (hz : z ∈ Metric.ball z₀ 1) (u : ℝ) (hu : u ∈ uIcc s t) :
+      ‖z • L u + Complex.I • H u‖ ≤ M := by
+    have hzR : ‖z‖ ≤ R := by
+      have hh := norm_le_norm_sub_add z z₀
+      rw [← dist_eq_norm] at hh
+      dsimp [R]
+      linarith [Metric.mem_ball.mp hz]
+    calc
+      _ ≤ ‖z • L u‖ + ‖Complex.I • H u‖ := norm_add_le _ _
+      _ = ‖z‖ * ‖L u‖ + ‖H u‖ := by rw [norm_smul, norm_smul, Complex.norm_I, one_mul]
+      _ ≤ R * max 0 CL + max 0 CH := by
+        gcongr
+        · exact (hCL (L u) ⟨u, hu, rfl⟩).trans (le_max_right _ _)
+        · exact (hCH (H u) ⟨u, hu, rfl⟩).trans (le_max_right _ _)
+      _ = M := rfl
+  have hd := Complex.differentiableOn_tsum_of_summable_norm
+    (Real.summable_pow_div_factorial (M * |t-s|))
+    (fun n => (parameterDyson_differentiable L H hL hH s t n).differentiableOn)
+    Metric.isOpen_ball
+    (fun n z hz => orderedDysonTerm_norm_le _
+      ((hL.const_smul z).add (hH.const_smul Complex.I)) s t M hM (hb z hz) n)
+  exact hd.differentiableAt (Metric.ball_mem_nhds z₀ zero_lt_one)
+
+theorem time_dependent_lchs_entire_parameter :
+    ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
+      (s t : ℝ), Continuous L → Continuous H →
+      (∀ u, (L u).PosSemidef) → (∀ u, (H u).IsHermitian) → s ≤ t →
+      Differentiable ℂ (fun z : ℂ => orderedEvolution (fun u => z • L u + Complex.I • H u) s t) ∧
+      ∀ z : ℂ, 0 ≤ z.re →
+        ‖orderedEvolution (fun u => z • L u + Complex.I • H u) s t‖ ≤ 1 := by
+  intro I _ _ L H s t hL hH hPSD hHerm hst
+  refine ⟨ordered_evolution_entire_parameter L H hL hH s t, ?_⟩
+  intro z hz
+  apply ordered_evolution_psd_contraction I _
+    ((hL.const_smul z).add (hH.const_smul Complex.I)) _ s t hst
+  intro u
+  have he : z • L u + Complex.I • H u + (z • L u + Complex.I • H u)ᴴ =
+      (2 * z.re) • L u := by
+    rw [Matrix.conjTranspose_add, Matrix.conjTranspose_smul, Matrix.conjTranspose_smul,
+      (hPSD u).isHermitian.eq, (hHerm u).eq]
+    ext i j
+    simp only [Matrix.add_apply, Matrix.smul_apply, smul_eq_mul, Complex.real_smul,
+      RCLike.star_def]
+    have hzz := Complex.add_conj z
+    simp only [Complex.conj_I]
+    linear_combination congrArg (fun w : ℂ => w * L u i j) hzz
+  change (z • L u + Complex.I • H u + (z • L u + Complex.I • H u)ᴴ).PosSemidef
+  rw [he]
+  exact (hPSD u).smul (mul_nonneg (by norm_num) hz)
+
+private theorem parameter_boundary {I : Type} [Fintype I] [DecidableEq I]
+    (L H : ℝ → Matrix I I ℂ) (k : ℝ) :
+    (fun u => ((k : ℂ) * Complex.I) • L u + Complex.I • H u) =
+      (fun u => Complex.I • (H u + k • L u)) := by
+  funext u
+  rw [smul_add, ← Complex.coe_smul, smul_smul, mul_comm]
+  exact add_comm _ _
+
+private theorem orderedHamiltonian_parameter_continuous {I : Type} [Fintype I] [DecidableEq I]
+    (L H : ℝ → Matrix I I ℂ) (hL : Continuous L) (hH : Continuous H) (s t : ℝ) :
+    Continuous (fun k : ℝ => orderedEvolution (fun u => Complex.I • (H u + k • L u)) s t) := by
+  have hc := (ordered_evolution_entire_parameter L H hL hH s t).continuous.comp
+    (Complex.continuous_ofReal.mul (continuous_const (y := Complex.I)))
+  simpa only [Function.comp_def, Pi.mul_apply, parameter_boundary] using! hc
+
+theorem time_dependent_lchs_cauchy_representation :
+    ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
+      (s t : ℝ), Continuous L → Continuous H →
+      (∀ u, (L u).PosSemidef) → (∀ u, (H u).IsHermitian) → s ≤ t →
+      let V := fun k : ℝ => orderedEvolution (fun u => Complex.I • (H u+k • L u)) s t
+      (∀ i j : I, MeasureTheory.Integrable (fun k : ℝ =>
+        ((1/(Real.pi*(1+k^2)) : ℝ) : ℂ) * V k i j)) ∧
+      (∫ k : ℝ, (1/(Real.pi*(1+k^2))) • V k) =
+        orderedEvolution (fun u => L u+Complex.I • H u) s t := by
+  intro I _ _ L H s t hL hH hPSD hHerm hst
+  (try dsimp only)
+  have hV := orderedHamiltonian_parameter_continuous L H hL hH s t
+  have hunit (k : ℝ) := ordered_evolution_hermitian_unitary I (fun u => H u + k • L u)
+    (hH.add (hL.const_smul k))
+    (fun u => (hHerm u).add ((hPSD u).isHermitian.smul (R := ℝ) (IsSelfAdjoint.all k))) s t
+  constructor
+  · intro i j
+    have hw : Integrable (fun k : ℝ => 1/(Real.pi*(1+k^2))) := by
+      simpa [div_eq_mul_inv, _root_.mul_inv_rev, mul_comm] using!
+        integrable_inv_one_add_sq.const_mul Real.pi⁻¹
+    apply hw.ofReal.mul_bdd (c := 1)
+      ((continuous_apply j).comp ((continuous_apply i).comp hV)).aestronglyMeasurable
+    exact Filter.Eventually.of_forall (fun k => entry_norm_bound_of_unitary (hunit k) i j)
+  · have h := time_dependent_lchs_entire_parameter I L H s t hL hH hPSD hHerm hst
+    have he := static_lchs_bounded_entire_cauchy_formula _ h.1 h.2
+    simpa only [parameter_boundary, one_smul, Complex.coe_smul] using! he
+
+theorem time_dependent_lchs_same_unitary_stability :
+    ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
+      (s t a b : ℝ), Continuous L → Continuous H →
+      (∀ u, (L u).IsHermitian) → (∀ u, (H u).IsHermitian) → s ≤ t →
+      ‖orderedEvolution (fun u => Complex.I • (H u+a • L u)) s t -
+        orderedEvolution (fun u => Complex.I • (H u+b • L u)) s t‖ ≤
+          |a-b| * (∫ u in s..t, ‖L u‖) := by
+  intro I _ _ L H s t a b hL hH hHermL hHermH hst
+  let A := fun u => Complex.I • (H u + a • L u)
+  let B := fun u => Complex.I • (H u + b • L u)
+  have hA : Continuous A := by dsimp [A]; fun_prop
+  have hB : Continuous B := by dsimp [B]; fun_prop
+  have hunit (r u c : ℝ) := ordered_evolution_hermitian_unitary I (fun x => H x + c • L x)
+    (hH.add (hL.const_smul c))
+    (fun x => (hHermH x).add ((hHermL x).smul (R := ℝ) (IsSelfAdjoint.all c))) r u
+  let f := fun u => orderedEvolution A u t * orderedEvolution B s u
+  let d := fun u => orderedEvolution A u t * (A u - B u) * orderedEvolution B s u
+  have hd (u : ℝ) : HasDerivAt f (d u) u := by
+    convert! (orderedEvolution_hasDerivAt_start A hA t u).mul
+      (orderedEvolution_hasDerivAt B hB s u) using 1
+    dsimp [d]
+    noncomm_ring
+  have hAc : Continuous (fun u => orderedEvolution A u t) :=
+    continuous_iff_continuousAt.mpr (fun u => (orderedEvolution_hasDerivAt_start A hA t u).continuousAt)
+  have hBc : Continuous (orderedEvolution B s) :=
+    continuous_iff_continuousAt.mpr (fun u => (orderedEvolution_hasDerivAt B hB s u).continuousAt)
+  have hdc : Continuous d := (hAc.mul (hA.sub hB)).mul hBc
+  have he := intervalIntegral.integral_eq_sub_of_hasDerivAt
+    (fun u _ => hd u) (hdc.intervalIntegrable s t)
+  have hnorm (u : ℝ) : ‖d u‖ ≤ |a-b| * ‖L u‖ := by
+    have hAu : ‖orderedEvolution A u t‖ ≤ 1 := l2_norm_unitary_le_one (hunit u t a)
+    have hBu : ‖orderedEvolution B s u‖ ≤ 1 := l2_norm_unitary_le_one (hunit s u b)
+    have hdiff : A u - B u = (Complex.I * ((a-b : ℝ) : ℂ)) • L u := by
+      dsimp [A, B]
+      rw [← smul_sub, show (H u + a • L u) - (H u + b • L u) = (a-b) • L u by module,
+        ← Complex.coe_smul, smul_smul]
+    have hdiffnorm : ‖A u - B u‖ = |a-b| * ‖L u‖ := by
+      rw [hdiff, norm_smul, norm_mul, Complex.norm_I, one_mul, Complex.norm_real, Real.norm_eq_abs]
+    calc
+      ‖d u‖ ≤ (‖orderedEvolution A u t‖ * ‖A u-B u‖) * ‖orderedEvolution B s u‖ :=
+        (norm_mul_le _ _).trans (mul_le_mul_of_nonneg_right (norm_mul_le _ _) (norm_nonneg _))
+      _ ≤ (1 * ‖A u-B u‖) * 1 := by gcongr
+      _ = |a-b| * ‖L u‖ := by rw [one_mul, mul_one, hdiffnorm]
+  have hi := intervalIntegral.norm_integral_le_of_norm_le hst
+    (Filter.Eventually.of_forall (fun u _ => hnorm u))
+    ((continuous_const.mul hL.norm).intervalIntegrable (μ := volume) s t)
+  rw [he, intervalIntegral.integral_const_mul] at hi
+  rw [norm_sub_rev] at hi
+  simpa only [f, orderedEvolution_self, Matrix.one_mul, Matrix.mul_one, A, B] using! hi
+
+private noncomputable def tdLchsDensity (k : ℝ) : ℝ := 1/(Real.pi*(1+k^2))
+private noncomputable def tdLchsVariation (k : ℝ) : ℝ :=
+  if k ≤ 0 then tdLchsDensity k else 2/Real.pi-tdLchsDensity k
+
+private theorem tdLchsDensity_nonneg (k : ℝ) : 0 ≤ tdLchsDensity k := by
+    dsimp [tdLchsDensity]; positivity
+
+private theorem tdLchsDensity_le_peak (k : ℝ) : tdLchsDensity k ≤ 1/Real.pi := by
+  dsimp only [tdLchsDensity]
+  apply div_le_div_of_nonneg_left (by norm_num) Real.pi_pos
+  nlinarith [mul_nonneg Real.pi_pos.le (sq_nonneg k)]
+
+private theorem tdLchsDensity_variation (a b : ℝ) (hab : a ≤ b) :
+    |tdLchsDensity b-tdLchsDensity a| ≤ tdLchsVariation b-tdLchsVariation a := by
+  by_cases ha : a ≤ 0
+  · by_cases hb : b ≤ 0
+    · have hd : tdLchsDensity a ≤ tdLchsDensity b := by
+        dsimp only [tdLchsDensity]
+        apply div_le_div_of_nonneg_left (by norm_num) (by positivity)
+        nlinarith [mul_le_mul_of_nonneg_left (show b^2 ≤ a^2 by nlinarith) Real.pi_pos.le]
+      simp only [tdLchsVariation, if_pos ha, if_pos hb, abs_of_nonneg (sub_nonneg.mpr hd)]
+      exact le_rfl
+    · simp only [tdLchsVariation, if_pos ha, if_neg hb]
+      rw [show 2/Real.pi = 2*(1/Real.pi) by ring]
+      apply abs_le.mpr
+      constructor <;> linarith [tdLchsDensity_le_peak a, tdLchsDensity_le_peak b]
+  · have hb : ¬b ≤ 0 := by linarith
+    have hd : tdLchsDensity b ≤ tdLchsDensity a := by
+      dsimp only [tdLchsDensity]
+      apply div_le_div_of_nonneg_left (by norm_num) (by positivity)
+      nlinarith [mul_le_mul_of_nonneg_left (show a^2 ≤ b^2 by nlinarith) Real.pi_pos.le]
+    simp only [tdLchsVariation, if_neg ha, if_neg hb, abs_of_nonpos (sub_nonpos.mpr hd)]
+    linarith
+
+private theorem tdLchsDensity_cell_variation (a b k : ℝ) (hak : a ≤ k) (hkb : k ≤ b) :
+    |tdLchsDensity a-tdLchsDensity k| ≤ tdLchsVariation b-tdLchsVariation a := by
+  have h1 := tdLchsDensity_variation a k hak
+  have h2 := tdLchsDensity_variation k b hkb
+  rw [abs_sub_comm] at h1
+  linarith [abs_nonneg (tdLchsDensity b-tdLchsDensity k)]
+
+private theorem tdLchs_arctan_le (x : ℝ) (hx : 0 ≤ x) : Real.arctan x ≤ x := by
+  have hb := norm_image_sub_le_of_norm_deriv_le_segment'
+    (a := 0) (b := x) (f := Real.arctan) (f' := fun k : ℝ => (1+k^2)⁻¹) (C := 1)
+    (fun k _ => (Real.hasDerivAt_arctan' k).hasDerivWithinAt)
+    (fun k _ => by
+      rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)]
+      exact inv_le_one_of_one_le₀ (by nlinarith [sq_nonneg k])) x ⟨hx, le_rfl⟩
+  have hh : |Real.arctan x| ≤ x := by simpa using! hb
+  exact (le_abs_self _).trans hh
+
+private theorem tdLchsDensity_integrable : Integrable tdLchsDensity := by
+  change Integrable (fun k : ℝ => 1/(Real.pi*(1+k^2)))
+  simpa [tdLchsDensity, div_eq_mul_inv, _root_.mul_inv_rev, mul_comm] using!
+    integrable_inv_one_add_sq.const_mul Real.pi⁻¹
+
+private theorem tdLchsDensity_continuous : Continuous tdLchsDensity := by
+  apply Continuous.div continuous_const
+  · fun_prop
+  · intro k; positivity
+
+private theorem tdLchsDensity_interval_le_one (a b : ℝ) (hab : a ≤ b) :
+    (∫ k in a..b, tdLchsDensity k) ≤ 1 := by
+  rw [intervalIntegral.integral_of_le hab]
+  apply (MeasureTheory.setIntegral_le_integral tdLchsDensity_integrable
+    (Filter.Eventually.of_forall tdLchsDensity_nonneg)).trans_eq
+  exact static_lchs_cauchy_density_integral
+
+private theorem tdLchsDensity_tail (K : ℝ) (hK : 0 < K) :
+    (∫ k : ℝ in (Set.Ioc (-K) K)ᶜ, tdLchsDensity k) ≤ 2/(Real.pi*K) := by
+  have he : (Set.Ioc (-K) K)ᶜ = Set.Iic (-K) ∪ Set.Ioi K := by
+    ext x
+    simp only [Set.mem_compl_iff, Set.mem_Ioc, Set.mem_union, Set.mem_Iic, Set.mem_Ioi,
+      not_and_or, not_lt, not_le]
+  have hd : Disjoint (Set.Iic (-K)) (Set.Ioi K) := by
+    rw [Set.disjoint_left]
+    intro x hx hy; simp only [Set.mem_Iic, Set.mem_Ioi] at *; linarith
+  rw [he, setIntegral_union hd measurableSet_Ioi tdLchsDensity_integrable.integrableOn
+    tdLchsDensity_integrable.integrableOn]
+  have hleft : (∫ k : ℝ in Set.Iic (-K), tdLchsDensity k) =
+      Real.pi⁻¹*(Real.pi/2-Real.arctan K) := by
+    simp only [tdLchsDensity, div_eq_mul_inv, _root_.mul_inv_rev, one_mul]
+    rw [integral_mul_const, integral_Iic_inv_one_add_sq, Real.arctan_neg]
+    ring
+  have hright : (∫ k : ℝ in Set.Ioi K, tdLchsDensity k) =
+      Real.pi⁻¹*(Real.pi/2-Real.arctan K) := by
+    simp only [tdLchsDensity, div_eq_mul_inv, _root_.mul_inv_rev, one_mul]
+    rw [integral_mul_const, integral_Ioi_inv_one_add_sq]
+    ring
+  rw [hleft, hright, ← Real.arctan_inv_of_pos hK]
+  have ha := tdLchs_arctan_le K⁻¹ (inv_nonneg.mpr hK.le)
+  calc
+    _ ≤ Real.pi⁻¹*K⁻¹+Real.pi⁻¹*K⁻¹ := by gcongr
+    _ = _ := by ring
+
+section Quadrature
+variable {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+
+omit [CompleteSpace E] in
+
+private theorem tdLchs_weighted_integrable (V : ℝ → E) (hV : Continuous V)
+    (hn : ∀ k, ‖V k‖ ≤ 1) : Integrable (fun k => tdLchsDensity k • V k) :=
+  tdLchsDensity_integrable.smul_bdd 1 hV.aestronglyMeasurable (Filter.Eventually.of_forall hn)
+
+omit [CompleteSpace E] in
+
+private theorem tdLchs_weighted_tail (V : ℝ → E) (hV : Continuous V)
+    (hn : ∀ k, ‖V k‖ ≤ 1) (K : ℝ) (hK : 0 < K) :
+    ‖(∫ k : ℝ, tdLchsDensity k • V k) - (∫ k in (-K)..K, tdLchsDensity k • V k)‖ ≤
+      2/(Real.pi*K) := by
+  have hf := tdLchs_weighted_integrable V hV hn
+  rw [intervalIntegral.integral_of_le (by linarith : -K ≤ K),
+    ← integral_add_compl measurableSet_Ioc hf, add_sub_cancel_left]
+  apply (MeasureTheory.norm_integral_le_of_norm_le tdLchsDensity_integrable.integrableOn
+    (Filter.Eventually.of_forall (fun k => ?_))).trans (tdLchsDensity_tail K hK)
+  rw [norm_smul, Real.norm_of_nonneg (tdLchsDensity_nonneg k)]
+  simpa using! mul_le_mul_of_nonneg_left (hn k) (tdLchsDensity_nonneg k)
+
+private theorem tdLchs_weighted_grid_error (V : ℝ → E) (hV : Continuous V)
+    (hn : ∀ k, ‖V k‖ ≤ 1) (T : ℝ) (hT : 0 ≤ T)
+    (hl : ∀ a b, ‖V a-V b‖ ≤ T*|a-b|) (K : ℝ) (hK : 0 < K) (N : ℕ) (hN : 0 < N) :
+    let h := 2*K/(N : ℝ)
+    let x := fun j : ℕ => -K+h*j
+    ‖(∑ j ∈ Finset.range N, (h*tdLchsDensity (x j)) • V (x j)) -
+      (∫ k in (-K)..K, tdLchsDensity k • V k)‖ ≤ h*(2/Real.pi+T) := by
+  (try dsimp only)
+  let h : ℝ := 2*K/(N : ℝ)
+  let x := fun j : ℕ => -K+h*j
+  let F := fun k : ℝ => tdLchsDensity k • V k
+  have hNR : (0 : ℝ) < N := by exact_mod_cast hN
+  have h0 : 0 ≤ h := by dsimp [h]; positivity
+  have hstep (j : ℕ) : x (j+1)-x j = h := by dsimp [x]; push_cast; ring
+  have horder (j : ℕ) : x j ≤ x (j+1) := by linarith [hstep j]
+  have hx0 : x 0 = -K := by simp [x]
+  have hxN : x N = K := by dsimp [x, h]; field_simp; ring
+  have hFc : Continuous F := tdLchsDensity_continuous.smul hV
+  have hpoint (j : ℕ) (k : ℝ) (hk : k ∈ Set.Ioc (x j) (x (j+1))) :
+      ‖F (x j)-F k‖ ≤ (tdLchsVariation (x (j+1))-tdLchsVariation (x j))+h*T*tdLchsDensity k := by
+    have he : F (x j)-F k = (tdLchsDensity (x j)-tdLchsDensity k) • V (x j) +
+        tdLchsDensity k • (V (x j)-V k) := by dsimp [F]; simp [sub_smul, smul_sub]
+    have hv := tdLchsDensity_cell_variation (x j) (x (j+1)) k hk.1.le hk.2
+    have hdist : |x j-k| ≤ h := by rw [abs_of_nonpos (by linarith [hk.1])]; linarith [hstep j, hk.2]
+    rw [he]
+    calc
+      _ ≤ ‖(tdLchsDensity (x j)-tdLchsDensity k) • V (x j)‖ +
+          ‖tdLchsDensity k • (V (x j)-V k)‖ := norm_add_le _ _
+      _ = |tdLchsDensity (x j)-tdLchsDensity k| * ‖V (x j)‖+
+          tdLchsDensity k*‖V (x j)-V k‖ := by
+        rw [norm_smul, norm_smul, Real.norm_eq_abs, Real.norm_of_nonneg (tdLchsDensity_nonneg k)]
+      _ ≤ |tdLchsDensity (x j)-tdLchsDensity k| * 1+tdLchsDensity k*(T*h) := by
+        gcongr
+        · exact hn _
+        · exact tdLchsDensity_nonneg k
+        · exact (hl _ _).trans (mul_le_mul_of_nonneg_left hdist hT)
+      _ ≤ _ := by nlinarith
+  let D := fun j : ℕ => ∫ k in x j..x (j+1), F (x j)-F k
+  have hcell (j : ℕ) : ‖D j‖ ≤ h*(tdLchsVariation (x (j+1))-tdLchsVariation (x j))+
+      (h*T)*(∫ k in x j..x (j+1), tdLchsDensity k) := by
+    have hi := intervalIntegral.norm_integral_le_of_norm_le (μ := volume) (horder j)
+      (f := fun k => F (x j)-F k)
+      (g := fun k => tdLchsVariation (x (j+1))-tdLchsVariation (x j)+(h*T)*tdLchsDensity k)
+      (Filter.Eventually.of_forall (fun k hk => hpoint j k hk))
+      ((continuous_const.add (continuous_const.mul tdLchsDensity_continuous)).intervalIntegrable _ _)
+    have hwint : IntervalIntegrable (fun k => (h*T)*tdLchsDensity k) volume (x j) (x (j+1)) :=
+      (continuous_const.mul tdLchsDensity_continuous).intervalIntegrable _ _
+    (try dsimp only at hi)
+    rw [intervalIntegral.integral_add intervalIntegrable_const hwint,
+      intervalIntegral.integral_const, intervalIntegral.integral_const_mul, hstep, smul_eq_mul] at hi
+    exact hi
+  have hD : (∑ j ∈ Finset.range N, (h*tdLchsDensity (x j)) • V (x j))-
+      (∫ k in (-K)..K, F k) = ∑ j ∈ Finset.range N, D j := by
+    have hd (j : ℕ) : D j = (h*tdLchsDensity (x j)) • V (x j)-
+        (∫ k in x j..x (j+1), F k) := by
+      dsimp [D]
+      rw [intervalIntegral.integral_sub intervalIntegrable_const (hFc.intervalIntegrable _ _),
+        intervalIntegral.integral_const, hstep]
+      dsimp [F]
+      rw [smul_smul]
+    simp_rw [hd]
+    rw [Finset.sum_sub_distrib, intervalIntegral.sum_integral_adjacent_intervals
+      (fun j _ => hFc.intervalIntegrable _ _), hx0, hxN]
+  change ‖(∑ j ∈ Finset.range N, (h*tdLchsDensity (x j)) • V (x j))-
+      (∫ k in (-K)..K, F k)‖ ≤ h*(2/Real.pi+T)
+  rw [hD]
+  calc
+    _ ≤ ∑ j ∈ Finset.range N, ‖D j‖ := norm_sum_le _ _
+    _ ≤ ∑ j ∈ Finset.range N, (h*(tdLchsVariation (x (j+1))-tdLchsVariation (x j))+
+        (h*T)*(∫ k in x j..x (j+1), tdLchsDensity k)) := Finset.sum_le_sum (fun j _ => hcell j)
+    _ = h*(tdLchsVariation K-tdLchsVariation (-K))+(h*T)*(∫ k in (-K)..K, tdLchsDensity k) := by
+      rw [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum,
+        Finset.sum_range_sub (fun j => tdLchsVariation (x j)) N, intervalIntegral.sum_integral_adjacent_intervals
+          (fun j _ => tdLchsDensity_continuous.intervalIntegrable _ _), hx0, hxN]
+    _ ≤ h*(2/Real.pi)+(h*T)*1 := by
+      apply add_le_add
+      · apply mul_le_mul_of_nonneg_left _ h0
+        simp only [tdLchsVariation, if_neg (by linarith : ¬K ≤ 0), if_pos (by linarith : -K ≤ 0)]
+        linarith [tdLchsDensity_nonneg K, tdLchsDensity_nonneg (-K)]
+      · exact mul_le_mul_of_nonneg_left (tdLchsDensity_interval_le_one _ _ (by linarith))
+          (mul_nonneg h0 hT)
+    _ = _ := by ring
+
+end Quadrature
+
+theorem time_dependent_lchs_quadrature_error :
+    ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
+      (s t : ℝ) (K N : ℕ), Continuous L → Continuous H →
+      (∀ u, (L u).PosSemidef) → (∀ u, (H u).IsHermitian) → s ≤ t → 0 < K → 0 < N →
+      let V := fun j : Fin N => orderedEvolution
+        (fun u => Complex.I • (H u+staticLchsGrid K N j • L u)) s t
+      ‖(∑ j : Fin N, staticLchsCoeff K N j • V j) -
+        orderedEvolution (fun u => L u+Complex.I • H u) s t‖ ≤
+          2/(Real.pi*K)+(2*(K : ℝ)/N)*(2/Real.pi+∫ u in s..t, ‖L u‖) := by
+  intro I _ _ L H s t K N hL hH hPSD hHerm hst hK hN
+  (try dsimp only)
+  let V : ℝ → Matrix I I ℂ := fun k => orderedEvolution (fun u => Complex.I • (H u+k • L u)) s t
+  let h : ℝ := 2*(K : ℝ)/(N : ℝ)
+  let x := fun j : ℕ => -(K : ℝ)+h*j
+  have hKR : (0 : ℝ) < K := by exact_mod_cast hK
+  have hVc := orderedHamiltonian_parameter_continuous L H hL hH s t
+  have hVn (k : ℝ) : ‖V k‖ ≤ 1 := l2_norm_unitary_le_one
+    (ordered_evolution_hermitian_unitary I (fun u => H u + k • L u)
+      (hH.add (hL.const_smul k))
+      (fun u => (hHerm u).add ((hPSD u).isHermitian.smul (R := ℝ) (IsSelfAdjoint.all k))) s t)
+  have hT : 0 ≤ ∫ u in s..t, ‖L u‖ :=
+      intervalIntegral.integral_nonneg hst (fun _ _ => norm_nonneg _)
+  have hVl (a b : ℝ) : ‖V a-V b‖ ≤ (∫ u in s..t, ‖L u‖)*|a-b| := by
+    simpa only [mul_comm] using! time_dependent_lchs_same_unitary_stability I L H s t a b
+      hL hH (fun u => (hPSD u).isHermitian) hHerm hst
+  have hq : (∑ j : Fin N, staticLchsCoeff K N j • V (staticLchsGrid K N j)) =
+      ∑ j ∈ Finset.range N, (h*tdLchsDensity (x j)) • V (x j) := by
+    rw [← Fin.sum_univ_eq_sum_range]
+    apply Finset.sum_congr rfl
+    intro j _
+    have hx : staticLchsGrid K N j = x j.val := by dsimp [staticLchsGrid, x, h]; ring
+    have hc : staticLchsCoeff K N j = ((h*tdLchsDensity (x j.val) : ℝ) : ℂ) := by
+      rw [staticLchsCoeff, hx]
+      congr 1
+      dsimp [tdLchsDensity, h]
+      ring
+    rw [hc, Complex.coe_smul, hx]
+  have hg := tdLchs_weighted_grid_error V hVc hVn (∫ u in s..t, ‖L u‖) hT
+    hVl (K : ℝ) hKR N hN
+  have htail := tdLchs_weighted_tail V hVc hVn (K : ℝ) hKR
+  have he := (time_dependent_lchs_cauchy_representation I L H s t hL hH hPSD hHerm hst).2
+  change (∫ k : ℝ,
+      tdLchsDensity k • V k) = orderedEvolution (fun u => L u+Complex.I • H u) s t at he
+  rw [hq, ← he]
+  have hh := norm_sub_le_norm_sub_add_norm_sub
+    (∑ j ∈ Finset.range N, (h*tdLchsDensity (x j)) • V (x j))
+    (∫ k in -(K : ℝ)..(K : ℝ), tdLchsDensity k • V k) (∫ k : ℝ, tdLchsDensity k • V k)
+  rw [norm_sub_rev (∫ k in -(K : ℝ)..(K : ℝ), tdLchsDensity k • V k)] at hh
+  exact hh.trans ((add_le_add hg htail).trans_eq (by ring))
+
+end Qatlib.Concepts.LchsSimulation.TimeLchs

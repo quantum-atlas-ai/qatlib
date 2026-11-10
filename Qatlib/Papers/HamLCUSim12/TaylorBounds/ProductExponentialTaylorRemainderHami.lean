@@ -1,0 +1,164 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.HamLCUSim12.TaylorBounds.ProductExponentialTaylorRemainderStat
+import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrderConsumers
+set_option warningAsError false
+set_option backward.isDefEq.respectTransparency false
+
+
+open Qatlib.Concepts.TrotterFormula.GeneralOrder
+open Qatlib.Concepts.TrotterFormula.SuzukiFourth
+
+open Qatlib.Foundations.PureStateMath
+
+set_option autoImplicit false
+set_option maxHeartbeats 2000000
+noncomputable section
+namespace Qatlib.Papers.HamLCUSim12.TaylorBounds
+open scoped BigOperators Matrix.Norms.L2Operator
+open Qatlib
+
+variable {I : Type} [Fintype I] [DecidableEq I]
+
+private def multiCoeff {M : ℕ} (A : Fin M → Matrix I I ℂ) (p : Fin M → ℕ) : Matrix I I ℂ :=
+  expProductMul fun j => ((p j).factorial : ℝ)⁻¹ • A j ^ p j
+
+private theorem coeff_cons {M : ℕ} (A : Fin (M+1) → Matrix I I ℂ) (n : ℕ)
+    (p : Fin M → ℕ) :
+    multiCoeff A (Fin.cons n p) = ((n.factorial : ℝ)⁻¹ • A 0 ^ n) *
+      multiCoeff (fun j => A j.succ) p := by
+  simp [multiCoeff, expProductMul, List.ofFn_succ]
+
+omit [Fintype I] [DecidableEq I] in
+
+private theorem sum_flatMap {α : Type} (l : List α) (f : α → List (Matrix I I ℂ)) :
+    (l.flatMap f).sum = (l.map (fun a => (f a).sum)).sum := by
+  induction l with
+  | nil => simp
+  | cons a l ih => simp [ih]
+
+private theorem tuple_series (M n : ℕ) (A : Fin M → Matrix I I ℂ) :
+    ((List.Nat.antidiagonalTuple M n).map (multiCoeff A)).sum =
+      suzukiSeries (List.ofFn A) n := by
+  induction M generalizing n with
+  | zero => cases n <;> simp [List.Nat.antidiagonalTuple, multiCoeff, expProductMul,
+      List.ofFn_zero]
+  | succ M ih =>
+    rw [List.Nat.antidiagonalTuple, List.map_flatMap, sum_flatMap]
+    simp only [List.map_map, Function.comp_def, coeff_cons]
+    simp_rw [List.sum_map_mul_left, ih]
+    rw [List.ofFn_succ, suzukiSeries]
+    rfl
+
+private theorem coefficient_sum (M n : ℕ) (A : Fin M → Matrix I I ℂ) :
+    (∑ p ∈ Finset.Nat.antidiagonalTuple M n, multiCoeff A p) =
+      suzukiSeries (List.ofFn A) n := by
+  simpa only [Finset.sum_eq_multiset_sum, Finset.Nat.antidiagonalTuple,
+    Multiset.Nat.antidiagonalTuple, Multiset.map_coe, Multiset.sum_coe] using! tuple_series M n A
+
+omit [Fintype I] [DecidableEq I] in
+
+private theorem real_complex_smul (r : ℝ) (X : Matrix I I ℂ) : (r : ℂ) • X = r • X := by
+  ext i j
+  rfl
+
+private theorem coefficient_complex {M : ℕ} (A : Fin M → Matrix I I ℂ) (p : Fin M → ℕ) :
+    expProductMul (fun j => ((p j).factorial : ℂ)⁻¹ • A j ^ p j) = multiCoeff A p := by
+  unfold multiCoeff
+  congr 1
+  funext j
+  rw [← Complex.ofReal_natCast, ← Complex.ofReal_inv, real_complex_smul]
+
+theorem exponential_product_taylor_eq {M : ℕ} (A : Fin M → Matrix I I ℂ) (t : ℝ) (ℓ : ℕ) :
+    expProductTaylor A t ℓ = ∑ n ∈ Finset.range (ℓ+1), t^n • suzukiSeries (List.ofFn A) n := by
+  classical
+  let S := (Fintype.piFinset fun _ : Fin M => Finset.range (ℓ+1)).filter
+    (fun p => (∑ j, p j) ≤ ℓ)
+  have hmaps (p : Fin M → ℕ) (hp : p ∈ S) : (∑ j, p j) ∈ Finset.range (ℓ+1) := by
+    have h := (Finset.mem_filter.mp hp).2
+    exact Finset.mem_range.mpr (by omega)
+  unfold expProductTaylor
+  change (∑ p ∈ S, _) = _
+  rw [← Finset.sum_fiberwise_of_maps_to hmaps]
+  apply Finset.sum_congr rfl
+  intro n hn
+  have hset : S.filter (fun p => (∑ j, p j) = n) = Finset.Nat.antidiagonalTuple M n := by
+    ext p
+    constructor
+    · intro hp
+      exact Finset.Nat.mem_antidiagonalTuple.mpr (Finset.mem_filter.mp hp).2
+    · intro hp
+      have he := Finset.Nat.mem_antidiagonalTuple.mp hp
+      have hn' := Finset.mem_range.mp hn
+      apply Finset.mem_filter.mpr
+      refine ⟨Finset.mem_filter.mpr ⟨?_, by omega⟩, he⟩
+      apply Fintype.mem_piFinset.mpr
+      intro j
+      have hj : p j ≤ ∑ k, p k :=
+          Finset.single_le_sum (fun _ _ => Nat.zero_le _) (Finset.mem_univ j)
+      exact Finset.mem_range.mpr (by omega)
+  rw [hset, ← coefficient_sum M n A, Finset.smul_sum]
+  apply Finset.sum_congr rfl
+  intro p hp
+  rw [Finset.Nat.mem_antidiagonalTuple.mp hp, coefficient_complex, real_complex_smul]
+
+@[simp] theorem expProductTaylor_order_zero {M : ℕ} (A : Fin M → Matrix I I ℂ) (t : ℝ) :
+    expProductTaylor A t 0 = 1 := by
+  simp [exponential_product_taylor_eq]
+
+@[simp] theorem expProductTaylor_time_zero {M : ℕ} (A : Fin M → Matrix I I ℂ) (ℓ : ℕ) :
+    expProductTaylor A 0 ℓ = 1 := by
+  rw [exponential_product_taylor_eq]
+  rw [Finset.sum_eq_single 0]
+  · simp
+  · intro n _ hn
+    simp [zero_pow hn]
+  · simp
+
+@[simp] theorem expProductTaylor_empty (A : Fin 0 → Matrix I I ℂ) (t : ℝ) (ℓ : ℕ) :
+    expProductTaylor A t ℓ = 1 := by
+  rw [exponential_product_taylor_eq]
+  simp only [List.ofFn_zero]
+  rw [Finset.sum_eq_single 0]
+  · simp
+  · intro n _ hn
+    cases n with
+    | zero => contradiction
+    | succ n => simp
+  · simp
+
+theorem exponential_product_generator_bridge {M : ℕ} (a : Fin M → ℝ)
+    (H : Fin M → Matrix I I ℂ) (t : ℝ) (j : Fin M) :
+    HamiltonianEvolution (H j) (a j*t) = NormedSpace.exp (t • expProductGenerator a H j) := by
+  unfold HamiltonianEvolution expProductGenerator
+  congr 1
+  rw [← real_complex_smul, smul_smul]
+  congr 1
+  push_cast
+  ring
+
+theorem productExponentialTaylorRemainder : ProductExponentialTaylorRemainder := by
+  intro I _ _ M a H t ℓ
+  have he := general_trotter_taylor_tail (List.ofFn (expProductGenerator a H)) t (ℓ+1)
+  rw [← exponential_product_taylor_eq] at he
+  have hw : expProductMul (fun j => HamiltonianEvolution (H j) (a j*t)) =
+      suzukiExponentialWord (List.ofFn (expProductGenerator a H)) t := by
+    simp_rw [exponential_product_generator_bridge]
+    simp [expProductMul, suzukiExponentialWord, List.map_ofFn, Function.comp_def]
+  rw [hw]
+  have hn (j : Fin M) : ‖expProductGenerator a H j‖ = |a j| *‖H j‖ := by
+    simp [expProductGenerator, norm_smul]
+  have hm : |t| *suzukiMass (List.ofFn (expProductGenerator a H)) =
+      ∑ j, |a j| *‖H j‖*|t| := by
+    simp only [suzukiMass, List.map_ofFn, List.sum_ofFn, Function.comp_def, hn, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro j _
+    ring
+  rw [hm] at he
+  exact he.trans_eq (by ring)
+
+end Qatlib.Papers.HamLCUSim12.TaylorBounds

@@ -1,0 +1,161 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
+import Mathlib.GroupTheory.Commutator.Basic
+import Mathlib.GroupTheory.Abelianization.Defs
+import Mathlib.Tactic
+set_option warningAsError false
+
+set_option autoImplicit false
+set_option linter.unusedVariables false
+
+namespace Qatlib.Papers.NonAbelianHSP01.MainResults
+
+open scoped IsMulCommutative
+
+section TwoOutOfThree
+
+variable {G : Type*} [Group G] {H₁ H N : Subgroup G} [N.Normal]
+
+theorem subgroup_eq_of_inf_eq_and_sup_eq (hle : H₁ ≤ H)
+    (hinf : H₁ ⊓ N = H ⊓ N) (hsup : H₁ ⊔ N = H ⊔ N) : H₁ = H := by
+  refine le_antisymm hle ?_
+  intro x hxH
+  have hxsup : x ∈ H₁ ⊔ N := by
+    rw [hsup]
+    exact Subgroup.mem_sup_left hxH
+  obtain ⟨y, hyH₁, n, hnN, hyn⟩ :=
+    (Subgroup.mem_sup_of_normal_right (s := H₁) (t := N) (x := x)).1 hxsup
+  have hn : n = y⁻¹ * x := by
+    rw [← hyn]
+    group
+  have hnH : n ∈ H := by
+    rw [hn]
+    exact H.mul_mem (Subgroup.inv_mem H (hle hyH₁)) hxH
+  have hnHN : n ∈ H ⊓ N := ⟨hnH, hnN⟩
+  rw [← hinf] at hnHN
+  rw [← hyn]
+  exact H₁.mul_mem hyH₁ hnHN.1
+
+end TwoOutOfThree
+
+section Commutator
+
+variable (G : Type*) [Group G]
+
+theorem quotient_commutator_commutative : IsMulCommutative (G ⧸ commutator G) :=
+  Subgroup.Normal.quotient_commutative_iff_commutator_le.2 le_rfl
+
+theorem sup_commutator_normal (H : Subgroup G) : (H ⊔ commutator G).Normal :=
+  Subgroup.Normal.of_commutator_le (G := G) (H := H ⊔ commutator G) le_sup_right
+
+theorem commutator_eq_closure_commutatorSet :
+    commutator G = Subgroup.closure (commutatorSet G) :=
+  commutator_eq_closure G
+
+end Commutator
+
+section HidesSup
+
+variable {G : Type*} [Group G] {X : Type*} {H N : Subgroup G} [hN : N.Normal]
+
+def cosetValues (f : G → X) (N : Subgroup G) (x : G) : Set X :=
+  f '' ((fun n : G => x * n) '' (N : Set G))
+
+theorem cosetValues_eq_iff (f : G → X)
+    (hf : ∀ a b : G, f a = f b ↔ a⁻¹ * b ∈ H) (x y : G) :
+    cosetValues f N x = cosetValues f N y ↔ x⁻¹ * y ∈ H ⊔ N := by
+  have key : ∀ {u v : G}, (∃ h ∈ H, ∃ n ∈ N, v = u * (h * n)) →
+      cosetValues f N u ⊆ cosetValues f N v := by
+    rintro u v ⟨h, hh, n, hn, hv⟩ a ha
+    obtain ⟨b, hb, hfb⟩ := ha
+    obtain ⟨z, hzN, rfl⟩ := hb
+    refine ⟨v * (n⁻¹ * (h⁻¹ * z * h)), ⟨n⁻¹ * (h⁻¹ * z * h), ?_, rfl⟩, ?_⟩
+    · exact N.mul_mem (N.inv_mem hn) (hN.conj_mem' z hzN h)
+    · have hv' : v * (n⁻¹ * (h⁻¹ * z * h)) = u * z * h := by
+        rw [hv]
+        group
+      rw [hv']
+      have hmem : (u * z * h)⁻¹ * (u * z) ∈ H := by
+        have hconj : (u * z * h)⁻¹ * (u * z) = h⁻¹ := by group
+        rw [hconj]
+        exact Subgroup.inv_mem H hh
+      exact ((hf (u * z * h) (u * z)).2 hmem).trans hfb
+  constructor
+  · intro heq
+    have hxmem : f x ∈ cosetValues f N x :=
+      ⟨x, ⟨1, N.one_mem, by simp⟩, rfl⟩
+    rw [heq] at hxmem
+    obtain ⟨b, hb, hfb⟩ := hxmem
+    obtain ⟨n, hnN, rfl⟩ := hb
+    have hHmem : (y * n)⁻¹ * x ∈ H := (hf (y * n) x).1 hfb
+    have hyx : y⁻¹ * x = n * ((y * n)⁻¹ * x) := by group
+    have hmemN : y⁻¹ * x ∈ N ⊔ H := by
+      rw [hyx]
+      exact Subgroup.mul_mem_sup hnN hHmem
+    have h4 : x⁻¹ * y ∈ N ⊔ H := by
+      simpa using Subgroup.inv_mem (N ⊔ H) hmemN
+    rwa [sup_comm] at h4
+  · intro hxy
+    obtain ⟨h, hh, n, hn, hxn⟩ :=
+      (Subgroup.mem_sup_of_normal_right (s := H) (t := N) (x := x⁻¹ * y)).1 hxy
+    have hy : y = x * (h * n) := by
+      rw [hxn]
+      group
+    have hsub₁ : cosetValues f N x ⊆ cosetValues f N y := key ⟨h, hh, n, hn, hy⟩
+    have hxy' : y⁻¹ * x ∈ H ⊔ N := by
+      have hcomp : y⁻¹ * x = n⁻¹ * h⁻¹ := by
+        have hinv := congrArg (fun t : G => t⁻¹) hxn
+        simp only [mul_inv_rev, inv_inv] at hinv
+        exact hinv.symm
+      rw [hcomp]
+      have : n⁻¹ * h⁻¹ ∈ N ⊔ H :=
+        Subgroup.mul_mem_sup (N.inv_mem hn) (Subgroup.inv_mem H hh)
+      rwa [sup_comm] at this
+    obtain ⟨h₂, hh₂, n₂, hn₂, hxn₂⟩ :=
+      (Subgroup.mem_sup_of_normal_right (s := H) (t := N) (x := y⁻¹ * x)).1 hxy'
+    have hx : x = y * (h₂ * n₂) := by
+      rw [hxn₂]
+      group
+    have hsub₂ : cosetValues f N y ⊆ cosetValues f N x := key ⟨h₂, hh₂, n₂, hn₂, hx⟩
+    exact le_antisymm hsub₁ hsub₂
+
+end HidesSup
+
+structure IsExtraSpecial (p : ℕ) (G : Type*) [Group G] : Prop where
+
+  prime : p.Prime
+
+  commutator_eq_center : commutator G = Subgroup.center G
+
+  card_commutator : Nat.card (commutator G) = p
+
+  quotient_exponent : ∀ x : G ⧸ commutator G, x ^ p = 1
+
+namespace IsExtraSpecial
+
+variable {G : Type*} [Group G] {p : ℕ}
+
+theorem center_eq_commutator (h : IsExtraSpecial p G) :
+    Subgroup.center G = commutator G :=
+  h.commutator_eq_center.symm
+
+theorem card_center (h : IsExtraSpecial p G) : Nat.card (Subgroup.center G) = p := by
+  rw [h.center_eq_commutator]
+  exact h.card_commutator
+
+theorem quotient_commutative (h : IsExtraSpecial p G) :
+    IsMulCommutative (G ⧸ commutator G) :=
+  quotient_commutator_commutative G
+
+theorem quotient_mk_eq_one_of_mem {x : G} (hx : x ∈ commutator G) :
+    (x : G ⧸ commutator G) = 1 :=
+  QuotientGroup.eq_one_iff x |>.2 hx
+
+end IsExtraSpecial
+
+end Qatlib.Papers.NonAbelianHSP01.MainResults

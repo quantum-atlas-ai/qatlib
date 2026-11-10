@@ -1,0 +1,170 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.QueryComplexity.DegreeMethod.CompilerComposition
+set_option warningAsError false
+
+open Qatlib.Foundations.QueryWordCore.Circuit
+open Qatlib.Foundations.PureStateMath
+
+open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
+
+namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
+
+open Matrix
+
+theorem hadamard_mul_three : Hadamard * Hadamard * Hadamard = Hadamard := by
+  rw [hadamard_mul_self, Matrix.one_mul]
+
+theorem hadamard_mul_three_mul (U : Matrix Bool Bool ℂ) :
+    (Hadamard * Hadamard * Hadamard) * U = Hadamard * U := by
+  rw [hadamard_mul_three]
+
+theorem hadamard_sandwich_mul (U : Matrix Bool Bool ℂ) :
+    Hadamard * (Hadamard * U * Hadamard) * Hadamard = U := by
+  rw [← Matrix.mul_assoc, ← Matrix.mul_assoc, hadamard_mul_self, Matrix.one_mul,
+    Matrix.mul_assoc, hadamard_mul_self, Matrix.mul_one]
+
+theorem pauliX_split_mul (U : Matrix Bool Bool ℂ) : (U * PauliX) * PauliX = U := by
+  rw [Matrix.mul_assoc, show PauliX * PauliX = 1 from permMatrix_mul_self Bool.not_not,
+    Matrix.mul_one]
+
+noncomputable def hadamardSandwichCompiler : GateCompiler Bool where
+  compile U := [Step.gate Hadamard, Step.gate (Hadamard * U * Hadamard), Step.gate Hadamard]
+  query_free _ := rfl
+  semantics := by
+    intro U W ψ
+    simp only [run_gate, run_nil]
+    rw [← applyGate_mul, ← applyGate_mul, hadamard_sandwich_mul]
+
+noncomputable def pauliXSplitCompiler : GateCompiler Bool where
+  compile U := [Step.gate PauliX, Step.gate (U * PauliX)]
+  query_free _ := rfl
+  semantics := by
+    intro U W ψ
+    simp only [run_gate, run_nil]
+    rw [← applyGate_mul, pauliX_split_mul]
+
+theorem twoStageCompiler_expansions (U : Matrix Bool Bool ℂ) :
+    hadamardSandwichCompiler.compile U =
+        [Step.gate Hadamard, Step.gate (Hadamard * U * Hadamard), Step.gate Hadamard] ∧
+    pauliXSplitCompiler.compile U = [Step.gate PauliX, Step.gate (U * PauliX)] :=
+  ⟨rfl, rfl⟩
+
+theorem hadamardSandwich_usesGateSetOn (C : Circuit Bool)
+    (hC : Circuit.UsesGateSet {Hadamard} C) :
+    hadamardSandwichCompiler.UsesGateSetOn {Hadamard} C :=
+  fun U hU => by
+    have hUH : U = Hadamard := hC U hU
+    subst hUH
+    intro V hV
+    rcases List.mem_cons.mp hV with hV | hV
+    · have hV' : V = Hadamard := Step.gate.inj hV
+      subst hV'
+      simp
+    · rcases List.mem_cons.mp hV with hV | hV
+      · have hV' : V = Hadamard * Hadamard * Hadamard := Step.gate.inj hV
+        subst hV'
+        simp [hadamard_mul_three]
+      · rcases List.mem_cons.mp hV with hV | hV
+        · have hV' : V = Hadamard := Step.gate.inj hV
+          subst hV'
+          simp
+        · simp at hV
+
+theorem pauliXSplit_usesGateSetOn_hadamard :
+    ∀ U ∈ ({Hadamard} : Set (Matrix Bool Bool ℂ)),
+      Circuit.UsesGateSet {PauliX, Hadamard * PauliX} (pauliXSplitCompiler.compile U) := by
+  intro U hU
+  have hUH : U = Hadamard := hU
+  subst hUH
+  intro V hV
+  rcases List.mem_cons.mp hV with hV | hV
+  · have hV' : V = PauliX := Step.gate.inj hV
+    subst hV'
+    simp
+  · rcases List.mem_cons.mp hV with hV | hV
+    · have hV' : V = Hadamard * PauliX := Step.gate.inj hV
+      subst hV'
+      simp
+    · simp at hV
+
+theorem pauliX_hadamardX_unitary : ∀ U ∈ ({PauliX, Hadamard * PauliX} :
+    Set (Matrix Bool Bool ℂ)), U ∈ Matrix.unitaryGroup Bool ℂ := by
+  intro U hU
+  rw [Set.mem_insert_iff] at hU
+  rcases hU with rfl | rfl
+  · exact pauliX_unitary
+  · exact Submonoid.mul_mem _ hadamard_unitary pauliX_unitary
+
+noncomputable def twoStageHadamardCircuit : Circuit Bool :=
+  compileCircuit (GateCompiler.compose hadamardSandwichCompiler pauliXSplitCompiler)
+    [Step.gate Hadamard, Step.query]
+
+theorem applyGate_pauliZ_plus : ApplyGate PauliZ Plus = Minus := by
+  funext b
+  cases b <;>
+    simp [ApplyGate, PauliZ, Plus, Minus, Matrix.mulVec, dotProduct, Hadamard]
+
+theorem twoStageHadamardCircuit_eq_list : twoStageHadamardCircuit =
+    [Step.gate PauliX, Step.gate (Hadamard * PauliX), Step.gate PauliX,
+      Step.gate (Hadamard * PauliX), Step.gate PauliX, Step.gate (Hadamard * PauliX),
+      Step.query] := by
+  unfold twoStageHadamardCircuit
+  simp only [compileCircuit_gate, compileCircuit_query, compileCircuit_nil,
+    GateCompiler.compose_compile, hadamardSandwichCompiler, pauliXSplitCompiler,
+    List.append_assoc, List.append_nil, hadamard_mul_three_mul]
+  rfl
+
+theorem twoStageHadamard_certified :
+    (∀ (W : Matrix Bool Bool ℂ) (ψ : QState Bool),
+      Run W twoStageHadamardCircuit ψ
+        = Run W [Step.gate Hadamard, Step.query] ψ) ∧
+    Circuit.UsesGateSet {PauliX, Hadamard * PauliX} twoStageHadamardCircuit ∧
+    IsUnitaryCircuit twoStageHadamardCircuit ∧
+    QueryCount twoStageHadamardCircuit = 1 ∧
+    GateCount twoStageHadamardCircuit = 6 ∧
+    Size twoStageHadamardCircuit = 7 ∧
+    Run PauliZ twoStageHadamardCircuit (Ket false) = Minus := by
+  have h₁ : hadamardSandwichCompiler.UsesGateSetOn {Hadamard}
+      ([Step.gate Hadamard, Step.query] : Circuit Bool) :=
+    hadamardSandwich_usesGateSetOn _ (by
+      intro U hU
+      rcases List.mem_cons.mp hU with hU | hU
+      · have hU' : U = Hadamard := Step.gate.inj hU
+        subst hU'
+        simp
+      · simp at hU)
+  have h₂ : ∀ U ∈ ({Hadamard} : Set (Matrix Bool Bool ℂ)),
+      Circuit.UsesGateSet {PauliX, Hadamard * PauliX} (pauliXSplitCompiler.compile U) :=
+    pauliXSplit_usesGateSetOn_hadamard
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro W ψ
+    exact (run_compileCircuit (GateCompiler.compose hadamardSandwichCompiler pauliXSplitCompiler)
+      W [Step.gate Hadamard, Step.query] ψ)
+  · obtain ⟨_, hgates, _, _, _⟩ :=
+      GateCompiler.compose_certified hadamardSandwichCompiler pauliXSplitCompiler
+        {Hadamard} {PauliX, Hadamard * PauliX} ([Step.gate Hadamard, Step.query] : Circuit Bool)
+        h₁ h₂ pauliX_hadamardX_unitary (1 : Matrix Bool Bool ℂ) (Ket false)
+    exact hgates
+  · obtain ⟨_, _, hunit, _, _⟩ :=
+      GateCompiler.compose_certified hadamardSandwichCompiler pauliXSplitCompiler
+        {Hadamard} {PauliX, Hadamard * PauliX} ([Step.gate Hadamard, Step.query] : Circuit Bool)
+        h₁ h₂ pauliX_hadamardX_unitary (1 : Matrix Bool Bool ℂ) (Ket false)
+    exact hunit
+  · exact queryCount_compileCircuit _ _
+  · exact twoStageHadamardCircuit_eq_list ▸ rfl
+  · exact twoStageHadamardCircuit_eq_list ▸ rfl
+  · have hr : Run PauliZ twoStageHadamardCircuit (Ket false)
+        = Run PauliZ [Step.gate Hadamard, Step.query] (Ket false) :=
+      (run_compileCircuit (GateCompiler.compose hadamardSandwichCompiler pauliXSplitCompiler)
+        PauliZ [Step.gate Hadamard, Step.query] (Ket false))
+    rw [hr]
+    simp only [run_query, run_gate, run_nil]
+    rw [applyGate_hadamard_ket_false, applyGate_pauliZ_plus]
+
+end Qatlib.Concepts.QueryComplexity.DegreeMethod

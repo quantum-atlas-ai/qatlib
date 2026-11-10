@@ -1,0 +1,83 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.QMechSim97.MainResults.Defs
+import Mathlib.Tactic
+set_option warningAsError false
+
+set_option autoImplicit false
+noncomputable section
+
+namespace Qatlib.Papers.QMechSim97.MainResults.ResourceComplexity
+
+open Qatlib.Papers.QMechSim97.MainResults.Defs
+
+theorem interactionGates_eq (d l : ℕ) :
+    interactionGates d l = d ^ 2 * (l ^ d) ^ 2 := by
+  unfold interactionGates
+  rw [show l ^ (2 * d) = (l ^ d) ^ 2 by rw [mul_comm 2 d, pow_mul]]
+
+theorem classicalComponents_eq (d l n : ℕ) :
+    classicalComponents d l n = (l ^ d) ^ n := by
+  unfold classicalComponents
+  exact pow_mul l d n
+
+theorem totalQuantumGates_le (d l : ℕ) (hl : 1 ≤ l) :
+    totalQuantumGates d l ≤ (d + 2 * d ^ 2) * (l ^ d) ^ 2 := by
+  have hl1 : 1 ≤ l ^ d := one_le_pow₀ hl
+  have hpow2 : l ^ d ≤ (l ^ d) ^ 2 := by
+    simpa using pow_le_pow_right₀ hl1 (show 1 ≤ 2 by norm_num)
+  unfold totalQuantumGates propagationGates kineticGates interactionGates
+  rw [show l ^ (2 * d) = (l ^ d) ^ 2 by rw [mul_comm 2 d, pow_mul]]
+  calc d * l ^ d + d ^ 2 * l ^ d + d ^ 2 * (l ^ d) ^ 2
+      ≤ d * (l ^ d) ^ 2 + d ^ 2 * (l ^ d) ^ 2 + d ^ 2 * (l ^ d) ^ 2 := by gcongr
+    _ = (d + 2 * d ^ 2) * (l ^ d) ^ 2 := by ring
+
+theorem classical_dominates (d l n : ℕ) (hl : 2 ≤ l) (hn : 2 ≤ n) :
+    (d + 2 * d ^ 2) * classicalComponents d l n ≥
+      (l ^ d) ^ (n - 2) * totalQuantumGates d l := by
+  have hl1 : 1 ≤ l := by omega
+  have hqn : classicalComponents d l n = (l ^ d) ^ (n - 2) * (l ^ d) ^ 2 := by
+    rw [classicalComponents_eq]
+    conv_lhs => rw [show n = (n - 2) + 2 by omega]
+    rw [pow_add]
+  have hfactor : (d + 2 * d ^ 2) * ((l ^ d) ^ (n - 2) * (l ^ d) ^ 2)
+      = (l ^ d) ^ (n - 2) * ((d + 2 * d ^ 2) * (l ^ d) ^ 2) := by
+    rw [← mul_assoc, mul_comm (d + 2 * d ^ 2) ((l ^ d) ^ (n - 2)), mul_assoc]
+  calc (d + 2 * d ^ 2) * classicalComponents d l n
+      = (d + 2 * d ^ 2) * ((l ^ d) ^ (n - 2) * (l ^ d) ^ 2) := by rw [hqn]
+    _ = (l ^ d) ^ (n - 2) * ((d + 2 * d ^ 2) * (l ^ d) ^ 2) := hfactor
+    _ ≥ (l ^ d) ^ (n - 2) * totalQuantumGates d l :=
+        Nat.mul_le_mul_left _ (totalQuantumGates_le d l hl1)
+
+theorem example_classical_eq : classicalComponents 3 20 20 = 20 ^ 60 := by
+  unfold classicalComponents; norm_num
+
+theorem example_classical_gt_10_77 : classicalComponents 3 20 20 > 10 ^ 77 := by
+  rw [example_classical_eq]; norm_num
+
+theorem example_interaction_eq : interactionGates 3 20 = 9 * 20 ^ 6 := by
+  unfold interactionGates; norm_num
+
+theorem example_quantum_lt : totalQuantumGates 3 20 < 2300000000 := by
+  unfold totalQuantumGates propagationGates kineticGates interactionGates; norm_num
+
+theorem register_card (N : ℕ) : Fintype.card (Fin N → Bool) = 2 ^ N := by
+  simp
+
+theorem quantum_register_card (d l : ℕ) :
+    Fintype.card (Fin (qubitCount d l) → Bool) = 2 ^ qubitCount d l :=
+  register_card (qubitCount d l)
+
+theorem classical_exponential_in_particles (d l n : ℕ) (hl : 2 ≤ l) (hd : 1 ≤ d) :
+    2 ^ n ≤ classicalComponents d l n := by
+  rw [classicalComponents_eq]
+  have hl1 : 1 ≤ l := by omega
+  have hld : l ≤ l ^ d := le_self_pow hl1 (by omega)
+  have h2l : 2 ≤ l ^ d := le_trans hl hld
+  exact pow_le_pow_left' h2l n
+
+end Qatlib.Papers.QMechSim97.MainResults.ResourceComplexity

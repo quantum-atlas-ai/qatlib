@@ -1,0 +1,203 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Mathlib.Analysis.Complex.Liouville
+import Qatlib.Concepts.LchsSimulation.TimeLchs
+import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
+import Mathlib.Analysis.Complex.RealDeriv
+import Mathlib.Analysis.Calculus.FDeriv.Analytic
+
+
+open Qatlib.Concepts.LchsSimulation.TimeLchs
+open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+open Qatlib.Concepts.ReferenceError.RefTraceError
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
+set_option autoImplicit false
+set_option backward.isDefEq.respectTransparency false
+set_option maxHeartbeats 700000
+noncomputable section
+namespace Qatlib.Concepts.LchsSimulation.Quadrature
+open Matrix Set MeasureTheory
+open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
+set_option warningAsError false
+private noncomputable def quadratureActionCLM {I : Type} [Fintype I] [DecidableEq I]
+    (v : QState I) : Matrix I I ℂ →L[ℂ] EuclideanSpace ℂ I := by
+  let e : EuclideanSpace ℂ I ≃L[ℂ] (I → ℂ) := PiLp.continuousLinearEquiv 2 ℂ (fun _ : I => ℂ)
+  let m : Matrix I I ℂ →ₗ[ℂ] (I → ℂ) := (Matrix.mulVecBilin ℂ ℂ).flip v
+  refine (e.symm.toLinearMap.comp m).mkContinuous ‖toEuclidean_fromVec v‖ ?_
+  intro X
+  exact (Matrix.l2_opNorm_mulVec X (toEuclidean_fromVec v)).trans_eq (mul_comm _ _)
+
+private theorem quadrature_action_deriv {I : Type} [Fintype I] [DecidableEq I]
+    (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t : ℝ) (v : QState I) :
+    HasDerivAt (fun u => toEuclidean_fromVec (orderedEvolution A s u *ᵥ v))
+      (-toEuclidean_fromVec (A t *ᵥ (orderedEvolution A s t *ᵥ v))) t := by
+  have hd := ((quadratureActionCLM v).restrictScalars ℝ).hasFDerivAt.comp_hasDerivAt t
+    (orderedEvolution_hasDerivAt A hA s t)
+  simpa [quadratureActionCLM, toEuclidean_fromVec, Matrix.neg_mulVec, Matrix.mulVec_mulVec] using!
+      hd
+
+private theorem hermitian_quadratic_im_zero {I : Type} [Fintype I] [DecidableEq I]
+    (A : Matrix I I ℂ) (hA : A.IsHermitian) (v : QState I) : (Qatlib.Foundations.PureStateMath.Inner v (A *ᵥ v)).im=0 := by
+  have he : Qatlib.Foundations.PureStateMath.Inner v (Aᴴ *ᵥ v)=star (Qatlib.Foundations.PureStateMath.Inner v (A *ᵥ v)) := by
+    unfold Qatlib.Foundations.PureStateMath.Inner
+    rw [Matrix.dotProduct_mulVec,Matrix.vecMul_conjTranspose,star_star,Matrix.star_dotProduct]
+  rw [hA.eq] at he
+  have hh := congrArg Complex.im he
+  simp only [RCLike.star_def,Complex.conj_im] at hh
+  linarith
+
+private theorem complex_parameter_quadratic_re {I : Type} [Fintype I] [DecidableEq I]
+    (H L : Matrix I I ℂ) (hH : H.IsHermitian) (hL : L.IsHermitian) (z : ℂ) (v : QState I) :
+    (Qatlib.Foundations.PureStateMath.Inner v (-(Complex.I • (H+z • L)) *ᵥ v)).re=z.im*(Qatlib.Foundations.PureStateMath.Inner v (L *ᵥ v)).re := by
+  have himH := hermitian_quadratic_im_zero H hH v
+  have himL := hermitian_quadratic_im_zero L hL v
+  simp only [Matrix.neg_mulVec,Matrix.smul_mulVec,Matrix.add_mulVec]
+  unfold Qatlib.Foundations.PureStateMath.Inner at *
+  simp only [dotProduct_neg,dotProduct_smul,dotProduct_add,Complex.neg_re,
+    smul_eq_mul,Complex.mul_re,Complex.mul_im,Complex.add_im,Complex.I_re,Complex.I_im]
+  rw [himH,himL]
+  ring
+
+theorem ordered_unitary_complex_parameter_growth
+    (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ→Matrix I I ℂ) (T Λ : ℝ)
+    (hL : Continuous L) (hH : Continuous H) (hHermL : ∀ u,(L u).IsHermitian)
+    (hHermH : ∀ u,(H u).IsHermitian) (hT : 0≤T) (hΛ : 0<Λ)
+    (hbound : ∀ u∈Icc 0 T,‖L u‖≤Λ) (z : ℂ) :
+    ‖orderedEvolution (fun u=>Complex.I • (H u+z • L u)) 0 T‖≤Real.exp (|z.im| *T*Λ) := by
+  letI := InnerProductSpace.rclikeToReal ℂ (EuclideanSpace ℂ I)
+  let A := fun u=>Complex.I • (H u+z • L u)
+  have hA : Continuous A := by dsimp [A]; fun_prop
+  let b := |z.im| *Λ
+  have hb : 0≤b := mul_nonneg (abs_nonneg _) hΛ.le
+  have hv (v : QState I) :
+      ‖toEuclidean_fromVec (orderedEvolution A 0 T *ᵥ v)‖≤Real.exp (b*T)*‖toEuclidean_fromVec v‖ := by
+    let f := fun u=>toEuclidean_fromVec (orderedEvolution A 0 u *ᵥ v)
+    have hd (u : ℝ) := (quadrature_action_deriv A hA 0 u v).norm_sq
+    have henergy (u : ℝ) (hu : u∈Icc 0 T) :
+        2*inner ℝ (f u) (-toEuclidean_fromVec (A u *ᵥ (orderedEvolution A 0 u *ᵥ v)))≤2*b*‖f u‖^2 := by
+      let w := orderedEvolution A 0 u *ᵥ v
+      have hquad := complex_parameter_quadratic_re (H u) (L u) (hHermH u) (hHermL u) z w
+      simp only [Matrix.neg_mulVec] at hquad
+      have hn : |(Qatlib.Foundations.PureStateMath.Inner w (L u *ᵥ w)).re|≤Λ*‖toEuclidean_fromVec w‖^2 := by
+        calc _≤‖Qatlib.Foundations.PureStateMath.Inner w (L u *ᵥ w)‖ := Complex.abs_re_le_norm _
+             _≤‖toEuclidean_fromVec w‖*‖toEuclidean_fromVec (L u *ᵥ w)‖ := by
+               rw [← inner_euclidean_fromVec]
+               exact norm_inner_le_norm _ _
+             _≤‖toEuclidean_fromVec w‖*(Λ*‖toEuclidean_fromVec w‖) :=
+               mul_le_mul_of_nonneg_left ((l2_norm_mulVec_fromVec_le _ _).trans
+                 (mul_le_mul_of_nonneg_right (hbound u hu) (norm_nonneg _))) (norm_nonneg _)
+             _=Λ*‖toEuclidean_fromVec w‖^2 := by ring
+      have hm : z.im*(Qatlib.Foundations.PureStateMath.Inner w (L u *ᵥ w)).re≤b*‖toEuclidean_fromVec w‖^2 := by
+        calc _≤ |z.im*(Qatlib.Foundations.PureStateMath.Inner w (L u *ᵥ w)).re| := le_abs_self _
+             _= |z.im| *|(Qatlib.Foundations.PureStateMath.Inner w (L u *ᵥ w)).re| := abs_mul _ _
+             _≤ |z.im| *(Λ*‖toEuclidean_fromVec w‖^2) := mul_le_mul_of_nonneg_left hn (abs_nonneg _)
+             _=_ := by dsimp [b];ring
+      change 2*inner ℝ (toEuclidean_fromVec w)
+          (-toEuclidean_fromVec (A u *ᵥ w))≤2*b*‖toEuclidean_fromVec w‖^2
+      rw [inner_neg_right,real_inner_eq_re_inner (𝕜 := ℂ),inner_euclidean_fromVec]
+      have he : -(Qatlib.Foundations.PureStateMath.Inner w (A u *ᵥ w)).re=z.im*(Qatlib.Foundations.PureStateMath.Inner w (L u *ᵥ w)).re := by
+        simpa only [Qatlib.Foundations.PureStateMath.Inner,dotProduct_neg,Complex.neg_re,A] using! hquad
+      change 2*(-(Qatlib.Foundations.PureStateMath.Inner w (A u *ᵥ w)).re)≤2*b*‖toEuclidean_fromVec w‖^2
+      rw [he]
+      linarith
+    let g := fun u=>Real.exp (-2*b*u)*‖f u‖^2
+    have hdg (u : ℝ) := (((hasDerivAt_id u).const_mul (-2*b)).exp).mul (hd u)
+    have hmon : AntitoneOn g (Icc 0 T) := by
+      apply antitoneOn_of_deriv_nonpos (convex_Icc _ _) ((continuous_iff_continuousAt.mpr (fun u=>(hdg u).continuousAt)).continuousOn)
+        (fun u _=>(hdg u).differentiableAt.differentiableWithinAt)
+      intro u hu
+      rw [(hdg u).deriv]
+      simp only [mul_one,id_eq]
+      have hh :=
+          mul_le_mul_of_nonneg_left (henergy u (interior_subset hu)) (Real.exp_pos (-2*b*u)).le
+      change Real.exp (-2*b*u)*(-2*b)*‖f u‖^2+Real.exp
+          (-2*b*u)*(2*inner ℝ (f u) (-toEuclidean_fromVec (A u *ᵥ (orderedEvolution A 0 u *ᵥ v))))≤0
+      nlinarith [hh]
+    have hs := hmon ⟨le_rfl,hT⟩ ⟨hT,le_rfl⟩ hT
+    have hi : f 0=toEuclidean_fromVec v := by simp [f]
+    change Real.exp (-2*b*T)*‖f T‖^2≤Real.exp (-2*b*0)*‖f 0‖^2 at hs
+    rw [hi] at hs
+    simp only [mul_zero,Real.exp_zero,one_mul] at hs
+    have he : Real.exp (-2*b*T)=1/(Real.exp (b*T))^2 := by
+      rw [show -2*b*T=-(b*T+b*T) by ring,Real.exp_neg,Real.exp_add]
+      simp [pow_two]
+    rw [he] at hs
+    have hsq : ‖f T‖^2≤(Real.exp (b*T)*‖toEuclidean_fromVec v‖)^2 := by
+      rw [mul_pow]
+      have hp : 0<(Real.exp (b*T))^2 := by positivity
+      have hh :=
+          (div_le_iff₀ hp).mp
+          (show ‖f T‖^2/(Real.exp (b*T))^2≤‖toEuclidean_fromVec v‖^2 by simpa [div_eq_mul_inv,mul_comm] using! hs)
+      simpa only [mul_comm] using! hh
+    exact (sq_le_sq₀ (norm_nonneg _) (mul_nonneg (Real.exp_pos _).le (norm_nonneg _))).mp hsq
+  change ‖Matrix.toEuclideanCLM (𝕜 := ℂ) (n := I) (orderedEvolution A 0 T)‖≤Real.exp (|z.im| *T*Λ)
+  apply ContinuousLinearMap.opNorm_le_bound _ (Real.exp_pos _).le
+  intro x
+  simpa [toEuclideanCLM_applyGate,ApplyGate,b,mul_assoc,mul_comm,mul_left_comm] using!
+      hv (toVec_fromEuclidean x)
+
+theorem ordered_unitary_complex_parameter_entire
+    (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ→Matrix I I ℂ)
+    (hL : Continuous L) (hH : Continuous H) (s t : ℝ) :
+    Differentiable ℂ (fun z : ℂ=>orderedEvolution (fun u=>Complex.I • (H u+z • L u)) s t) := by
+  have hd := (ordered_evolution_entire_parameter L H hL hH s t).comp
+    (differentiable_id.const_mul Complex.I)
+  have he (z : ℂ) : orderedEvolution (fun u=>(Complex.I*z) • L u+Complex.I • H u) s t=
+      orderedEvolution (fun u=>Complex.I • (H u+z • L u)) s t := by
+    congr 1
+    funext u
+    rw [smul_add,smul_smul]
+    exact add_comm _ _
+  simpa only [Function.comp_def,id_eq,he] using! hd
+
+theorem ordered_unitary_iteratedDeriv_real_complex
+    (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ→Matrix I I ℂ)
+    (hL : Continuous L) (hH : Continuous H) (s t : ℝ) (q : ℕ) (k : ℝ) :
+    iteratedDeriv q (fun x : ℝ=>orderedEvolution (fun u=>Complex.I • (H u+x • L u)) s t) k=
+      iteratedDeriv q (fun z : ℂ=>orderedEvolution (fun u=>Complex.I • (H u+z • L u)) s t) (k:ℂ) := by
+  let V := fun z : ℂ=>orderedEvolution (fun u=>Complex.I • (H u+z • L u)) s t
+  have hd : Differentiable ℂ V := ordered_unitary_complex_parameter_entire I L H hL hH s t
+  have he : (fun x : ℝ=>orderedEvolution (fun u=>Complex.I • (H u+x • L u)) s t)=fun x : ℝ=>V (x:ℂ) := by
+    funext x
+    simp only [V,Complex.coe_smul]
+  rw [he]
+  induction q generalizing k with
+  | zero => rfl
+  | succ q ih =>
+    have heq : iteratedDeriv q (fun x : ℝ=>V (x:ℂ))=fun x : ℝ=>iteratedDeriv q V (x:ℂ) := funext ih
+    have ha := (hd.analyticAt (k:ℂ)).iterated_deriv q
+    have hder :=
+        (ha.differentiableAt.hasDerivAt.hasFDerivAt.restrictScalars ℝ).comp_hasDerivAt k Complex.ofRealCLM.hasDerivAt
+    simp only [ContinuousLinearMap.coe_restrictScalars',Complex.ofRealCLM_apply,ContinuousLinearMap.toSpanSingleton_apply,Complex.ofReal_one,one_smul] at hder
+    simp only [iteratedDeriv_succ,heq]
+    simpa only [iteratedDeriv_eq_iterate,Function.comp_def] using! hder.deriv
+
+theorem ordered_unitary_k_derivative_cauchy
+    (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ→Matrix I I ℂ) (T Λ : ℝ)
+    (hL : Continuous L) (hH : Continuous H) (hHermL : ∀ u,(L u).IsHermitian)
+    (hHermH : ∀ u,(H u).IsHermitian) (hT : 0≤T) (hΛ : 0<Λ)
+    (hbound : ∀ u∈Icc 0 T,‖L u‖≤Λ) (q : ℕ) (k R : ℝ) (hR : 0<R) :
+    ‖iteratedDeriv q (fun x : ℝ=>orderedEvolution (fun u=>Complex.I • (H u+x • L u)) 0 T) k‖≤
+      (q.factorial:ℝ)*Real.exp (R*T*Λ)/R^q := by
+  let V := fun z : ℂ=>orderedEvolution (fun u=>Complex.I • (H u+z • L u)) 0 T
+  have hd : Differentiable ℂ V := ordered_unitary_complex_parameter_entire I L H hL hH 0 T
+  have hdc : DiffContOnCl ℂ V (Metric.ball (k:ℂ) R) := DiffContOnCl.mk_ball
+    (fun z _=>(hd z).differentiableWithinAt) (fun z _=>(hd z).continuousAt.continuousWithinAt)
+  have hb (z : ℂ) (hz : z∈Metric.sphere (k:ℂ) R) : ‖V z‖≤Real.exp (R*T*Λ) := by
+    have hi : |z.im|≤R := by
+      have hh := Complex.abs_im_le_norm (z-(k:ℂ))
+      rw [mem_sphere_iff_norm.mp hz] at hh
+      simpa using! hh
+    apply (ordered_unitary_complex_parameter_growth I L H T Λ hL hH hHermL hHermH hT hΛ hbound z).trans
+    apply Real.exp_le_exp.mpr
+    exact mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right hi hT) hΛ.le
+  rw [ordered_unitary_iteratedDeriv_real_complex I L H hL hH 0 T q k]
+  exact Complex.norm_iteratedDeriv_le_of_forall_mem_sphere_norm_le q hR hdc hb
+
+end Qatlib.Concepts.LchsSimulation.Quadrature

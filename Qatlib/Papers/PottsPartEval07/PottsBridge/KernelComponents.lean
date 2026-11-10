@@ -1,0 +1,110 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.PottsPartEval07.PottsBridge.PottsWeightEnum
+set_option warningAsError false
+
+set_option autoImplicit false
+
+namespace Qatlib.Papers.PottsPartEval07.PottsBridge
+
+open scoped BigOperators
+
+section Components
+
+variable {V E : Type*}
+
+def Adj (ends : E → V × V) (a b : V) : Prop :=
+  (∃ e : E, (ends e).1 = a ∧ (ends e).2 = b) ∨ (∃ e : E, (ends e).1 = b ∧ (ends e).2 = a)
+
+lemma adj_symm (ends : E → V × V) : Symmetric (Adj ends) := by
+  rintro a b (⟨e, h1, h2⟩ | ⟨e, h1, h2⟩)
+  · exact Or.inr ⟨e, h1, h2⟩
+  · exact Or.inl ⟨e, h1, h2⟩
+
+def compSetoid (ends : E → V × V) : Setoid V := Relation.EqvGen.setoid (Adj ends)
+
+abbrev Components (ends : E → V × V) : Type _ := Quotient (compSetoid ends)
+
+noncomputable def componentCount (ends : E → V × V) : ℕ := Nat.card (Components ends)
+
+end Components
+
+section Kernel
+
+variable {V E : Type*} [Fintype V] [DecidableEq V] [Fintype E] [DecidableEq E]
+
+variable (q : ℕ) [NeZero q] (ends : E → V × V)
+
+theorem eq_of_coboundary_eq_zero {σ : V → ZMod q} (hσ : coboundary q ends σ = 0)
+    {a b : V} (h : Relation.EqvGen (Adj ends) a b) : σ a = σ b := by
+  induction h with
+  | rel a b hab =>
+      rcases hab with ⟨e, h1, h2⟩ | ⟨e, h1, h2⟩
+      · rw [← h1, ← h2]
+        have hz := congrFun hσ e
+        rw [coboundary_apply, Pi.zero_apply] at hz
+        exact sub_eq_zero.mp hz
+      · rw [← h1, ← h2]
+        have hz := congrFun hσ e
+        rw [coboundary_apply, Pi.zero_apply] at hz
+        exact (sub_eq_zero.mp hz).symm
+  | refl => rfl
+  | symm a b _ ih => exact ih.symm
+  | trans a b c _ _ iab ibc => exact iab.trans ibc
+
+noncomputable def kernelEquiv :
+    {σ : V → ZMod q // coboundary q ends σ = 0} ≃ (Components ends → ZMod q) where
+  toFun σ :=
+    Quotient.lift σ.1 (fun a b hab => eq_of_coboundary_eq_zero q ends σ.2 hab)
+  invFun f :=
+    ⟨fun v => f (Quotient.mk (compSetoid ends) v), by
+      ext e
+      have h : Quotient.mk (compSetoid ends) (ends e).1 = Quotient.mk (compSetoid ends) (ends e).2 :=
+        Quotient.sound (Relation.EqvGen.rel _ _ (Or.inl ⟨e, rfl, rfl⟩))
+      simp only [coboundary_apply, Pi.zero_apply]
+      rw [h, sub_self]⟩
+  left_inv σ := by
+    ext v
+    rfl
+  right_inv f := by
+    funext x
+    refine Quotient.inductionOn x ?_
+    intro v
+    rfl
+
+theorem kernelSize_eq_pow :
+    kernelSize q ends = q ^ componentCount ends := by
+  classical
+  have hk : Fintype.card {σ : V → ZMod q // coboundary q ends σ = 0} = kernelSize q ends := by
+    unfold kernelSize
+    exact Fintype.card_subtype _
+  rw [← hk, Fintype.card_congr (kernelEquiv q ends)]
+  rw [← Nat.card_eq_fintype_card, Nat.card_fun]
+  simp [componentCount]
+
+theorem pottsZ_eq_componentCount (y : ℝ) (hy : y ≠ 0) :
+    pottsZ q ends y
+      = (y ^ Fintype.card E)⁻¹ * ((q : ℝ) ^ componentCount ends)
+          * codeWeightEnum q ends y := by
+  have hcast : ((q ^ componentCount ends : ℕ) : ℝ) = (q : ℝ) ^ componentCount ends :=
+    Nat.cast_pow q (componentCount ends)
+  have h := potts_weight_enumerator q ends y hy
+  rw [kernelSize_eq_pow q ends, hcast] at h
+  have hpow : y ^ Fintype.card E ≠ 0 := pow_ne_zero _ hy
+  calc pottsZ q ends y
+      = (y ^ Fintype.card E)⁻¹ * (y ^ Fintype.card E * pottsZ q ends y) := by
+        rw [inv_mul_cancel_left₀ hpow]
+    _ = (y ^ Fintype.card E)⁻¹
+          * ((q : ℝ) ^ componentCount ends * codeWeightEnum q ends y) := by
+        rw [h]
+    _ = (y ^ Fintype.card E)⁻¹ * ((q : ℝ) ^ componentCount ends)
+          * codeWeightEnum q ends y := by
+        ring
+
+end Kernel
+
+end Qatlib.Papers.PottsPartEval07.PottsBridge

@@ -1,0 +1,39 @@
+# Lake cache configuration for Qatlib (modeled after Physlib).
+#
+# Point Lake at this file with LAKE_CONFIG, e.g.
+#
+#   LAKE_CONFIG=$PWD/lake-cache.toml lake cache get
+#
+# `lake exe get_cache` (scripts/get_cache.lean) does that for you. Bucket
+# endpoints are public information, which is why this file is committed; the
+# credential that authorises uploads is NOT here. It is supplied via the
+# LAKE_CACHE_KEY environment variable, held as an encrypted GitHub Actions
+# secret.
+#
+# Two services are defined because reads and writes need different access:
+#
+#   qatlib-r2         anonymous, public read endpoint. What contributors and
+#                     `lake cache get` use. No credential required. The contents
+#                     of the bucket are public info.
+#   qatlib-r2-upload  authenticated S3 endpoint, used only by CI to publish.
+#                     Requires LAKE_CACHE_KEY.
+#
+# Both endpoints point at the qatlib-cache bucket. Reads go through its
+# Public Development URL (or custom domain).
+
+cache.defaultService = "qatlib-r2"
+cache.defaultUploadService = "qatlib-r2-upload"
+
+# Anonymous read path used by contributors.
+[[cache.service]]
+name = "qatlib-r2"
+kind = "s3"
+artifactEndpoint = "https://lake-cache.quantum-atlas.ai/artifacts"
+revisionEndpoint = "https://lake-cache.quantum-atlas.ai/revisions"
+
+# Authenticated write path used by CI only. Same bucket (qatlib-cache), S3 API endpoint.
+[[cache.service]]
+name = "qatlib-r2-upload"
+kind = "s3"
+artifactEndpoint = "https://423d114d4989f5bc042102b9554f3eef.r2.cloudflarestorage.com/qatlib-cache/artifacts"
+revisionEndpoint = "https://423d114d4989f5bc042102b9554f3eef.r2.cloudflarestorage.com/qatlib-cache/revisions"

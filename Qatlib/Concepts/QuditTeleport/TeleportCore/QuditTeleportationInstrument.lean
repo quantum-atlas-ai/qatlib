@@ -1,0 +1,330 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
+import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedBellTeleportation
+set_option warningAsError false
+
+set_option autoImplicit false
+set_option backward.isDefEq.respectTransparency false
+set_option maxHeartbeats 3000000
+open Qatlib.Concepts.AdaptiveCP.BranchTrace
+open Qatlib.Concepts.Execution.WorkspaceCP
+open Qatlib.Concepts.AdversaryBounds.AdvDuality
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Concepts.SpectralFilter.PhaseReadout
+open Qatlib.Foundations.InstrumentCore.Measurement
+open Qatlib.Foundations.PureStateMath.BornBridge
+
+open Qatlib.Concepts.ShadowModels.ShadowChannel
+
+namespace Qatlib.Concepts.QuditTeleport.TeleportCore
+open Matrix
+open scoped Classical BigOperators ComplexOrder Kronecker
+
+def quditAliceLabel (n : ℕ) (r : Fin (n*n*n)) : Fin (n*n) :=
+  (quditOutcomeEquiv n) ((quditRegisterEquiv n).symm r).1
+noncomputable def quditProgram (n : ℕ) [NeZero n] : ObservedCircuit (Fin (n*n*n)) :=
+  .step (.gate (relabelGate (quditRegisterEquiv n) (quditHbB n)))
+   (.step (.gate (relabelGate (quditRegisterEquiv n) (quditSUMbcB n)))
+    (.step (.gate (relabelGate (quditRegisterEquiv n) (quditSUMabInvB n)))
+     (.step (.gate (relabelGate (quditRegisterEquiv n) (quditHaInvB n)))
+      (.measure (n*n) (quditAliceLabel n) (fun k =>
+        .step (.gate (relabelGate (quditRegisterEquiv n)
+          (quditBobXB n ((quditOutcomeEquiv n).symm k))))
+         (.step (.gate (relabelGate (quditRegisterEquiv n)
+           (quditBobZB n ((quditOutcomeEquiv n).symm k)))) (.halt true)))))))
+noncomputable def quditProgramLeaf (n : ℕ) [NeZero n] (o : Fin n × Fin n) :
+    ObservedKrausLeaf (n*n*n) :=
+  (observedKrausLeaves 1 (quditProgram n)).getD ((quditOutcomeEquiv n) o).val
+    ⟨0,false,0,0,0,[]⟩
+noncomputable def quditActualBranchCore (n : ℕ) [NeZero n] (o : Fin n × Fin n)
+    (ρ : Operator n) : Operator n :=
+  Matrix.traceLeft (relabelGate (quditRegisterEquiv n).symm
+    ((quditProgramLeaf n o).operator*(quditInitialFrame n*ρ*(quditInitialFrame n)ᴴ)*
+      (quditProgramLeaf n o).operatorᴴ))
+noncomputable def quditActualReferenceCore (n R : ℕ) [NeZero n] (o : Fin n × Fin n)
+    (X : Matrix (Fin n × Fin R) (Fin n × Fin R) ℂ) :
+    Matrix (Fin n × Fin R) (Fin n × Fin R) ℂ :=
+  let e := (Equiv.prodCongr (quditRegisterEquiv n).symm (Equiv.refl (Fin R))).trans
+    (Equiv.prodAssoc (Fin n × Fin n) (Fin n) (Fin R))
+  let F := (quditInitialFrame n) ⊗ₖ (1:Operator R)
+  let L := TensorGate (quditProgramLeaf n o).operator (1:Operator R)
+  Matrix.traceLeft (relabelGate e (L*(F*X*Fᴴ)*Lᴴ))
+
+theorem qudit_flatten_singletons {I : Type} (m : ℕ) (f : Fin m → I) :
+    (List.ofFn (fun k => [f k])).flatten = List.ofFn f := by
+  induction m with
+  | zero => simp
+  | succ m ih => simp [List.ofFn_succ,ih]
+
+noncomputable def quditGeneratedLeaf (n : ℕ) [NeZero n] (k : Fin (n*n)) : ObservedKrausLeaf (n*n*n) :=
+  ObservedKrausLeaf.prepend (relabelGate (quditRegisterEquiv n) (quditHbB n)) 0 1 0 []
+    (ObservedKrausLeaf.prepend (relabelGate (quditRegisterEquiv n) (quditSUMbcB n)) 0 1 0 []
+      (ObservedKrausLeaf.prepend (relabelGate (quditRegisterEquiv n) (quditSUMabInvB n)) 0 1 0 []
+        (ObservedKrausLeaf.prepend (relabelGate (quditRegisterEquiv n) (quditHaInvB n)) 0 1 0 []
+          (ObservedKrausLeaf.prepend (Projector (Finset.univ.filter (fun r => quditAliceLabel n r = k)))
+            0 0 1 [(n*n,k.val)]
+            (ObservedKrausLeaf.prepend (relabelGate (quditRegisterEquiv n) (quditBobXB n ((quditOutcomeEquiv n).symm k))) 0 1 0 []
+              (ObservedKrausLeaf.prepend (relabelGate (quditRegisterEquiv n) (quditBobZB n ((quditOutcomeEquiv n).symm k)))
+                0 1 0 [] ⟨1,true,0,0,0,[]⟩))))))
+
+theorem quditProgram_leaves (n : ℕ) [NeZero n] :
+    observedKrausLeaves 1 (quditProgram n) = List.ofFn (quditGeneratedLeaf n) := by
+  simp only [quditProgram,observedKrausLeaves,List.map_cons,List.map_nil]
+  rw [qudit_flatten_singletons]
+  simp only [List.map_ofFn]
+  rfl
+
+theorem quditProgramLeaf_generated (n : ℕ) [NeZero n] (o : Fin n × Fin n) :
+    quditProgramLeaf n o = quditGeneratedLeaf n ((quditOutcomeEquiv n) o) := by
+  simp [quditProgramLeaf, quditProgram_leaves, List.getD_eq_getElem?_getD]
+
+theorem quditProgram_wellFormed (n : ℕ) [NeZero n] : observedWellFormed (quditProgram n) := by
+  have hQ := qftMatrix_unitary (NeZero.pos n)
+  have h1 := (Matrix.unitaryGroup (Fin n) ℂ).one_mem
+  have hpair := (Matrix.unitaryGroup (Fin n × Fin n) ℂ).one_mem
+  have hb : quditHbB n ∈ Matrix.unitaryGroup (QuditTriple n) ℂ :=
+    tensorGate_unitary (tensorGate_unitary h1 hQ) h1
+  have hs : quditSUMbcB n ∈ Matrix.unitaryGroup (QuditTriple n) ℂ :=
+    teleportRelabelGate_mem_unitaryGroup (tensorGate_unitary h1 (quditSUM_unitary n)) (Equiv.prodAssoc _ _ _).symm
+  have hi : quditSUMabInvB n ∈ Matrix.unitaryGroup (QuditTriple n) ℂ :=
+    tensorGate_unitary (adjoint_unitary (quditSUM_unitary n)) h1
+  have ha : quditHaInvB n ∈ Matrix.unitaryGroup (QuditTriple n) ℂ :=
+    tensorGate_unitary (tensorGate_unitary (adjoint_unitary hQ) h1) h1
+  simp only [quditProgram,observedWellFormed]
+  refine ⟨teleportRelabelGate_mem_unitaryGroup hb (quditRegisterEquiv n),teleportRelabelGate_mem_unitaryGroup hs (quditRegisterEquiv n),
+    teleportRelabelGate_mem_unitaryGroup hi (quditRegisterEquiv n),teleportRelabelGate_mem_unitaryGroup ha (quditRegisterEquiv n),?_⟩
+  intro k
+  exact ⟨teleportRelabelGate_mem_unitaryGroup (tensorGate_unitary hpair (quditX_unitary n _)) (quditRegisterEquiv n),
+    teleportRelabelGate_mem_unitaryGroup (tensorGate_unitary hpair (quditZ_unitary n _)) (quditRegisterEquiv n),trivial⟩
+
+theorem quditProgram_leaf_count (n : ℕ) [NeZero n] : observedLeafCount (quditProgram n) = n*n := by
+  simp [quditProgram,observedLeafCount]
+
+theorem quditProgramLeaf_counts (n : ℕ) [NeZero n] (o : Fin n × Fin n) :
+    (quditProgramLeaf n o).accepted=true ∧ (quditProgramLeaf n o).queries=0 ∧
+    (quditProgramLeaf n o).gates=6 ∧ (quditProgramLeaf n o).measurements=1 ∧
+    (quditProgramLeaf n o).outcomes=[(n*n,((quditOutcomeEquiv n) o).val)] := by
+  rw [quditProgramLeaf_generated]
+  exact ⟨rfl,rfl,rfl,rfl,rfl⟩
+
+theorem qudit_scalar_square (n : ℕ) : star (1/(n:ℂ))*(1/(n:ℂ)) = 1/(n:ℂ)^2 := by
+  have hs : star (1/(n:ℂ)) = 1/(n:ℂ) := by
+    change (starRingEnd ℂ) (1/(n:ℂ)) = _
+    simp
+  rw [hs]
+  ring
+
+theorem quditBranchKraus_gram (n : ℕ) [NeZero n] (o : Fin n × Fin n) :
+    (quditBranchKraus n o)ᴴ*quditBranchKraus n o = (1/(n:ℂ)^2) • (1:Operator n) := by
+  let V := quditX n ((ZMod.finEquiv n) o.2)*quditZ n (-((ZMod.finEquiv n) o.1))
+  have hv : V ∈ Matrix.unitaryGroup (Fin n) ℂ :=
+    (Matrix.unitaryGroup (Fin n) ℂ).mul_mem (quditX_unitary n _) (quditZ_unitary n _)
+  have hgram : Vᴴ*V = 1 := by simpa only [Matrix.star_eq_conjTranspose] using hv.1
+  rw [quditBranchKraus_formula]
+  change ((1/(n:ℂ)) • V)ᴴ*((1/(n:ℂ)) • V) = _
+  rw [Matrix.conjTranspose_smul,smul_mul_assoc,mul_smul_comm,smul_smul,hgram,qudit_scalar_square]
+
+theorem quditCorrectedKraus_gram (n : ℕ) [NeZero n] (o : Fin n × Fin n) :
+    (quditCorrection n o*quditBranchKraus n o)ᴴ*(quditCorrection n o*quditBranchKraus n o) =
+      (1/(n:ℂ)^2) • (1:Operator n) := by
+  rw [quditCorrection_cancel,Matrix.conjTranspose_smul,Matrix.conjTranspose_one,
+    smul_mul_assoc,mul_smul_comm,smul_smul,Matrix.one_mul,qudit_scalar_square]
+
+theorem qudit_uniform_scalar_sum (n : ℕ) [NeZero n] : (∑ _o : Fin n × Fin n,(1/(n:ℂ)^2:ℂ)) = 1 := by
+  have hn : (n:ℂ) ≠ 0 := by exact_mod_cast (NeZero.ne n)
+  simp only [Finset.sum_const,Finset.card_univ,Fintype.card_prod,Fintype.card_fin,nsmul_eq_mul,Nat.cast_mul]
+  field_simp
+
+theorem qudit_kraus_complete (n : ℕ) [NeZero n] :
+    (∑ o : Fin n × Fin n,(quditBranchKraus n o)ᴴ*quditBranchKraus n o) = 1 ∧
+    (∑ o : Fin n × Fin n,(quditCorrection n o*quditBranchKraus n o)ᴴ*
+      (quditCorrection n o*quditBranchKraus n o)) = 1 := by
+  constructor
+  · simp only [quditBranchKraus_gram,← Finset.sum_smul,qudit_uniform_scalar_sum,one_smul]
+  · simp only [quditCorrectedKraus_gram,← Finset.sum_smul,qudit_uniform_scalar_sum,one_smul]
+
+theorem qudit_corrected_conj (n : ℕ) [NeZero n] (o : Fin n × Fin n) (rho : Operator n) :
+    conjBranch (quditCorrection n o*quditBranchKraus n o) rho = (1/(n:ℂ)^2) • rho := by
+  change (quditCorrection n o*quditBranchKraus n o)*rho*(quditCorrection n o*quditBranchKraus n o)ᴴ = _
+  rw [quditCorrection_cancel,Matrix.conjTranspose_smul,Matrix.conjTranspose_one]
+  simp only [smul_mul_assoc,mul_smul_comm,smul_smul,Matrix.one_mul,Matrix.mul_one]
+  congr 1
+  exact qudit_scalar_square n
+
+noncomputable def quditAliceProjectorB (n : ℕ) (o : Fin n × Fin n) : Matrix (QuditTriple n) (QuditTriple n) ℂ :=
+  Matrix.diagonal (fun r => if r.1 = o then 1 else 0)
+
+theorem quditProgramLeaf_operator (n : ℕ) [NeZero n] (o : Fin n × Fin n) :
+    (quditProgramLeaf n o).operator =
+      relabelGate (quditRegisterEquiv n) (quditBobZB n o)*
+      relabelGate (quditRegisterEquiv n) (quditBobXB n o)*
+      Projector (Finset.univ.filter (fun r => quditAliceLabel n r = (quditOutcomeEquiv n) o))*
+      relabelGate (quditRegisterEquiv n) (quditHaInvB n)*
+      relabelGate (quditRegisterEquiv n) (quditSUMabInvB n)*
+      relabelGate (quditRegisterEquiv n) (quditSUMbcB n)*
+      relabelGate (quditRegisterEquiv n) (quditHbB n) := by
+  simp only [quditProgramLeaf_generated,quditGeneratedLeaf,ObservedKrausLeaf.prepend,
+    Equiv.symm_apply_apply,Matrix.one_mul]
+
+theorem quditAliceProjector_relabel (n : ℕ) (o : Fin n × Fin n) :
+    Projector (Finset.univ.filter (fun r => quditAliceLabel n r = (quditOutcomeEquiv n) o)) =
+      relabelGate (quditRegisterEquiv n) (quditAliceProjectorB n o) := by
+  ext x y
+  have hl (r : Fin (n*n*n)) : quditAliceLabel n r = (quditOutcomeEquiv n) o ↔
+      ((quditRegisterEquiv n).symm r).1 = o := (quditOutcomeEquiv n).injective.eq_iff
+  simp [Projector,quditAliceProjectorB,relabelGate,Matrix.reindex_apply,Matrix.submatrix_apply,
+    Matrix.diagonal_apply,hl,eq_comm]
+
+theorem quditDecodedFrame_column (n : ℕ) [NeZero n] (j : Fin n) :
+    (fun r => (relabelGate (quditRegisterEquiv n) (quditHaInvB n*quditSUMabInvB n)*quditPreparedFrame n) r j) =
+      relabelState (quditRegisterEquiv n) (fun r : QuditTriple n => quditBranchKraus n r.1 r.2 j) := by
+  ext r
+  simp [relabelState,quditBranchKraus]
+
+theorem quditAliceProjector_column (n : ℕ) (o : Fin n × Fin n) (K : (Fin n × Fin n) → Operator n) (j : Fin n) :
+    ApplyGate (quditAliceProjectorB n o) (fun r : QuditTriple n => K r.1 r.2 j) =
+      fun r : QuditTriple n => if r.1 = o then K o r.2 j else 0 := by
+  ext r
+  simp only [quditAliceProjectorB,ApplyGate,Matrix.mulVec,dotProduct,Matrix.diagonal_apply]
+  rw [Finset.sum_eq_single r]
+  · by_cases he : r.1 = o <;> simp [he]
+  · intro q hq hn
+    simp [Ne.symm hn]
+  · simp
+
+theorem quditBob_correction (n : ℕ) [NeZero n] (o : Fin n × Fin n) :
+    quditBobZB n o*quditBobXB n o = TensorGate (1:Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (quditCorrection n o) := by
+  rw [quditBobZB,quditBobXB,tensorGate_mul,Matrix.one_mul]
+  rfl
+
+theorem quditBob_selected_column (n : ℕ) (o : Fin n × Fin n) (C K : Operator n) (j : Fin n) :
+    ApplyGate (TensorGate (1:Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) C)
+      (fun r : QuditTriple n => if r.1 = o then K r.2 j else 0) =
+      fun r : QuditTriple n => if r.1 = o then (C*K) r.2 j else 0 := by
+  ext ⟨a,b⟩
+  simp only [ApplyGate,Matrix.mulVec,dotProduct]
+  rw [Fintype.sum_prod_type]
+  simp only [tensorGate_apply,Matrix.one_apply,mul_ite,ite_mul,zero_mul,mul_zero,one_mul]
+  simp [Matrix.mul_apply]
+
+theorem quditProgramLeaf_column (n : ℕ) [NeZero n] (o : Fin n × Fin n) (j : Fin n) :
+    ApplyGate (quditProgramLeaf n o).operator (fun r => quditInitialFrame n r j) =
+      (1/(n:ℂ)) • relabelState (quditRegisterEquiv n) (Qatlib.Foundations.PureStateMath.Ket (o,j)) := by
+  have he : (quditProgramLeaf n o).operator*quditInitialFrame n =
+      relabelGate (quditRegisterEquiv n) (quditBobZB n o)*
+      relabelGate (quditRegisterEquiv n) (quditBobXB n o)*
+      Projector (Finset.univ.filter (fun r => quditAliceLabel n r = (quditOutcomeEquiv n) o))*
+      (relabelGate (quditRegisterEquiv n) (quditHaInvB n*quditSUMabInvB n)*quditPreparedFrame n) := by
+    rw [quditProgramLeaf_operator,quditPreparedFrame,teleportRelabelGate_mul,teleportRelabelGate_mul]
+    simp only [Matrix.mul_assoc]
+  change (fun r => ((quditProgramLeaf n o).operator*quditInitialFrame n) r j) = _
+  rw [he]
+  change ApplyGate
+    (relabelGate (quditRegisterEquiv n) (quditBobZB n o)*relabelGate (quditRegisterEquiv n) (quditBobXB n o)*
+      Projector (Finset.univ.filter (fun r => quditAliceLabel n r = (quditOutcomeEquiv n) o)))
+    (fun r => (relabelGate (quditRegisterEquiv n) (quditHaInvB n*quditSUMabInvB n)*quditPreparedFrame n) r j) = _
+  rw [quditDecodedFrame_column,← teleportRelabelGate_mul,quditBob_correction,quditAliceProjector_relabel,
+    ← teleportRelabelGate_mul,applyGate_relabelGate,applyGate_mul,quditAliceProjector_column,
+    quditBob_selected_column,quditCorrection_cancel]
+  ext r
+  simp [relabelState,Qatlib.Foundations.PureStateMath.Ket,Matrix.smul_apply,Matrix.one_apply,Prod.ext_iff,ite_and,smul_eq_mul]
+
+noncomputable def quditFixedFrame {A B : Type} [DecidableEq A] [DecidableEq B] (o : A) : Matrix (A×B) B ℂ :=
+  fun r j => if r.1 = o ∧ r.2 = j then 1 else 0
+
+theorem quditFixedFrame_discard {A B : Type} [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
+    (o : A) (X : Matrix B B ℂ) :
+    Matrix.traceLeft (quditFixedFrame (B:=B) o*X*(quditFixedFrame (B:=B) o)ᴴ) = X := by
+  ext i j
+  simp [Matrix.traceLeft,Matrix.mul_apply,Matrix.conjTranspose_apply,quditFixedFrame,ite_and]
+
+theorem qudit_relabel_frame_sandwich {I J B : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
+    [Fintype B] [DecidableEq B] (e : I ≃ J) (F : Matrix I B ℂ) (X : Matrix B B ℂ) :
+    relabelGate e (F*X*Fᴴ) = F.submatrix e.symm id*X*(F.submatrix e.symm id)ᴴ := by
+  ext x y
+  simp only [relabelGate,Matrix.reindex_apply,Matrix.submatrix_apply,Matrix.mul_apply,Matrix.conjTranspose_apply,id_eq]
+
+noncomputable def quditOutcomeFrame (n : ℕ) (o : Fin n × Fin n) : Matrix (Fin (n*n*n)) (Fin n) ℂ :=
+  fun r j => if (quditRegisterEquiv n).symm r = (o,j) then 1 else 0
+
+theorem quditProgramLeaf_frame (n : ℕ) [NeZero n] (o : Fin n × Fin n) :
+    (quditProgramLeaf n o).operator*quditInitialFrame n = (1/(n:ℂ)) • quditOutcomeFrame n o := by
+  ext r j
+  rw [matrix_mul_column]
+  have he := congrFun (quditProgramLeaf_column n o j) r
+  simpa only [Matrix.smul_apply,smul_eq_mul,quditOutcomeFrame,relabelState,Function.comp_apply,Qatlib.Foundations.PureStateMath.Ket] using! he
+
+theorem quditActualBranchCore_uniform (n : ℕ) [NeZero n] (o : Fin n × Fin n) (rho : Operator n) :
+    quditActualBranchCore n o rho = (1/(n:ℂ)^2) • rho := by
+  have he : (quditProgramLeaf n o).operator*(quditInitialFrame n*rho*(quditInitialFrame n)ᴴ)*
+      (quditProgramLeaf n o).operatorᴴ =
+      ((quditProgramLeaf n o).operator*quditInitialFrame n)*rho*
+        ((quditProgramLeaf n o).operator*quditInitialFrame n)ᴴ := by
+    simp only [Matrix.conjTranspose_mul,Matrix.mul_assoc]
+  have hf : (quditOutcomeFrame n o).submatrix (quditRegisterEquiv n) id = quditFixedFrame o := by
+    ext r j
+    simp [quditOutcomeFrame,quditFixedFrame,Matrix.submatrix_apply,Prod.ext_iff]
+  unfold quditActualBranchCore
+  rw [he,quditProgramLeaf_frame,qudit_relabel_frame_sandwich]
+  simp only [Matrix.submatrix_smul,Pi.smul_apply,Equiv.symm_symm,hf]
+  rw [Matrix.conjTranspose_smul]
+  simp only [Matrix.smul_mul,Matrix.mul_smul,smul_smul]
+  rw [Matrix.traceLeft_smul,quditFixedFrame_discard]
+  congr 1
+  exact qudit_scalar_square n
+
+theorem qudit_actual_kraus_complete_and_branch_bridge : ∀ (n : ℕ) [NeZero n],
+  (∑ o : Fin n × Fin n, (quditBranchKraus n o)ᴴ*quditBranchKraus n o)=1 ∧
+  (∑ o : Fin n × Fin n, (quditCorrection n o*quditBranchKraus n o)ᴴ*
+    (quditCorrection n o*quditBranchKraus n o))=1 ∧
+  ∀ (rho : Operator n) (o : Fin n × Fin n),
+    quditActualBranchCore n o rho=conjBranch (quditCorrection n o*quditBranchKraus n o) rho ∧
+    quditActualBranchCore n o rho=(1/(n:ℂ)^2) • rho := by
+  intro n _
+  refine ⟨(qudit_kraus_complete n).1,(qudit_kraus_complete n).2,?_⟩
+  intro rho o
+  exact ⟨(quditActualBranchCore_uniform n o rho).trans (qudit_corrected_conj n o rho).symm,
+    quditActualBranchCore_uniform n o rho⟩
+
+noncomputable def quditCorrectedInstrument (n : ℕ) [NeZero n] : Instrument (Fin n × Fin n) n n :=
+  Instrument.ofKraus (fun o => quditCorrection n o*quditBranchKraus n o) (qudit_kraus_complete n).2
+
+theorem quditCorrectedInstrument_branch (n : ℕ) [NeZero n] (rho : Operator n) (o : Fin n × Fin n) :
+    (quditCorrectedInstrument n).branch o rho = (1/(n:ℂ)^2) • rho := by
+  unfold quditCorrectedInstrument
+  rw [Instrument.ofKraus_branch]
+  exact qudit_corrected_conj n o rho
+
+theorem qudit_actual_instrument_and_conditional_recovery : ∀ (n : ℕ) [NeZero n],
+  ∃ I : Instrument (Fin n × Fin n) n n,
+    (∀ (rho : Operator n) (o : Fin n × Fin n), I.branch o rho=quditActualBranchCore n o rho) ∧
+    (∀ rho : Operator n, I.forget.map rho=rho) ∧
+    (∀ (rho : Operator n) (_hrho : IsDensityOperator rho) (o : Fin n × Fin n),
+      instrumentProb I rho o = 1/(n:ℝ)^2 ∧
+      ∀ hp : 0 < instrumentProb I rho o, I.conditionalState rho o hp = rho) := by
+  intro n _
+  refine ⟨quditCorrectedInstrument n,?_,?_,?_⟩
+  · intro rho o
+    rw [quditCorrectedInstrument_branch,quditActualBranchCore_uniform]
+  · intro rho
+    rw [Instrument.forget_apply]
+    simp only [quditCorrectedInstrument_branch,← Finset.sum_smul,qudit_uniform_scalar_sum,one_smul]
+  · intro rho hrho o
+    have hp : instrumentProb (quditCorrectedInstrument n) rho o = 1/(n:ℝ)^2 := by
+      rw [instrumentProb,quditCorrectedInstrument_branch,Matrix.trace_smul,smul_eq_mul,hrho.2,mul_one]
+      have he : ((1/(n:ℝ)^2:ℝ):ℂ) = 1/(n:ℂ)^2 := by push_cast; rfl
+      rw [← he,Complex.ofReal_re]
+    refine ⟨hp,?_⟩
+    intro hpos
+    unfold Instrument.conditionalState
+    rw [hp,quditCorrectedInstrument_branch,smul_smul]
+    have hn : (n:ℂ) ≠ 0 := by exact_mod_cast (NeZero.ne n)
+    have hs : (((1/(n:ℝ)^2:ℝ):ℂ))⁻¹*(1/(n:ℂ)^2) = 1 := by push_cast; field_simp
+    rw [hs,one_smul]
+
+end Qatlib.Concepts.QuditTeleport.TeleportCore

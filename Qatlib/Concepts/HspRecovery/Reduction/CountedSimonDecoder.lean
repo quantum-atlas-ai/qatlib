@@ -1,0 +1,308 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+set_option warningAsError false
+
+open Qatlib.Concepts.WalkFind.UniformThree
+open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
+open Qatlib.Concepts.HspRecovery.Distinguisher
+open Qatlib.Concepts.WalshMoment.Forrelation
+open Qatlib.Concepts.PauliClifford.ExactRank
+
+open Qatlib.Concepts.GateVocabulary.GateVocab
+open Qatlib.Foundations.QueryWordCore.Circuit
+open Qatlib.Concepts.HspRecovery.CyclicRecovery
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Concepts.LinearLearning.ConcisePipeline
+open Qatlib.Foundations.PureStateMath.BornBridge
+
+set_option autoImplicit false
+
+namespace Qatlib.Concepts.HspRecovery.ReductionCore
+
+open scoped Classical
+
+noncomputable def simonRecordBits {n m : ℕ} (xs : Fin m → AddChar (BooleanVec n) ℂ) : Fin m → Reg n :=
+  fun i => (regBooleanEquiv n).symm (booleanDecodedSamples xs i)
+
+theorem regBooleanEquiv_simonRecordBits {n m : ℕ} (xs : Fin m → AddChar (BooleanVec n) ℂ) :
+    (fun i => regBooleanEquiv n (simonRecordBits xs i)) = booleanDecodedSamples xs :=
+  funext fun i => (regBooleanEquiv n).right_inv (booleanDecodedSamples xs i)
+
+noncomputable def simonPreparedCircuit {R : Type} [AddCommGroup R] [Fintype R]
+    [DecidableEq R] (n : ℕ) : Circuit (BooleanVec n × R) :=
+  Step.gate (TensorGate (relabelGate (regBooleanEquiv n) (HadamardN n)) 1) ::
+    hiddenSubgroupSamplingCircuit (booleanCharacterEquiv n).toEquiv
+
+noncomputable def simonDecodedRun {n : ℕ} {R : Type} [AddCommGroup R] [Fintype R]
+    [DecidableEq R] (f : BooleanVec n → R) (m : ℕ) : PMF (Option (Reg n)) × (ℕ × ℕ × ℕ) :=
+  (PMF.map (fun xs : Fin m → AddChar (BooleanVec n) ℂ => decodeSimonSecret (simonRecordBits xs))
+      (hiddenSubgroupFreshSamples f (booleanCharacterEquiv n).toEquiv m),
+    (∑ _i : Fin m, QueryCount (simonPreparedCircuit (R := R) n),
+      ∑ _i : Fin m, GateCount (simonPreparedCircuit (R := R) n),
+      ∑ _i : Fin m, 1))
+
+theorem simon_register_record_physical_bridge {n m : ℕ} {R : Type} [AddCommGroup R]
+    [Fintype R] [DecidableEq R] (f : BooleanVec n → R)
+    (xs : Fin m → AddChar (BooleanVec n) ℂ) :
+    (fun i => regBooleanEquiv n (simonRecordBits xs i)) = booleanDecodedSamples xs ∧
+      (simonDecodedRun f m).1 = PMF.map (fun xs : Fin m → AddChar (BooleanVec n) ℂ =>
+          decodeSimonSecret (simonRecordBits xs))
+        (hiddenSubgroupFreshSamples f (booleanCharacterEquiv n).toEquiv m) := by
+  refine ⟨regBooleanEquiv_simonRecordBits xs, rfl⟩
+
+theorem simon_decoder_actual_output_mass {n m : ℕ} {R : Type} [AddCommGroup R] [Fintype R]
+    [DecidableEq R] (f : BooleanVec n → R) (s : Reg n) :
+    (simonDecodedRun f m).1 (some s) =
+      ∑ xs ∈ Finset.univ.filter (fun xs : Fin m → AddChar (BooleanVec n) ℂ =>
+        booleanSampleCandidate (booleanDecodedSamples xs) =
+          booleanSimonSubgroup (regBooleanEquiv n s)),
+        hiddenSubgroupFreshSamples f (booleanCharacterEquiv n).toEquiv m xs := by
+  unfold simonDecodedRun
+  rw [PMF.map_apply, tsum_fintype]
+  symm
+  rw [Finset.sum_filter]
+  apply Finset.sum_congr rfl
+  intro xs _
+  by_cases h : booleanSampleCandidate (booleanDecodedSamples xs) =
+      booleanSimonSubgroup (regBooleanEquiv n s)
+  · rw [if_pos h]
+    have hd : decodeSimonSecret (simonRecordBits xs) = some s := by
+      rw [boolean_gaussian_simon_decode_iff, regBooleanEquiv_simonRecordBits xs]
+      exact h
+    rw [if_pos (eq_comm.mpr hd)]
+  · rw [if_neg h]
+    rw [if_neg (by
+      intro hd
+      exact h (by
+        have h1 := (boolean_gaussian_simon_decode_iff (simonRecordBits xs) s).mp hd.symm
+        rw [regBooleanEquiv_simonRecordBits xs] at h1
+        exact h1))]
+
+theorem simon_gaussian_intrinsic_budget {n : ℕ} {R : Type} [AddCommGroup R] [Fintype R]
+    [DecidableEq R] (f : BooleanVec n → R) (s : Reg n) (k : ℕ)
+    (hf : BooleanSimonPromise f (regBooleanEquiv n s)) :
+    ENNReal.ofReal (1-(1/2:ℝ)^k) ≤
+      (simonDecodedRun f (booleanOrthogonalRank (booleanSimonSubgroup (regBooleanEquiv n s))+k)).1
+        (some s) := by
+  rw [simon_decoder_actual_output_mass]
+  exact hiddenSubgroupFreshSamples_simon_success_ge_rank_add_budget f
+    (regBooleanEquiv n s) hf k
+
+theorem booleanOrthogonalRank_simon_le {n : ℕ} (s : BooleanVec n) :
+    booleanOrthogonalRank (booleanSimonSubgroup s) ≤ n := by
+  unfold booleanOrthogonalRank
+  calc Module.finrank (ZMod 2) (booleanOrthogonalSubmodule (booleanSimonSubgroup s))
+      ≤ Module.finrank (ZMod 2) (BooleanVec n) := Submodule.finrank_le _
+    _ = n := by simp [BooleanVec, Module.finrank_fintype_fun_eq_card]
+
+theorem simon_accessible_real_bound {n r k : ℕ} (hrn : r ≤ n) :
+    ((2:ℝ)^r - 1) / 2^(n+k) ≤ (1/2)^k := by
+  rw [div_pow, one_pow]
+  rw [div_le_iff₀ (by positivity : (0:ℝ) < 2^(n+k))]
+  have h1 : (1 : ℝ) / 2^k * 2^(n+k) = 2^n := by
+    rw [pow_add, mul_comm ((2:ℝ)^n) (2^k), ← mul_assoc,
+      one_div_mul_cancel (by positivity : (2:ℝ)^k ≠ 0), one_mul]
+  rw [h1]
+  have h2 : (2:ℝ)^r ≤ 2^n := by
+    exact_mod_cast Nat.pow_le_pow_right (by norm_num) hrn
+  linarith
+
+theorem simon_gaussian_accessible_budget {n : ℕ} {R : Type} [AddCommGroup R] [Fintype R]
+    [DecidableEq R] (f : BooleanVec n → R) (s : Reg n) (k : ℕ)
+    (hf : BooleanSimonPromise f (regBooleanEquiv n s)) :
+    ENNReal.ofReal (1-(1/2:ℝ)^k) ≤ (simonDecodedRun f (n+k)).1 (some s) ∧
+      Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (simonDecodedRun f (n+k)).1 (fun out => out ≠ some s) ≤
+        ENNReal.ofReal ((1/2:ℝ)^k) := by
+  classical
+  have hfh : HidesSubgroup f (booleanSimonSubgroup (regBooleanEquiv n s)) :=
+    (booleanSimonPromise_iff_hidesSubgroup f _).1 hf
+  have hrn : booleanOrthogonalRank (booleanSimonSubgroup (regBooleanEquiv n s)) ≤ n :=
+    booleanOrthogonalRank_simon_le _
+  have hreal := simon_accessible_real_bound
+    (r := booleanOrthogonalRank (booleanSimonSubgroup (regBooleanEquiv n s))) (k := k) hrn
+  have hfail := hiddenSubgroupFreshSamples_boolean_failure_le_rank f
+    (booleanSimonSubgroup (regBooleanEquiv n s)) hfh (booleanCharacterEquiv n).toEquiv (n + k)
+
+  have hevent : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (simonDecodedRun f (n+k)).1 (fun out => out ≠ some s) =
+      ∑ xs ∈ Finset.univ.filter (fun xs : Fin (n+k) → AddChar (BooleanVec n) ℂ =>
+        booleanSampleCandidate (booleanDecodedSamples xs) ≠
+          booleanSimonSubgroup (regBooleanEquiv n s)),
+        hiddenSubgroupFreshSamples f (booleanCharacterEquiv n).toEquiv (n+k) xs := by
+    unfold simonDecodedRun
+    show Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (PMF.map (fun xs => decodeSimonSecret (simonRecordBits xs))
+        (hiddenSubgroupFreshSamples f (booleanCharacterEquiv n).toEquiv (n+k)))
+        (fun out => out ≠ some s) = _
+    unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
+    rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map]
+    unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
+    rw [tsum_fintype]
+    simp only [mul_ite, mul_one, mul_zero]
+    rw [← Finset.sum_filter]
+    have hset : Finset.univ.filter (fun xs : Fin (n+k) → AddChar (BooleanVec n) ℂ =>
+          decodeSimonSecret (simonRecordBits xs) ≠ some s) =
+        Finset.univ.filter (fun xs : Fin (n+k) → AddChar (BooleanVec n) ℂ =>
+          booleanSampleCandidate (booleanDecodedSamples xs) ≠
+            booleanSimonSubgroup (regBooleanEquiv n s)) := by
+      apply Finset.filter_congr
+      intro xs _
+      constructor
+      · intro hd hc
+        exact hd ((boolean_gaussian_simon_decode_iff (simonRecordBits xs) s).mpr (by
+          rw [regBooleanEquiv_simonRecordBits xs]
+          exact hc))
+      · intro hc hd
+        exact hc ((boolean_gaussian_simon_decode_iff (simonRecordBits xs) s).mp hd |>
+          fun h1 => by rw [regBooleanEquiv_simonRecordBits xs] at h1; exact h1)
+    rw [hset]
+  have hfail' : (∑ xs ∈ Finset.univ.filter (fun xs : Fin (n+k) → AddChar (BooleanVec n) ℂ =>
+        booleanSampleCandidate (booleanDecodedSamples xs) ≠
+          booleanSimonSubgroup (regBooleanEquiv n s)),
+        hiddenSubgroupFreshSamples f (booleanCharacterEquiv n).toEquiv (n+k) xs) ≤
+      ENNReal.ofReal ((1/2:ℝ)^k) :=
+    hfail.trans (ENNReal.ofReal_le_ofReal hreal)
+
+  have htotal : (∑ xs ∈ Finset.univ.filter (fun xs : Fin (n+k) → AddChar (BooleanVec n) ℂ =>
+        booleanSampleCandidate (booleanDecodedSamples xs) =
+          booleanSimonSubgroup (regBooleanEquiv n s)),
+        hiddenSubgroupFreshSamples f (booleanCharacterEquiv n).toEquiv (n+k) xs) +
+      (∑ xs ∈ Finset.univ.filter (fun xs : Fin (n+k) → AddChar (BooleanVec n) ℂ =>
+        booleanSampleCandidate (booleanDecodedSamples xs) ≠
+          booleanSimonSubgroup (regBooleanEquiv n s)),
+        hiddenSubgroupFreshSamples f (booleanCharacterEquiv n).toEquiv (n+k) xs) = 1 := by
+    rw [Finset.sum_filter_add_sum_filter_not]
+    have h := PMF.tsum_coe
+      (hiddenSubgroupFreshSamples f (booleanCharacterEquiv n).toEquiv (n+k))
+    rw [tsum_fintype] at h
+    exact h
+  constructor
+  · rw [simon_decoder_actual_output_mass]
+    have hle : ENNReal.ofReal (1-(1/2:ℝ)^k) +
+        (∑ xs ∈ Finset.univ.filter (fun xs : Fin (n+k) → AddChar (BooleanVec n) ℂ =>
+          booleanSampleCandidate (booleanDecodedSamples xs) ≠
+            booleanSimonSubgroup (regBooleanEquiv n s)),
+          hiddenSubgroupFreshSamples f (booleanCharacterEquiv n).toEquiv (n+k) xs) ≤ 1 := by
+      calc ENNReal.ofReal (1-(1/2:ℝ)^k) +
+            (∑ xs ∈ Finset.univ.filter (fun xs : Fin (n+k) → AddChar (BooleanVec n) ℂ =>
+              booleanSampleCandidate (booleanDecodedSamples xs) ≠
+                booleanSimonSubgroup (regBooleanEquiv n s)),
+              hiddenSubgroupFreshSamples f (booleanCharacterEquiv n).toEquiv (n+k) xs)
+          ≤ ENNReal.ofReal (1-(1/2:ℝ)^k) + ENNReal.ofReal ((1/2:ℝ)^k) :=
+            add_le_add le_rfl hfail'
+        _ = ENNReal.ofReal ((1-(1/2:ℝ)^k) + (1/2:ℝ)^k) := by
+            have h1x : (0:ℝ) ≤ 1 - (1/2)^k := by
+              have h : (1/2:ℝ)^k ≤ 1 := by
+                rw [← one_pow k]
+                exact pow_le_pow_left₀ (by norm_num) (by norm_num) k
+              linarith
+            rw [ENNReal.ofReal_add h1x (by positivity)]
+        _ = 1 := by
+            rw [sub_add_cancel]
+            exact ENNReal.ofReal_one
+    rw [← htotal] at hle
+    exact ENNReal.le_of_add_le_add_right (by
+      intro htop
+      rw [htop] at htotal
+      simp at htotal) hle
+  · rw [hevent]
+    exact hfail'
+
+theorem ket_prod_zero_zero {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
+    (n : ℕ) :
+    Ket ((0 : BooleanVec n), (0 : R)) = TensorState (Ket (0 : BooleanVec n)) (Ket (0 : R)) :=
+  (tensorState_ket_ket _ _).symm
+
+theorem relabelState_regBooleanEquiv_ket_zero (n : ℕ) :
+    relabelState (regBooleanEquiv n) (Ket (ZeroStr n)) = Ket (0 : BooleanVec n) := by
+  funext j
+  simp [relabelState, Ket, Equiv.symm_apply_eq, ← regBooleanEquiv_zeroStr]
+
+theorem applyGate_relabelGate_hadamardN_ket_zero (n : ℕ) :
+    ApplyGate (relabelGate (regBooleanEquiv n) (HadamardN n)) (Ket (0 : BooleanVec n)) =
+      Uniform (BooleanVec n) := by
+  rw [← relabelState_regBooleanEquiv_ket_zero n]
+  rw [applyGate_relabelGate, applyGate_hadamardN_ket_zero]
+  have hcard : Fintype.card (BooleanVec n) = 2 ^ n := by
+    simp [BooleanVec, ZMod.card]
+  funext j
+  show (Uniform (Reg n)) ((regBooleanEquiv n).symm j) = (Uniform (BooleanVec n)) j
+  rw [Uniform, Uniform, card_reg, hcard]
+
+theorem simon_actual_preparation_and_quantum_cost {n : ℕ} {R : Type} [AddCommGroup R]
+    [Fintype R] [DecidableEq R] (f : BooleanVec n → R) (m : ℕ) :
+    IsUnitaryCircuit (simonPreparedCircuit (R := R) n) ∧
+    QueryCount (simonPreparedCircuit (R := R) n) = 1 ∧
+    GateCount (simonPreparedCircuit (R := R) n) = 2 ∧
+    Run (AddOracle f) (simonPreparedCircuit (R := R) n) (Ket (0,0)) =
+      Run (AddOracle f) (hiddenSubgroupSamplingCircuit (R := R) (booleanCharacterEquiv n).toEquiv)
+        (TensorState (Uniform (BooleanVec n)) (Ket 0)) ∧
+    (simonDecodedRun f m).2 = (m, 2*m, m) := by
+  refine ⟨?_, rfl, rfl, ?_, ?_⟩
+  · intro U hU
+    simp only [simonPreparedCircuit, hiddenSubgroupSamplingCircuit, List.mem_cons,
+      List.not_mem_nil, or_false] at hU
+    rcases hU with hU | hU | hU
+    · obtain rfl := Step.gate.inj hU
+      exact tensorGate_unitary
+        ((relabelGate_mem_unitaryGroup (regBooleanEquiv n) (HadamardN n)).mpr
+          (hadamardN_unitary n)) (Submonoid.one_mem _)
+    · simp at hU
+    · obtain rfl := Step.gate.inj hU
+      exact tensorGate_unitary (fourierGate_unitary _) (Submonoid.one_mem _)
+  · show Run (AddOracle f)
+        (Step.gate (TensorGate (relabelGate (regBooleanEquiv n) (HadamardN n)) 1) ::
+          hiddenSubgroupSamplingCircuit (booleanCharacterEquiv n).toEquiv) (Ket (0, 0)) = _
+    rw [run_gate]
+    have hprep : ApplyGate (TensorGate (relabelGate (regBooleanEquiv n) (HadamardN n)) 1)
+        (Ket ((0 : BooleanVec n), (0 : R))) =
+        TensorState (Uniform (BooleanVec n)) (Ket (0 : R)) := by
+      rw [ket_prod_zero_zero, applyGate_tensorGate]
+      have h1 : ApplyGate (1 : Matrix R R ℂ) (Ket (0 : R)) = Ket (0 : R) := Matrix.one_mulVec _
+      rw [h1]
+      congr 1
+      exact applyGate_relabelGate_hadamardN_ket_zero n
+    rw [hprep]
+  · simp [simonDecodedRun, simonPreparedCircuit, hiddenSubgroupSamplingCircuit,
+      QueryCount, GateCount, mul_comm]
+
+theorem simon_gaussian_zero_nonzero_ranks {n : ℕ} (s : Reg n) :
+    booleanOrthogonalRank (booleanSimonSubgroup (regBooleanEquiv n s)) =
+      if s = ZeroStr n then n else n - 1 := by
+  set H := booleanSimonSubgroup (regBooleanEquiv n s) with hH
+  set r := booleanOrthogonalRank H with hr
+  have hcardQ : Fintype.card (BooleanVec n ⧸ H) = 2 ^ r :=
+    card_booleanQuotient_eq_two_pow_booleanOrthogonalRank H
+  have hcardG : Fintype.card (BooleanVec n) = 2 ^ n := by
+    simp [BooleanVec, ZMod.card]
+  have hlag : Nat.card (BooleanVec n) = Nat.card (BooleanVec n ⧸ H) * Nat.card H :=
+    AddSubgroup.card_eq_card_quotient_mul_card_addSubgroup H
+  rw [Nat.card_eq_fintype_card, Nat.card_eq_fintype_card, Nat.card_eq_fintype_card,
+    hcardQ, hcardG] at hlag
+  by_cases hs : s = ZeroStr n
+  · rw [if_pos hs]
+    have hs0 : regBooleanEquiv n s = 0 := by rw [hs]; simp
+    have hcardH : Fintype.card H = 1 := by
+      rw [hH, hs0, booleanSimonSubgroup_zero]
+      simp
+    rw [hcardH, mul_one] at hlag
+    exact Nat.pow_right_injective (by norm_num) hlag.symm
+  · rw [if_neg hs]
+    have hs0 : regBooleanEquiv n s ≠ 0 := by
+      intro h0
+      exact hs (regBooleanEquiv_injective n (by rw [h0]; simp))
+    have hcardH : Fintype.card H = 2 := card_booleanSimonSubgroup_eq_two_of_ne_zero _ hs0
+    rw [hcardH, ← pow_succ] at hlag
+    have hn : 0 < n := by
+      rcases Nat.eq_zero_or_pos n with h0 | hpos
+      · subst h0
+        exact absurd (Subsingleton.elim s (ZeroStr 0)) hs
+      · exact hpos
+    have hnr : n = r + 1 := Nat.pow_right_injective (by norm_num) hlag
+    omega
+
+end Qatlib.Concepts.HspRecovery.ReductionCore

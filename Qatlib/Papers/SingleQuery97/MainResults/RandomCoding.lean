@@ -1,0 +1,82 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.SingleQuery97.MainResults.CharacterSum
+import Mathlib.Data.Real.Basic
+import Mathlib.Tactic
+set_option warningAsError false
+
+namespace Qatlib.Papers.SingleQuery97.MainResults.RandomCoding
+
+open Qatlib.Papers.SingleQuery97.MainResults.CharacterSum
+
+noncomputable def randomState {A m : ℕ} [NeZero A] (z : Fin m → ZMod A) :
+    (Fin m → ZMod A) → ℂ :=
+  stateAmp z
+
+theorem randomStates_orthonormal {A m : ℕ} [NeZero A] (hA : 0 < A)
+    (z z' : Fin m → ZMod A) :
+    inner (randomState z) (randomState z') = if z = z' then 1 else 0 :=
+  inner_stateAmp hA z z'
+
+theorem random_nonorthogonal_iff_code_equal {A m : ℕ} [NeZero A] (hA : 0 < A)
+    (z z' : Fin m → ZMod A) :
+    inner (randomState z) (randomState z') ≠ 0 ↔ z = z' := by
+  rw [randomStates_orthonormal hA]
+  by_cases h : z = z' <;> simp [h]
+
+noncomputable def printedCollisionExpr (A m k : ℕ) : ℝ :=
+  1 - (1 - ((A : ℝ) ^ m)⁻¹) ^ (k - 1)
+
+theorem one_sub_pow_le_mul {x : ℝ} (hx : 0 ≤ x) (hx1 : x ≤ 1) :
+    ∀ n : ℕ, 1 - (1 - x) ^ n ≤ (n : ℝ) * x := by
+  intro n
+  induction n with
+  | zero => simp
+  | succ n ih =>
+      have hbase : 0 ≤ 1 - x := by linarith
+      have hle1 : (1 - x) ^ n ≤ 1 :=
+        pow_le_one₀ hbase (by linarith)
+      have hmul : (1 - x) ^ n * x ≤ 1 * x :=
+        mul_le_mul_of_nonneg_right hle1 hx
+      calc
+        1 - (1 - x) ^ (n + 1) = (1 - (1 - x) ^ n) + (1 - x) ^ n * x := by
+          rw [pow_succ]
+          ring
+        _ ≤ (n : ℝ) * x + 1 * x := by linarith
+        _ = ((n + 1 : ℕ) : ℝ) * x := by
+          push_cast
+          ring
+
+theorem printedCollisionExpr_le (A m k : ℕ) (hA : 0 < A) :
+    printedCollisionExpr A m k ≤ ((k - 1 : ℕ) : ℝ) * ((A : ℝ) ^ m)⁻¹ := by
+  unfold printedCollisionExpr
+  have hA' : (0 : ℝ) < (A : ℝ) := by exact_mod_cast hA
+  have hx : 0 ≤ ((A : ℝ) ^ m)⁻¹ :=
+    le_of_lt (inv_pos.mpr (pow_pos hA' m))
+  have hA1 : (1 : ℝ) ≤ (A : ℝ) := by
+    exact_mod_cast Nat.succ_le_of_lt hA
+  have hx1 : ((A : ℝ) ^ m)⁻¹ ≤ 1 :=
+    inv_le_one_of_one_le₀ (one_le_pow₀ hA1)
+  simpa using one_sub_pow_le_mul hx hx1 (k - 1)
+
+def proposedRandomQuantumTime (n m T : ℕ) : ℕ := 2 + m * n + T
+
+def proposedRandomClassicalTime (m T : ℕ) : ℕ := m / 2 + m * T
+
+theorem proposedRandomTime_comparison {n m T : ℕ} (hm : 2 ≤ m)
+    (hT : m * n + 2 ≤ (m - 1) * T) :
+    proposedRandomQuantumTime n m T ≤ proposedRandomClassicalTime m T := by
+  unfold proposedRandomQuantumTime proposedRandomClassicalTime
+  have hm1 : 1 ≤ m := by omega
+  have hmul : (m - 1) * T + T = m * T := by
+    have h : (m - 1) * T + 1 * T = m * T := by
+      rw [← Nat.add_mul, Nat.sub_add_cancel hm1]
+    simpa using h
+  rw [← hmul]
+  omega
+
+end Qatlib.Papers.SingleQuery97.MainResults.RandomCoding

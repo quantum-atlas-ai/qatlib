@@ -1,0 +1,81 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-docs:
+    name: Build API Docs (doc-gen4)
+    runs-on: ubuntu-latest
+    env:
+      LAKE_CACHE_DIR: ${{ github.workspace }}/.lake/cache
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install elan
+        run: |
+          set -o pipefail
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- --default-toolchain none -y
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Free runner disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h
+
+      - name: Fetch precompiled cache (Mathlib, Physlib, Qatlib)
+        run: |
+          lake exe get_cache
+
+      - name: Configure docbuild subproject and build Qatlib:docs
+        run: |
+          set -euo pipefail
+          TC_TAG="$(sed 's/.*://' lean-toolchain | tr -d '[:space:]')"
+          mkdir -p docbuild
+          cat > docbuild/lakefile.toml <<EOF
+          name = "docbuild"
+          reservoir = false
+          version = "0.1.0"
+          packagesDir = "../.lake/packages"
+
+          [[require]]
+          scope = "leanprover"
+          name = "doc-gen4"
+          rev = "${TC_TAG}"
+
+          [[require]]
+          name = "Qatlib"
+          path = ".."
+          EOF
+          cp lean-toolchain docbuild/lean-toolchain
+          cd docbuild
+          MATHLIB_NO_CACHE_ON_UPDATE=1 lake update doc-gen4
+          DISABLE_EQUATIONS=1 DOCGEN_SRC="github" lake build Qatlib:docs
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docbuild/.lake/build/doc
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build-docs
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

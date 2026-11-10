@@ -1,0 +1,518 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecovery
+import Mathlib.Tactic.LinearCombination
+set_option backward.isDefEq.respectTransparency false
+
+set_option autoImplicit false
+set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
+
+
+open Qatlib.Concepts.HspRecovery.CfOrder
+
+namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
+
+open Matrix
+open Qatlib.Concepts.IntWordFraming.WordFraming
+open Qatlib.Concepts.HspRecovery.BackendAudit
+open Qatlib
+open Qatlib
+open Qatlib
+open Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian
+open Qatlib
+open Qatlib.Concepts.HspRecovery.Distinguisher
+open Qatlib
+open Qatlib
+set_option warningAsError false
+
+private theorem abs_sub_mul {s s' q : ℤ} (hq : 0 ≤ q) (h : s * s' ≤ 0) :
+    ((s' - q * s).natAbs : ℤ) = (s'.natAbs : ℤ) + q * (s.natAbs : ℤ) := by
+  rcases lt_trichotomy s 0 with hs | hs | hs
+  · have hs' : 0 ≤ s' := by nlinarith [sq_nonneg s]
+    have hval : 0 ≤ s' - q * s := by nlinarith [hq, hs]
+    have e1 : ((s' - q * s).natAbs : ℤ) = s' - q * s := Int.natAbs_of_nonneg hval
+    have e2 : (s'.natAbs : ℤ) = s' := Int.natAbs_of_nonneg hs'
+    have e3 : (s.natAbs : ℤ) = -s := by
+      have := Int.natAbs_of_nonneg (show 0 ≤ -s by omega)
+      rwa [Int.natAbs_neg] at this
+    rw [e1, e2, e3]
+    ring
+  · subst hs
+    simp
+  · have hs' : s' ≤ 0 := by nlinarith [sq_nonneg s]
+    have hval : s' - q * s ≤ 0 := by nlinarith [hq, hs']
+    have e1 : ((s' - q * s).natAbs : ℤ) = -(s' - q * s) := by
+      have := Int.natAbs_of_nonneg (show 0 ≤ -(s' - q * s) by nlinarith)
+      rwa [Int.natAbs_neg] at this
+    have e2 : (s'.natAbs : ℤ) = -s' := by
+      have := Int.natAbs_of_nonneg (show 0 ≤ -s' by omega)
+      rwa [Int.natAbs_neg] at this
+    have e3 : (s.natAbs : ℤ) = s := Int.natAbs_of_nonneg (by omega)
+    rw [e1, e2, e3]
+    ring
+
+theorem cyclicDlogEuclid_entry (A B : ℕ) :
+    ∀ (n : ℕ) (m : ℕ) (s t s' t' : ℤ),
+    (n : ℤ) = s * A + t * B →
+    (m : ℤ) = s' * A + t' * B →
+    s * s' ≤ 0 → t * t' ≤ 0 →
+    s.natAbs * m + s'.natAbs * n = B →
+    t.natAbs * m + t'.natAbs * n = A →
+    s'.natAbs ≤ s.natAbs + 1 →
+    t'.natAbs ≤ t.natAbs + 1 →
+    (m < n → s = 1 ∧ t = 0 ∧ s' = 0 ∧ t' = 1) →
+    0 < m →
+    Nat.gcd n m = Nat.gcd A B →
+    (cyclicDlogEuclid n s t m s' t').1.1 = Nat.gcd A B ∧
+    ((cyclicDlogEuclid n s t m s' t').1.2.1 * (A : ℤ)
+      + (cyclicDlogEuclid n s t m s' t').1.2.2 * (B : ℤ)) = (Nat.gcd A B : ℤ) ∧
+    ((cyclicDlogEuclid n s t m s' t').1.2.1).natAbs ≤ B + 1 ∧
+    ((cyclicDlogEuclid n s t m s' t').1.2.2).natAbs ≤ A + 1 := by
+  intro n
+  induction n using Nat.strongRecOn with
+  | ind n ih =>
+    intro m s t s' t' hv1 hv2 hs ht hu hv hms hmt hinit hm hgcd
+    rw [cyclicDlogEuclid]
+    split
+    · rename_i hn
+      subst hn
+      have huz : s.natAbs * m = B := by
+        simpa using! hu
+      have hvz : t.natAbs * m = A := by
+        simpa using! hv
+      have hsm : s.natAbs ≤ B := by
+        cases Nat.eq_zero_or_pos m with
+        | inl h0 => omega
+        | inr hp => nlinarith
+      have htm : t.natAbs ≤ A := by
+        cases Nat.eq_zero_or_pos m with
+        | inl h0 => omega
+        | inr hp => nlinarith
+      have hmg : m = Nat.gcd A B := by
+        simpa using! hgcd
+      refine ⟨hmg, ?_, ?_, ?_⟩
+      · have h3 := hv2
+        rw [hmg] at h3
+        push_cast
+        omega
+      · (try dsimp only)
+        omega
+      · (try dsimp only)
+        omega
+    · rename_i hn
+      have hn0 : 0 < n := by omega
+      have hq0 : (0 : ℤ) ≤ ((m / n : ℕ) : ℤ) := Int.natCast_nonneg _
+      have hmod : m % n + n * (m / n) = m := Nat.mod_add_div m n
+      have hz1 : ((m % n : ℕ) : ℤ) = (m : ℤ) - (n : ℤ) * ((m / n : ℕ) : ℤ) := by
+        have h : (n : ℤ) * ((m / n : ℕ) : ℤ) + ((m % n : ℕ) : ℤ) = (m : ℤ) := by
+          exact_mod_cast Nat.div_add_mod m n
+        linarith
+
+      have hv1' : ((m % n : ℕ) : ℤ) = (s' - ((m / n : ℕ) : ℤ) * s) * (A : ℤ)
+          + (t' - ((m / n : ℕ) : ℤ) * t) * (B : ℤ) := by
+        linear_combination hz1 + hv2 - ((m / n : ℕ) : ℤ) * hv1
+      have hv2' : ((n : ℕ) : ℤ) = s * (A : ℤ) + t * (B : ℤ) := hv1
+
+      have hs' : (s' - ((m / n : ℕ) : ℤ) * s) * s ≤ 0 := by
+        nlinarith [sq_nonneg s]
+      have ht' : (t' - ((m / n : ℕ) : ℤ) * t) * t ≤ 0 := by
+        nlinarith [sq_nonneg t]
+
+      have huZ : ((s.natAbs : ℤ)) * (m : ℤ) + (s'.natAbs : ℤ) * (n : ℤ) = (B : ℤ) := by
+        exact_mod_cast hu
+      have hvZ : ((t.natAbs : ℤ)) * (m : ℤ) + (t'.natAbs : ℤ) * (n : ℤ) = (A : ℤ) := by
+        exact_mod_cast hv
+      have hmodZ : ((m % n : ℕ) : ℤ) + ((n : ℤ)) * ((m / n : ℕ) : ℤ) = (m : ℤ) := by
+        exact_mod_cast Nat.mod_add_div m n
+      have huZ' : (((s' - ((m / n : ℕ) : ℤ) * s).natAbs : ℤ)) * (n : ℤ)
+          + (s.natAbs : ℤ) * (m % n : ℕ) = (B : ℤ) := by
+        rw [abs_sub_mul hq0 hs]
+        linear_combination huZ + (s.natAbs : ℤ) * hmodZ
+      have hvZ' : (((t' - ((m / n : ℕ) : ℤ) * t).natAbs : ℤ)) * (n : ℤ)
+          + (t.natAbs : ℤ) * (m % n : ℕ) = (A : ℤ) := by
+        rw [abs_sub_mul hq0 ht]
+        linear_combination hvZ + (t.natAbs : ℤ) * hmodZ
+      have hu' : (s' - ((m / n : ℕ) : ℤ) * s).natAbs * n + s.natAbs * (m % n) = B := by
+        exact_mod_cast huZ'
+      have hv' : (t' - ((m / n : ℕ) : ℤ) * t).natAbs * n + t.natAbs * (m % n) = A := by
+        exact_mod_cast hvZ'
+
+      have hms' : s.natAbs ≤ (s' - ((m / n : ℕ) : ℤ) * s).natAbs + 1 := by
+        rcases Nat.eq_zero_or_pos (m / n) with hqz | hqp
+        · have hmn : m < n := by
+            rcases (Nat.div_eq_zero_iff).mp hqz with h | h <;> omega
+          obtain ⟨rfl, rfl, rfl, rfl⟩ := hinit hmn
+          rw [hqz, Nat.cast_zero, zero_mul, sub_zero, Int.natAbs_one, Int.natAbs_zero]
+        · have h1 := abs_sub_mul hq0 hs
+          have h2 : (s.natAbs : ℤ) ≤ ((m / n : ℕ) : ℤ) * (s.natAbs : ℤ) := by
+            exact_mod_cast Nat.le_mul_of_pos_left _ hqp
+          have h3 : ((s.natAbs : ℕ) : ℤ)
+              ≤ ((s' - ((m / n : ℕ) : ℤ) * s).natAbs : ℤ) + 1 := by
+            rw [h1]; linarith
+          exact_mod_cast h3
+      have hmt' : t.natAbs ≤ (t' - ((m / n : ℕ) : ℤ) * t).natAbs + 1 := by
+        rcases Nat.eq_zero_or_pos (m / n) with hqz | hqp
+        · have hmn : m < n := by
+            rcases (Nat.div_eq_zero_iff).mp hqz with h | h <;> omega
+          obtain ⟨rfl, rfl, rfl, rfl⟩ := hinit hmn
+          rw [hqz, Nat.cast_zero, zero_mul, sub_zero, Int.natAbs_zero, Int.natAbs_one]
+          omega
+        · have h1 := abs_sub_mul hq0 ht
+          have h2 : (t.natAbs : ℤ) ≤ ((m / n : ℕ) : ℤ) * (t.natAbs : ℤ) := by
+            exact_mod_cast Nat.le_mul_of_pos_left _ hqp
+          have h3 : ((t.natAbs : ℕ) : ℤ)
+              ≤ ((t' - ((m / n : ℕ) : ℤ) * t).natAbs : ℤ) + 1 := by
+            rw [h1]; linarith
+          exact_mod_cast h3
+
+      have hm' : 0 < n := hn0
+
+      have hgcd' : Nat.gcd (m % n) n = Nat.gcd A B :=
+        (Nat.gcd_rec n m).symm.trans hgcd
+
+      have hinit' : n < m % n →
+          s' - ((m / n : ℕ) : ℤ) * s = 1 ∧ t' - ((m / n : ℕ) : ℤ) * t = 0 ∧ s = 0 ∧ t = 1 :=
+        fun h => absurd h (Nat.not_lt.2 (Nat.le_of_lt (Nat.mod_lt m hn0)))
+      exact ih (m % n) (Nat.mod_lt m hn0) n (s' - ((m / n : ℕ) : ℤ) * s)
+        (t' - ((m / n : ℕ) : ℤ) * t) s t hv1' hv2' hs' ht' hu' hv' hms' hmt' hinit' hm' hgcd'
+
+theorem cyclicDlogEuclid_entry_call (a b : ℕ) :
+    (cyclicDlogEuclid a 1 0 b 0 1).1.1 = Nat.gcd a b ∧
+    ((cyclicDlogEuclid a 1 0 b 0 1).1.2.1 * (a : ℤ)
+      + (cyclicDlogEuclid a 1 0 b 0 1).1.2.2 * (b : ℤ)) = (Nat.gcd a b : ℤ) ∧
+    ((cyclicDlogEuclid a 1 0 b 0 1).1.2.1).natAbs ≤ b + 1 ∧
+    ((cyclicDlogEuclid a 1 0 b 0 1).1.2.2).natAbs ≤ a + 1 := by
+  by_cases hb : 0 < b
+  · exact cyclicDlogEuclid_entry a b a b 1 0 0 1
+      (by ring) (by ring) (by simp) (by simp)
+      (by simp) (by simp) (by omega) (by omega)
+      (fun _ => ⟨rfl, rfl, rfl, rfl⟩) hb rfl
+  · have hb0 : b = 0 := by omega
+    subst hb0
+    by_cases ha : a = 0
+    · subst ha
+      rw [cyclicDlogEuclid]
+      simp
+    · have ha0 : 0 < a := by omega
+      have hq0 : (0 / a : ℕ) = 0 := Nat.div_eq_of_lt ha0
+      have hm0 : (0 % a : ℕ) = 0 := Nat.mod_eq_of_lt ha0
+      rw [cyclicDlogEuclid]
+      split
+      · rename_i h
+        exact absurd h ha
+      · simp [hq0, hm0, cyclicDlogEuclid, Nat.gcd_zero_right]
+
+theorem smithEuclidPairCounted_entry_abs (a b : ℤ) :
+    ∀ i j : Fin 2,
+      ((smithEuclidPairCounted a b).1.1 i j).natAbs ≤ (max a.natAbs b.natAbs) + 1 ∧
+      ((smithEuclidPairCounted a b).1.2 i j).natAbs ≤ (max a.natAbs b.natAbs) + 1 := by
+  have hbez := cyclicDlogEuclid_entry_call a.natAbs b.natAbs
+  by_cases hd : (Nat.gcd a.natAbs b.natAbs : ℤ) = 0
+  · have hz : a = 0 ∧ b = 0 := by
+      have hg : Nat.gcd a.natAbs b.natAbs = 0 := by exact_mod_cast hd
+      obtain ⟨h1, h2⟩ := (Nat.gcd_eq_zero_iff).mp hg
+      exact ⟨Int.natAbs_eq_zero.mp h1, Int.natAbs_eq_zero.mp h2⟩
+    obtain ⟨rfl, rfl⟩ := hz
+    intro i j
+    have hres : (smithEuclidPairCounted 0 0).1
+        = ((1, 1) : Matrix (Fin 2) (Fin 2) ℤ × Matrix (Fin 2) (Fin 2) ℤ) := by
+      simp [smithEuclidPairCounted, cyclicDlogEuclid]
+    rw [congrArg Prod.fst hres, congrArg Prod.snd hres]
+    simp only [Matrix.one_apply]
+    split_ifs <;> simp
+  · have hgcdpos : 0 < Nat.gcd a.natAbs b.natAbs := by
+      rcases Nat.eq_zero_or_pos (Nat.gcd a.natAbs b.natAbs) with h | h
+      · exact absurd (show (Nat.gcd a.natAbs b.natAbs : ℤ) = 0 by exact_mod_cast h) hd
+      · exact h
+    intro i j
+    simp only [smithEuclidPairCounted]
+    rw [hbez.1, if_neg (by omega)]
+    have hS : ((if a < 0 then
+          -(cyclicDlogEuclid a.natAbs 1 0 b.natAbs 0 1).1.2.1
+          else (cyclicDlogEuclid a.natAbs 1 0 b.natAbs 0 1).1.2.1) : ℤ).natAbs
+          ≤ max a.natAbs b.natAbs + 1 := by
+      by_cases h : a < 0
+      · rw [if_pos h, Int.natAbs_neg]
+        omega
+      · rw [if_neg h]
+        omega
+    have hT : ((if b < 0 then
+          -(cyclicDlogEuclid a.natAbs 1 0 b.natAbs 0 1).1.2.2
+          else (cyclicDlogEuclid a.natAbs 1 0 b.natAbs 0 1).1.2.2) : ℤ).natAbs
+          ≤ max a.natAbs b.natAbs + 1 := by
+      by_cases h : b < 0
+      · rw [if_pos h, Int.natAbs_neg]
+        omega
+      · rw [if_neg h]
+        omega
+    have hQA : (a / ((Nat.gcd a.natAbs b.natAbs : ℕ) : ℤ)).natAbs
+        ≤ max a.natAbs b.natAbs + 1 := by
+      have h1 := Int.abs_ediv_le_abs a ((Nat.gcd a.natAbs b.natAbs : ℕ) : ℤ)
+      simp only [Int.abs_eq_natAbs] at h1
+      have h2 : (a / ((Nat.gcd a.natAbs b.natAbs : ℕ) : ℤ)).natAbs ≤ a.natAbs := by
+        exact_mod_cast h1
+      exact h2.trans (by omega)
+    have hQB : (b / ((Nat.gcd a.natAbs b.natAbs : ℕ) : ℤ)).natAbs
+        ≤ max a.natAbs b.natAbs + 1 := by
+      have h1 := Int.abs_ediv_le_abs b ((Nat.gcd a.natAbs b.natAbs : ℕ) : ℤ)
+      simp only [Int.abs_eq_natAbs] at h1
+      have h2 : (b / ((Nat.gcd a.natAbs b.natAbs : ℕ) : ℤ)).natAbs ≤ b.natAbs := by
+        exact_mod_cast h1
+      exact h2.trans (by omega)
+    constructor
+    · fin_cases i <;> fin_cases j <;>
+        simp only [Int.natAbs_neg, Matrix.of_apply, cons_val_zero', cons_val_succ'] <;>
+        first
+        | exact hS | exact hT | exact hQA | exact hQB
+    · fin_cases i <;> fin_cases j <;>
+        simp only [Int.natAbs_neg, Matrix.of_apply, cons_val_zero', cons_val_succ'] <;>
+        first
+        | exact hS | exact hT | exact hQA | exact hQB
+
+def elimSupStep (dim bound : ℕ) : ℕ := dim * (bound + 1) ^ 2
+
+theorem elimSupStep_size (dim b : ℕ) :
+    (elimSupStep dim b).size ≤ 2 * b.size + dim + 2 := by
+  have hb : b < 2 ^ b.size := Nat.lt_size_self b
+  have hd : dim ≤ 2 ^ dim := by
+    induction dim with
+    | zero => simp
+    | succ e ih =>
+        have h1 : (1:ℕ) ≤ 2 ^ e := Nat.one_le_two_pow
+        simp only [Nat.pow_succ]
+        omega
+  apply Nat.size_le.2
+  have e1 : b + 1 ≤ 2 ^ b.size := by omega
+  have e2 : (b + 1) ^ 2 ≤ (2 ^ b.size) ^ 2 := Nat.pow_le_pow_left e1 2
+  have e3 : dim * (b + 1) ^ 2 ≤ 2 ^ dim * (2 ^ b.size) ^ 2 :=
+    Nat.mul_le_mul hd e2
+  have e4 : 2 ^ dim * (2 ^ b.size) ^ 2 = 2 ^ (dim + 2 * b.size) := by
+    rw [← Nat.pow_mul, Nat.pow_add]
+    congr 1
+    ring
+  rw [e4] at e3
+  calc dim * (b + 1) ^ 2 ≤ 2 ^ (dim + 2 * b.size) := e3
+    _ < 2 ^ (2 * b.size + dim + 2) := by
+        have hpos : (1:ℕ) ≤ 2 ^ (dim + 2 * b.size) := Nat.one_le_two_pow
+        have hexp : 2 ^ (2 * b.size + dim + 2)
+            = 2 ^ (dim + 2 * b.size) * 4 := by
+          have h1 : 2 * b.size + dim + 2 = (dim + 2 * b.size) + 2 := by omega
+          rw [h1, Nat.pow_add]
+        rw [hexp]
+        omega
+
+private theorem natAbs_sum_le {ι : Type*} (s : Finset ι) (f : ι → ℤ) (B : ι → ℕ)
+    (h : ∀ x ∈ s, (f x).natAbs ≤ B x) :
+    (∑ x ∈ s, f x).natAbs ≤ ∑ x ∈ s, B x := by
+  classical
+  induction s using Finset.induction with
+  | empty => simp
+  | insert x s hx ih =>
+      rw [Finset.sum_insert hx, Finset.sum_insert hx]
+      exact (Int.natAbs_add_le _ _).trans
+        (Nat.add_le_add (h x (Finset.mem_insert_self x s))
+          (ih fun y hy => h y (Finset.mem_insert_of_mem hy)))
+
+theorem smithColumnStepCounted_elimSup {m n : ℕ} (p : Fin n)
+    (s : ColumnEliminationState (m+1) n) (k : Fin m) (b : ℕ)
+    (hv : ∀ i j, (s.value i j).natAbs ≤ b)
+    (hl : ∀ i j, (s.left i j).natAbs ≤ b)
+    (hi : ∀ i j, (s.inverse i j).natAbs ≤ b) :
+    (∀ i j, ((smithColumnStepCounted p s k).1.value i j).natAbs
+      ≤ elimSupStep (m+1) b) ∧
+    (∀ i j, ((smithColumnStepCounted p s k).1.left i j).natAbs
+      ≤ elimSupStep (m+1) b) ∧
+    (∀ i j, ((smithColumnStepCounted p s k).1.inverse i j).natAbs
+      ≤ elimSupStep (m+1) b) := by
+  have hm2 : 2 ≤ m + 1 := by
+    have hk := k.isLt
+    omega
+  have hmix : ∀ i j : Fin 2,
+      ((smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.1 i j).natAbs ≤ b + 1 ∧
+      ((smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.2 i j).natAbs ≤ b + 1 := by
+    intro i j
+    have hb := smithEuclidPairCounted_entry_abs (s.value 0 p) (s.value k.succ p) i j
+    have e0 := hv 0 p
+    have e1 := hv k.succ p
+    exact ⟨hb.1.trans (by omega), hb.2.trans (by omega)⟩
+  have key : (b+1)*b + (b+1)*b ≤ elimSupStep (m+1) b := by
+    have h1 : 2 * b ≤ (m+1) * b := Nat.mul_le_mul_right b hm2
+    have h2 : (m+1) * b ≤ (m+1) * (b+1) := Nat.mul_le_mul_left (m+1) (Nat.le_succ b)
+    rw [elimSupStep, Nat.pow_two]
+    calc (b+1)*b + (b+1)*b = (2*b)*(b+1) := by ring
+      _ ≤ ((m+1)*b)*(b+1) := Nat.mul_le_mul_right (b+1) h1
+      _ ≤ ((m+1)*(b+1))*(b+1) := Nat.mul_le_mul_right (b+1) h2
+      _ = (m+1)*((b+1)*(b+1)) := Nat.mul_assoc (m+1) (b+1) (b+1)
+  have hb2 : b ≤ elimSupStep (m+1) b := by
+    rw [elimSupStep, Nat.pow_two]
+    calc b ≤ b+1 := Nat.le_succ b
+      _ ≤ (b+1) * (b+1) := Nat.le_mul_of_pos_right (b+1) (by omega)
+      _ ≤ (m+1) * ((b+1) * (b+1)) :=
+          Nat.le_mul_of_pos_left ((b+1) * (b+1)) (by omega)
+  have rowMixBound : ∀ (n' : ℕ) (M : Matrix (Fin (m+1)) (Fin n') ℤ),
+      (∀ i j, (M i j).natAbs ≤ b) →
+      ∀ i j, ((rowMix 0 k.succ
+          (smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.1 M) i j).natAbs
+        ≤ elimSupStep (m+1) b := by
+    intro n' M hM i j
+    have hC00 := (hmix 0 0).1
+    have hC01 := (hmix 0 1).1
+    have hC10 := (hmix 1 0).1
+    have hC11 := (hmix 1 1).1
+    simp only [rowMix]
+    split_ifs with h1 h2
+    · have hadd : (((smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.1 0 0
+          * M 0 j) + ((smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.1 0 1
+          * M k.succ j)).natAbs
+          ≤ (b+1)*b + (b+1)*b := by
+        have hstep := Int.natAbs_add_le
+          ((smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.1 0 0 * M 0 j)
+          ((smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.1 0 1 * M k.succ j)
+        rw [Int.natAbs_mul, Int.natAbs_mul] at hstep
+        exact hstep.trans (Nat.add_le_add (Nat.mul_le_mul hC00 (hM 0 j))
+          (Nat.mul_le_mul hC01 (hM k.succ j)))
+      exact hadd.trans key
+    · have hadd : (((smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.1 1 0
+          * M 0 j) + ((smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.1 1 1
+          * M k.succ j)).natAbs
+          ≤ (b+1)*b + (b+1)*b := by
+        have hstep := Int.natAbs_add_le
+          ((smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.1 1 0 * M 0 j)
+          ((smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.1 1 1 * M k.succ j)
+        rw [Int.natAbs_mul, Int.natAbs_mul] at hstep
+        exact hstep.trans (Nat.add_le_add (Nat.mul_le_mul hC10 (hM 0 j))
+          (Nat.mul_le_mul hC11 (hM k.succ j)))
+      exact hadd.trans key
+    · exact (hM i j).trans hb2
+  have mix1Bound : ∀ r j,
+      ((rowMix 0 k.succ
+          (smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.2
+          (1 : Matrix (Fin (m+1)) (Fin (m+1)) ℤ)) r j).natAbs ≤ b + 1 := by
+    intro r j
+    have hD00 := (hmix 0 0).2
+    have hD01 := (hmix 0 1).2
+    have hD10 := (hmix 1 0).2
+    have hD11 := (hmix 1 1).2
+    have hsucc0 : (k.succ : Fin (m+1)) ≠ 0 := Fin.succ_ne_zero k
+    have h0s : (0 : Fin (m+1)) ≠ k.succ := Ne.symm hsucc0
+    rcases eq_or_ne r 0 with rfl | hr0
+    · rcases eq_or_ne j 0 with rfl | hj0
+      · simp [rowMix, hsucc0]
+        exact hD00
+      · rcases eq_or_ne j k.succ with rfl | hjk
+        · simp [rowMix, h0s]
+          exact hD01
+        · simp [rowMix, h0s, Ne.symm hj0, Ne.symm hjk, Nat.zero_le]
+    · rcases eq_or_ne r k.succ with rfl | hrk
+      · rcases eq_or_ne j 0 with rfl | hj0
+        · simp [rowMix, Matrix.one_apply, hsucc0]
+          exact hD10
+        · rcases eq_or_ne j k.succ with rfl | hjk
+          · simp [rowMix, h0s]
+            exact hD11
+          · simp [rowMix, h0s, Ne.symm hj0, Ne.symm hjk, Nat.zero_le]
+      · simp [rowMix, hr0, hrk, Matrix.one_apply]
+        split_ifs <;> simp
+  constructor
+  · intro i j
+    exact rowMixBound n s.value hv i j
+  constructor
+  · intro i j
+    exact rowMixBound (m+1) s.left hl i j
+  · intro i j
+    have hentry : ((smithColumnStepCounted p s k).1.inverse i j)
+        = ∑ r : Fin (m+1), s.inverse i r * (rowMix 0 k.succ
+            (smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.2
+            (1 : Matrix (Fin (m+1)) (Fin (m+1)) ℤ)) r j := by
+      simp only [smithColumnStepCounted, Matrix.mul_apply]
+    rw [hentry]
+    have hterm : ∀ r : Fin (m+1), (s.inverse i r * (rowMix 0 k.succ
+          (smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.2
+          (1 : Matrix (Fin (m+1)) (Fin (m+1)) ℤ)) r j).natAbs ≤ b * (b+1) := by
+      intro r
+      rw [Int.natAbs_mul]
+      exact Nat.mul_le_mul (hi i r) (mix1Bound r j)
+    have hsum := natAbs_sum_le (Finset.univ : Finset (Fin (m+1)))
+      (fun r => s.inverse i r * (rowMix 0 k.succ
+        (smithEuclidPairCounted (s.value 0 p) (s.value k.succ p)).1.2
+        (1 : Matrix (Fin (m+1)) (Fin (m+1)) ℤ)) r j)
+      (fun _ => b * (b+1)) (fun r _ => hterm r)
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin] at hsum
+    refine hsum.trans ?_
+    rw [elimSupStep, Nat.pow_two]
+    exact Nat.mul_le_mul_left (m+1)
+      (Nat.mul_le_mul_right (b+1) (Nat.le_succ b))
+
+theorem smithColumnFoldCounted_elimSup {m n : ℕ} (p : Fin n) :
+    ∀ (ks : List (Fin m)) (s : ColumnEliminationState (m+1) n) (w : SmithEuclidWork)
+      (b : ℕ),
+    (∀ i j, (s.value i j).natAbs ≤ b) →
+    (∀ i j, (s.left i j).natAbs ≤ b) →
+    (∀ i j, (s.inverse i j).natAbs ≤ b) →
+    (∀ i j, ((smithColumnFoldCounted p ks s w).1.value i j).natAbs
+      ≤ (elimSupStep (m+1))^[ks.length] b) ∧
+    (∀ i j, ((smithColumnFoldCounted p ks s w).1.left i j).natAbs
+      ≤ (elimSupStep (m+1))^[ks.length] b) ∧
+    (∀ i j, ((smithColumnFoldCounted p ks s w).1.inverse i j).natAbs
+      ≤ (elimSupStep (m+1))^[ks.length] b) := by
+  intro ks
+  induction ks with
+  | nil => intro s w b hv hl hi; exact ⟨hv, hl, hi⟩
+  | cons k ks ih =>
+      intro s w b hv hl hi
+      have hstep := smithColumnStepCounted_elimSup p s k b hv hl hi
+      have htail := ih (smithColumnStepCounted p s k).1
+        (w.append (smithColumnStepCounted p s k).2)
+        (elimSupStep (m+1) b) hstep.1 hstep.2.1 hstep.2.2
+      simp only [smithColumnFoldCounted, List.foldl_cons, List.length_cons,
+        Function.iterate_succ_apply] at htail ⊢
+      exact htail
+
+theorem smithColumnReduceCounted_elimSup {m n : ℕ} (p : Fin n)
+    (A : Matrix (Fin (m+1)) (Fin n) ℤ) (b : ℕ)
+    (hv : ∀ i j, (A i j).natAbs ≤ b) :
+    (∀ i j, ((smithColumnReduceCounted p A).1.value i j).natAbs
+      ≤ (elimSupStep (m+1))^[m] (max b 1)) ∧
+    (∀ i j, ((smithColumnReduceCounted p A).1.left i j).natAbs
+      ≤ (elimSupStep (m+1))^[m] (max b 1)) ∧
+    (∀ i j, ((smithColumnReduceCounted p A).1.inverse i j).natAbs
+      ≤ (elimSupStep (m+1))^[m] (max b 1)) := by
+  have hone : ∀ i j : Fin (m+1),
+      ((1 : Matrix (Fin (m+1)) (Fin (m+1)) ℤ) i j).natAbs ≤ max b 1 := by
+    intro i j
+    simp only [Matrix.one_apply]
+    split <;> simp
+  have h := smithColumnFoldCounted_elimSup p (List.finRange m) ⟨A,1,1⟩
+    SmithEuclidWork.zero (max b 1)
+    (fun i j => (hv i j).trans (Nat.le_max_left b 1))
+    (fun i j => hone i j) (fun i j => hone i j)
+  simpa [smithColumnReduceCounted, List.length_finRange] using! h
+
+theorem smithRowReduceCounted_elimSup {m n : ℕ} (p : Fin m)
+    (A : Matrix (Fin m) (Fin (n+1)) ℤ) (b : ℕ)
+    (hv : ∀ i j, (A i j).natAbs ≤ b) :
+    (∀ i j, ((smithRowReduceCounted p A).1.value i j).natAbs
+      ≤ (elimSupStep (n+1))^[n] (max b 1)) ∧
+    (∀ i j, ((smithRowReduceCounted p A).1.right i j).natAbs
+      ≤ (elimSupStep (n+1))^[n] (max b 1)) ∧
+    (∀ i j, ((smithRowReduceCounted p A).1.inverse i j).natAbs
+      ≤ (elimSupStep (n+1))^[n] (max b 1)) := by
+  have h := smithColumnReduceCounted_elimSup p A.transpose b
+    (fun i j => hv j i)
+  refine ⟨?_, ?_, ?_⟩
+  · intro i j
+    simp only [smithRowReduceCounted, Matrix.transpose_apply]
+    exact h.1 j i
+  · intro i j
+    simp only [smithRowReduceCounted, Matrix.transpose_apply]
+    exact h.2.1 j i
+  · intro i j
+    simp only [smithRowReduceCounted, Matrix.transpose_apply]
+    exact h.2.2 j i
+
+end Qatlib.Concepts.QueryComplexity.DegreeMethod

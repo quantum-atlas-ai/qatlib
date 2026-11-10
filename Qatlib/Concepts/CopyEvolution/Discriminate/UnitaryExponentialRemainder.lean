@@ -1,0 +1,188 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Concepts.ReferenceError.MixturePaths
+import Mathlib.Analysis.SpecialFunctions.Exponential
+import Mathlib.Analysis.Calculus.MeanValue
+open Qatlib.Foundations.PureStateMath.BornBridge
+set_option warningAsError false
+set_option backward.isDefEq.respectTransparency false
+
+open Qatlib.Concepts.ReferenceError.RefTraceError
+
+open Qatlib.Foundations.OperatorErrors.OperatorError
+open Qatlib.Foundations.PureStateMath
+
+namespace Qatlib.Concepts.CopyEvolution.Discriminate
+
+set_option linter.unusedSimpArgs false
+set_option maxHeartbeats 2000000
+
+open Matrix Set
+open scoped Matrix.Norms.L2Operator ComplexOrder Classical
+
+private theorem hamiltonian_line_exp (D : ℕ) (H : Operator D) (τ u : ℝ) :
+    NormedSpace.exp (u • ((-Complex.I * (τ : ℂ)) • H)) =
+      HamiltonianEvolution H (u * τ) := by
+  congr 1
+  ext i j
+  simp [HamiltonianEvolution, Matrix.smul_apply, Complex.real_smul]
+  ring
+
+private theorem hamiltonian_generator_norm (D : ℕ) (H : Operator D) (τ : ℝ) :
+    ‖(-Complex.I * (τ : ℂ)) • H‖ = |τ| * ‖H‖ := by
+  simp [norm_smul, norm_mul, Complex.norm_real, Real.norm_eq_abs]
+
+theorem hamiltonian_exponential_lipschitz_and_quadratic
+    (D : ℕ) (H : Operator D) (τ : ℝ) (hH : H.IsHermitian) :
+    ‖HamiltonianEvolution H τ - 1‖ ≤ |τ| * ‖H‖ ∧
+    ‖HamiltonianEvolution H τ - 1 + (Complex.I * (τ : ℂ)) • H‖ ≤
+      τ ^ 2 * ‖H‖ ^ 2 / 2 := by
+  let A : Operator D := (-Complex.I * (τ : ℂ)) • H
+  let f : ℝ → Operator D := fun u => NormedSpace.exp (u • A)
+  have hf (u : ℝ) : HasDerivAt f (f u * A) u :=
+    hasDerivAt_exp_smul_const A u
+  have hn (u : ℝ) : ‖f u‖ ≤ 1 := by
+    rw [show f u = HamiltonianEvolution H (u * τ) from hamiltonian_line_exp D H τ u]
+    exact l2_norm_unitary_le_one (hamiltonianEvolution_unitary hH _)
+  have hlin (u : ℝ) (hu : u ∈ Icc (0 : ℝ) 1) : ‖f u - 1‖ ≤ ‖A‖ * u := by
+    have h := norm_image_sub_le_of_norm_deriv_le_segment'
+      (fun x (_ : x ∈ Icc (0 : ℝ) 1) => (hf x).hasDerivWithinAt)
+      (fun x (_ : x ∈ Ico (0 : ℝ) 1) =>
+        (norm_mul_le _ _).trans (by simpa using mul_le_mul_of_nonneg_right (hn x) (norm_nonneg A))) u hu
+    simpa [f] using h
+  have hrem (u : ℝ) : HasDerivAt (fun u => f u - 1 - u • A) ((f u - 1) * A) u := by
+    convert! ((hf u).sub_const 1).sub ((hasDerivAt_id u).smul_const A) using 1
+    (try simp [sub_mul])
+  have hbound : ∀ u ∈ Icc (0 : ℝ) 1,
+      ‖f u - 1 - u • A‖ ≤ u ^ 2 * ‖A‖ ^ 2 / 2 := by
+    refine image_norm_le_of_norm_deriv_right_le_deriv_boundary
+      (f := fun u => f u - 1 - u • A)
+      (f' := fun u => (f u - 1) * A)
+      (B := fun u => u ^ 2 * ‖A‖ ^ 2 / 2)
+      (B' := fun u => u * ‖A‖ ^ 2)
+      (fun u _ => (hrem u).continuousAt.continuousWithinAt)
+      (fun u _ => (hrem u).hasDerivWithinAt)
+      (by simp [f]) ?_ ?_
+    · intro u
+      convert! ((hasDerivAt_id u).pow 2).mul_const (‖A‖ ^ 2 / 2) using 1
+      · ext x
+        simp only [Pi.pow_apply, id_eq]
+        ring
+      · (try simp only [id_eq])
+        ring
+    · intro u hu
+      calc
+        ‖(f u - 1) * A‖ ≤ ‖f u - 1‖ * ‖A‖ := norm_mul_le _ _
+        _ ≤ (‖A‖ * u) * ‖A‖ := mul_le_mul_of_nonneg_right (hlin u ⟨hu.1, hu.2.le⟩) (norm_nonneg A)
+        _ = u * ‖A‖ ^ 2 := by ring
+  have hf1 : f 1 = HamiltonianEvolution H τ := by simpa [f, A] using hamiltonian_line_exp D H τ 1
+  have hAn : ‖A‖ = |τ| * ‖H‖ := hamiltonian_generator_norm D H τ
+  constructor
+  · simpa [hf1, hAn] using hlin 1 ⟨zero_le_one, le_rfl⟩
+  · have h := hbound 1 ⟨zero_le_one, le_rfl⟩
+    have hm : -A = (Complex.I * (τ : ℂ)) • H := by simp [A, neg_mul, neg_smul]
+    simpa [hf1, sub_eq_add_neg, hm, hAn, mul_pow, sq_abs] using h
+
+theorem hamiltonian_traceNorm_sandwich_bound {I : Type*} [Fintype I] [DecidableEq I]
+    (A ρ B : Matrix I I ℂ) :
+    Matrix.traceNorm (A * ρ * B) ≤ ‖A‖ * Matrix.traceNorm ρ * ‖B‖ := by
+  exact (Matrix.traceNorm_mul_le_traceNorm_opNorm _ _).trans
+    (mul_le_mul_of_nonneg_right (Matrix.traceNorm_mul_le_opNorm_traceNorm _ _) (norm_nonneg B))
+
+private theorem tensor_identity_norm_le (D r : ℕ) (A : Operator D) :
+    ‖TensorGate A (1 : Operator r)‖ ≤ ‖A‖ := by
+  rw [l2_norm_tensorGate]
+  exact (mul_le_mul_of_nonneg_left l2_norm_one_le (norm_nonneg A)).trans_eq (mul_one _)
+
+theorem hamiltonian_reference_first_order_remainder
+    (D r : ℕ) (H : Operator D) (τ : ℝ)
+    (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (hH : H.IsHermitian) :
+    Matrix.traceNorm (TensorGate (HamiltonianEvolution H τ) (1 : Operator r) * ρ *
+      (TensorGate (HamiltonianEvolution H τ) (1 : Operator r))ᴴ - ρ +
+      (Complex.I * (τ : ℂ)) •
+        (TensorGate H (1 : Operator r) * ρ - ρ * TensorGate H (1 : Operator r))) ≤
+      2 * τ ^ 2 * ‖H‖ ^ 2 * Matrix.traceNorm ρ := by
+  let U := TensorGate (HamiltonianEvolution H τ) (1 : Operator r)
+  let A := (-Complex.I * (τ : ℂ)) • TensorGate H (1 : Operator r)
+  let b := |τ| * ‖H‖
+  have hb : 0 ≤ b := mul_nonneg (abs_nonneg _) (norm_nonneg _)
+  have hρ : 0 ≤ Matrix.traceNorm ρ := Matrix.traceNorm_nonneg ρ
+  have hU : ‖U‖ ≤ 1 :=
+    (tensor_identity_norm_le D r _).trans
+      (l2_norm_unitary_le_one (hamiltonianEvolution_unitary hH τ))
+  have hA : ‖A‖ ≤ b := by
+    simp only [A, norm_smul, norm_mul, norm_neg, Complex.norm_I, Complex.norm_real,
+        Real.norm_eq_abs, one_mul]
+    exact mul_le_mul_of_nonneg_left (tensor_identity_norm_le D r H) (abs_nonneg τ)
+  have hAH : Aᴴ = -A := by
+    simp only [A, Matrix.conjTranspose_smul, tensorGate_conjTranspose, hH.eq,
+      Matrix.conjTranspose_one]
+    simp [RCLike.star_def, neg_smul, neg_mul]
+  have hlinear : ‖U - 1‖ ≤ b := by
+    have he : U - 1 = TensorGate (HamiltonianEvolution H τ - 1) (1 : Operator r) := by
+      dsimp [U]
+      rw [← tensorGate_sub_left, tensorGate_one]
+    rw [he]
+    exact (tensor_identity_norm_le D r _).trans
+      (hamiltonian_exponential_lipschitz_and_quadratic D H τ hH).1
+  have hquadratic : ‖U - 1 - A‖ ≤ b ^ 2 / 2 := by
+    have he : U - 1 - A = TensorGate
+        (HamiltonianEvolution H τ - 1 + (Complex.I * (τ : ℂ)) • H) (1 : Operator r) := by
+      simp only [U, A, TensorGate, Matrix.add_kronecker, Matrix.smul_kronecker]
+      change TensorGate (HamiltonianEvolution H τ) (1 : Operator r) - 1 -
+        (-Complex.I * (τ : ℂ)) • TensorGate H (1 : Operator r) =
+        TensorGate (HamiltonianEvolution H τ - 1) (1 : Operator r) +
+          (Complex.I * (τ : ℂ)) • TensorGate H (1 : Operator r)
+      rw [← tensorGate_sub_left, tensorGate_one]
+      simp [neg_mul, neg_smul, sub_eq_add_neg]
+    rw [he]
+    have h := (tensor_identity_norm_le D r _).trans
+      (hamiltonian_exponential_lipschitz_and_quadratic D H τ hH).2
+    simpa [b, mul_pow, sq_abs] using h
+  have hUH : ‖Uᴴ‖ ≤ 1 := by rwa [Matrix.l2_opNorm_conjTranspose]
+  have hdiffH : ‖Uᴴ - 1‖ ≤ b := by
+    have he : Uᴴ - 1 = (U - 1)ᴴ := by simp
+    rw [he, Matrix.l2_opNorm_conjTranspose]
+    exact hlinear
+  have hRH : ‖(U - 1 - A)ᴴ‖ ≤ b ^ 2 / 2 := by
+    rwa [Matrix.l2_opNorm_conjTranspose]
+  have hs : U * ρ * Uᴴ - ρ + (Complex.I * (τ : ℂ)) •
+      (TensorGate H (1 : Operator r) * ρ - ρ * TensorGate H (1 : Operator r)) =
+      (U - 1 - A) * ρ * Uᴴ + A * ρ * (Uᴴ - 1) + ρ * (U - 1 - A)ᴴ := by
+    have hm : (Complex.I * (τ : ℂ)) •
+        (TensorGate H (1 : Operator r) * ρ - ρ * TensorGate H (1 : Operator r)) =
+        -(A * ρ) + ρ * A := by
+      simp [A, neg_mul, neg_smul, smul_sub, Matrix.smul_mul, Matrix.mul_smul, sub_eq_add_neg]
+    rw [hm, Matrix.conjTranspose_sub, Matrix.conjTranspose_sub,
+      Matrix.conjTranspose_one, hAH]
+    noncomm_ring
+  change Matrix.traceNorm (U * ρ * Uᴴ - ρ + _) ≤ _
+  rw [hs]
+  have h1 : Matrix.traceNorm ((U - 1 - A) * ρ * Uᴴ) ≤
+      (b ^ 2 / 2) * Matrix.traceNorm ρ := by
+    calc
+      _ ≤ ‖U - 1 - A‖ * Matrix.traceNorm ρ * ‖Uᴴ‖ := hamiltonian_traceNorm_sandwich_bound _ _ _
+      _ ≤ (b ^ 2 / 2) * Matrix.traceNorm ρ * 1 := by gcongr
+      _ = _ := mul_one _
+  have h2 : Matrix.traceNorm (A * ρ * (Uᴴ - 1)) ≤ b ^ 2 * Matrix.traceNorm ρ := by
+    calc
+      _ ≤ ‖A‖ * Matrix.traceNorm ρ * ‖Uᴴ - 1‖ := hamiltonian_traceNorm_sandwich_bound _ _ _
+      _ ≤ b * Matrix.traceNorm ρ * b := by gcongr
+      _ = _ := by ring
+  have h3 : Matrix.traceNorm (ρ * (U - 1 - A)ᴴ) ≤ (b ^ 2 / 2) * Matrix.traceNorm ρ := by
+    calc
+      _ ≤ Matrix.traceNorm ρ * ‖(U - 1 - A)ᴴ‖ := Matrix.traceNorm_mul_le_traceNorm_opNorm _ _
+      _ ≤ Matrix.traceNorm ρ * (b ^ 2 / 2) := by gcongr
+      _ = _ := mul_comm _ _
+  have ht := (Matrix.traceNorm_add_le _ _).trans
+    (add_le_add ((Matrix.traceNorm_add_le _ _).trans (add_le_add h1 h2)) h3)
+  refine ht.trans_eq ?_
+  dsimp [b]
+  rw [mul_pow, sq_abs]
+  ring
+
+end Qatlib.Concepts.CopyEvolution.Discriminate

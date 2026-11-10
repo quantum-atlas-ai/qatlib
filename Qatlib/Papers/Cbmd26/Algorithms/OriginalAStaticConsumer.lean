@@ -1,0 +1,173 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticWord
+set_option warningAsError false
+set_option backward.isDefEq.respectTransparency false
+
+open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
+open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
+open Qatlib.Concepts.LcuPostselect.ScaledLCU
+open Qatlib.Concepts.LocalMachine.LocalTransport
+open Qatlib.Foundations.PureStateMath
+open Qatlib.Concepts.QsvtCore.QueryLowerBound
+open Qatlib.Concepts.SignalPrimitive.HermitianQSVT
+open Qatlib.Foundations.InstrumentCore.Measurement
+open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
+open Qatlib.Concepts.TrotterFormula.SuzukiFourth
+open Qatlib.Foundations.BornMetrics.EventProbability
+open Qatlib.Concepts.Execution.WorkspaceCP
+open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+open Qatlib.Concepts.QueryWordCore.AdjointCircuits
+open Qatlib.Foundations.QueryWordCore.Circuit
+open Qatlib.Concepts.ReferenceError.RefTraceError
+open Qatlib.Concepts.BlockEncoding.EncodingCore
+open Qatlib.Concepts.QspSimulation.Achievability
+open Qatlib.Concepts.PhaseGeometry.Phase
+open Qatlib.Concepts.BlockEncoding
+open Qatlib.Concepts.BlockEncoding.Encoding
+open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
+open Qatlib.Concepts.WalkSearch.Spectral
+open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
+open Qatlib.Concepts.RandCompile.ChannelBudget
+open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
+
+namespace Qatlib.Papers.Cbmd26.Algorithms
+
+set_option autoImplicit false
+set_option maxHeartbeats 600000
+noncomputable section
+namespace CBMD
+open Matrix Polynomial
+open scoped BigOperators Matrix.Norms.L2Operator
+
+variable {J W I : Type} [Fintype J] [DecidableEq J] [Fintype W] [DecidableEq W]
+  [Fintype I] [DecidableEq I]
+
+local instance cbmdOriginalAStaticConsumerInstance1 : DecidableEq (OriginalStaticLabels J) :=
+  inferInstanceAs (DecidableEq (J × (Fin 4 × (Bool × (Bool × Bool)))))
+
+def originalStaticFrame (R : Matrix W I ℂ) (j₀ : J) :
+    Matrix (Bool × (OriginalStaticLabels J × W)) I ℂ :=
+  tagFrame false (reindexFrame (originalStaticWorkspaceEquiv J W)
+    (tagFrame j₀ (tagFrame (0 : Fin 4) (averageFrame (tagFrame false (tagFrame false R))))))
+
+theorem originalStaticOuterWord_blockEncoding
+    (U : Matrix W W ℂ) (hU : U ∈ Matrix.unitaryGroup W ℂ)
+    (R : Matrix W I ℂ) (hR : IsIsometry R) (α Λ : ℝ) (s : J → ℝ)
+    (hα : 0 < α) (hΛ : 0 < Λ) (hbound : ∀ j, α * Real.sqrt (1 + (s j)^2) ≤ Λ)
+    (c : J → ℂ) (j₀ : J) (d : Fin 4 → ℕ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ)
+    (hp : ∀ k, IsPhase (base k) ∧ ∀ z ∈ zs k, IsPhase z)
+    (A : J → Matrix I I ℂ) (ε : J → ℝ)
+    (henc : ∀ j, BlockEncoding (A j) (originalFourSampleUnitary U R α Λ (s j) d base zs)
+      (tagFrame 0 (averageFrame (tagFrame false (tagFrame false R))))
+      (tagFrame 0 (averageFrame (tagFrame false (tagFrame false R)))) 4 (ε j))
+    (hmass : 0 < coefficientMass (scaledLCUCoefficients c (fun _ => 4))) :
+    WellFormedAdjointCircuit (originalStaticOuterWord R α Λ s c j₀ d base zs) ∧
+    BlockEncoding (∑ j, c j • A j)
+      (evaluate (controlOracle (parallelOracle (J := OriginalStaticLabels J) U))
+        (originalStaticOuterWord R α Λ s c j₀ d base zs))
+      (originalStaticFrame R j₀) (originalStaticFrame R j₀)
+      (∑ j, ‖c j‖ * 4) (∑ j, ‖c j‖ * ε j) ∧
+    adjointQueryCount (originalStaticOuterWord R α Λ s c j₀ d base zs) = 2 * ∑ k, (zs k).length := by
+  have hraw := counted_outer_lcu_encoding c j₀ (originalFourQuery U)
+    (originalFourSampleWord R α Λ s d base zs)
+    (fun j => originalFourSampleUnitary U R α Λ (s j) d base zs)
+    (originalFourSampleWord_evaluate U R α Λ s d base zs)
+    (originalFourSampleWord_wellFormed R hR α Λ s hα hΛ hbound d base zs hp)
+    A (tagFrame 0 (averageFrame (tagFrame false (tagFrame false R))))
+    (fun _ => 4) ε henc hmass
+  have hrawenc := hraw.2.1
+  change BlockEncoding _ (evaluate (originalFourQuery U)
+    (originalStaticRawOuterWord R α Λ s c j₀ d base zs)) _ _ _ _ at hrawenc
+  have hre := reindexWorkspace_blockEncoding (originalStaticWorkspaceEquiv J W)
+    _ _ _ _ _ hrawenc
+  rw [← reindexAdjointWord_evaluate, originalStaticSource_reindex] at hre
+  have hclean := cleanMaskedWord_blockEncoding originalStaticMask U hU
+    (reindexAdjointWord (originalStaticWorkspaceEquiv J W)
+      (originalStaticRawOuterWord R α Λ s c j₀ d base zs))
+    (reindexAdjointWord_wellFormed _ hraw.1) _ _ _ _ hre
+  exact ⟨hclean.1, hclean.2.1, (originalStaticOuterWord_cost R α Λ s c j₀ d base zs).1⟩
+
+theorem originalA_static_exponential_outer
+    (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
+    (U : Matrix W W ℂ) (R : Matrix W I ℂ) (α Λ t ε : ℝ) (s : J → ℝ)
+    (henc : BlockEncoding (L + Complex.I • H) U R R α 0)
+    (hΛ : 0 < Λ) (hε : 0 < ε) (hbound : ∀ j, α * Real.sqrt (1 + (s j)^2) ≤ Λ)
+    (c : J → ℂ) (j₀ : J) (hc : 0 < coefficientMass c) :
+    ∃ (P : Polynomial ℂ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ),
+      let d := ComplexPolynomialSplit.branchDegrees (normalizedApproximation P (ε/2))
+      P.natDegree ≤ dyadicOrder ((ε/2) / (2 * Real.exp (2 * |t * Λ|))) ∧
+      (∀ k, IsPhase (base k) ∧ (∀ z ∈ zs k, IsPhase z) ∧ (zs k).length = d k) ∧
+      WellFormedAdjointCircuit (originalStaticOuterWord R α Λ s c j₀ d base zs) ∧
+      BlockEncoding (∑ j, c j • NormedSpace.exp ((-Complex.I * (t : ℂ)) • (H + (s j : ℂ) • L)))
+        (evaluate (controlOracle (parallelOracle (J := OriginalStaticLabels J) U))
+          (originalStaticOuterWord R α Λ s c j₀ d base zs))
+        (originalStaticFrame R j₀) (originalStaticFrame R j₀)
+        (4 * coefficientMass c) (ε * coefficientMass c) ∧
+      adjointQueryCount (originalStaticOuterWord R α Λ s c j₀ d base zs) ≤
+        8 * (2 * dyadicOrder ((ε/2) / (2 * Real.exp (2 * |t * Λ|))) + 1) := by
+  obtain ⟨P, base, zs, hd, hp, ha⟩ := static_exponential_qsvt_exists (t * Λ) ε hε
+  let d := ComplexPolynomialSplit.branchDegrees (normalizedApproximation P (ε/2))
+  have hsample (j : J) : BlockEncoding (H + (s j : ℂ) • L)
+      (paddedFirstOrderInputUnitary U α Λ (s j))
+      (tagFrame false (tagFrame false R)) (tagFrame false (tagFrame false R)) Λ 0 := by
+    simpa using! commonNormalization_blockEncoding _ _ _ _ Λ _
+      (original_oracle_first_order_blockEncoding L H hL hH U R α 0 (s j) henc) (hbound j)
+  have hA (j : J) : (Λ⁻¹ • (H + (s j : ℂ) • L)).IsHermitian :=
+    (hH.add (hL.smul (by simp [IsSelfAdjoint]))).smul (by simp [IsSelfAdjoint])
+  have hfour (j : J) : BlockEncoding
+      (NormedSpace.exp ((-Complex.I * (t : ℂ)) • (H + (s j : ℂ) • L)))
+      (originalFourSampleUnitary U R α Λ (s j) d base zs)
+      (tagFrame 0 (averageFrame (tagFrame false (tagFrame false R))))
+      (tagFrame 0 (averageFrame (tagFrame false (tagFrame false R)))) 4 ε := by
+    obtain ⟨_, hb⟩ := ha (Bool × (Bool × W)) I _
+      (paddedFirstOrderInputUnitary U α Λ (s j)) _ (hA j)
+      (exact_blockEncoding_normalized (hsample j))
+    have harg : (-Complex.I * ((t * Λ : ℝ) : ℂ)) •
+        (Λ⁻¹ • (H + (s j : ℂ) • L)) =
+        (-Complex.I * (t : ℂ)) • (H + (s j : ℂ) • L) := by
+      ext i k
+      simp only [Matrix.smul_apply, Complex.real_smul, smul_eq_mul,
+        Complex.ofReal_mul, Complex.ofReal_inv]
+      have hn : (Λ : ℂ) ≠ 0 := by exact_mod_cast hΛ.ne'
+      field_simp
+    rw [harg] at hb
+    exact hb
+  have hmass : 0 < coefficientMass (scaledLCUCoefficients c (fun _ => 4)) := by
+    rw [(scaled_lcu_coefficient_mass c (fun _ => 4) (by intro; norm_num)).1,
+      ← Finset.sum_mul]
+    exact mul_pos hc (by norm_num)
+  obtain ⟨hw, he, hq⟩ := originalStaticOuterWord_blockEncoding U henc.unitary R
+    henc.left_isometry α Λ s henc.normalization_pos hΛ hbound c j₀ d base zs
+    (fun k => ⟨(hp k).1, (hp k).2.1⟩) _ (fun _ => ε) hfour hmass
+  refine ⟨P, base, zs, hd, hp, hw, ?_, ?_⟩
+  · have hs : (∑ j, ‖c j‖ * (4 : ℝ)) = 4 * coefficientMass c := by
+      rw [← Finset.sum_mul]
+      exact mul_comm _ _
+    have heps : (∑ j, ‖c j‖ * ε) = ε * coefficientMass c := by
+      rw [← Finset.sum_mul]
+      exact mul_comm _ _
+    rw [hs, heps] at he
+    exact he
+  · rw [hq]
+    have hdegree : (normalizedApproximation P (ε/2)).natDegree ≤ P.natDegree :=
+      Polynomial.natDegree_smul_le _ _
+    have hsum : (∑ k, (zs k).length) ≤
+        4 * (2 * dyadicOrder ((ε/2) / (2 * Real.exp (2 * |t * Λ|))) + 1) := by
+      calc
+        _ ≤ ∑ _k : Fin 4, (2 * dyadicOrder ((ε/2) / (2 * Real.exp (2 * |t * Λ|))) + 1) := by
+          apply Finset.sum_le_sum
+          intro k _
+          rw [(hp k).2.2]
+          exact (ComplexPolynomialSplit.branchDegrees_le _ k).trans (by omega)
+        _ = _ := by simp
+    omega
+
+end CBMD
+
+end
+end Qatlib.Papers.Cbmd26.Algorithms

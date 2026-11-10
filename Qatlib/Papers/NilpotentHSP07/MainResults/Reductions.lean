@@ -1,0 +1,301 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+import Mathlib.Algebra.Group.Subgroup.Basic
+import Mathlib.GroupTheory.QuotientGroup.Basic
+import Mathlib.GroupTheory.Nilpotent
+import Mathlib.GroupTheory.Sylow
+import Mathlib.GroupTheory.OrderOfElement
+import Mathlib.SetTheory.Cardinal.Finite
+import Mathlib.Tactic
+import Mathlib.GroupTheory.Abelianization.Defs
+set_option warningAsError false
+
+set_option autoImplicit false
+noncomputable section
+
+open scoped commutatorElement
+
+namespace Qatlib.Papers.NilpotentHSP07.MainResults
+
+variable {G α : Type*} [Group G]
+
+def Hides (f : G → α) (H : Subgroup G) : Prop :=
+  ∀ x y : G, f x = f y ↔ x⁻¹ * y ∈ H
+
+theorem Hides.restrict {f : G → α} {H K : Subgroup G} (hf : Hides f H) :
+    Hides (fun x : K => f (x : G)) (H.subgroupOf K) := by
+  intro x y
+  have h := hf (x : G) (y : G)
+  rw [Subgroup.mem_subgroupOf]
+  simpa using h
+
+def quotientHiding {N : Subgroup G} [N.Normal] {H : Subgroup G} (f : G → α)
+    (hf : Hides f H) (hNH : N ≤ H) : G ⧸ N → α :=
+  Quotient.lift f (fun a b hab => (hf a b).mpr (hNH ((QuotientGroup.leftRel_apply).mp hab)))
+
+theorem quotientHiding_mk {N : Subgroup G} [N.Normal] {H : Subgroup G} (f : G → α)
+    (hf : Hides f H) (hNH : N ≤ H) (a : G) :
+    quotientHiding f hf hNH (QuotientGroup.mk' N a) = f a := by
+  rw [QuotientGroup.mk'_apply]
+  change Quotient.lift f (fun a b hab => (hf a b).mpr
+    (hNH ((QuotientGroup.leftRel_apply).mp hab))) (QuotientGroup.mk a) = f a
+  exact Quotient.lift_mk f _ a
+
+theorem Hides.quotient {N : Subgroup G} [N.Normal] {H : Subgroup G} (hNH : N ≤ H)
+    {f : G → α} (hf : Hides f H) :
+    Hides (quotientHiding f hf hNH) (H.map (QuotientGroup.mk' N)) := by
+  intro x y
+  obtain ⟨a, ha⟩ := QuotientGroup.mk'_surjective N x
+  obtain ⟨b, hb⟩ := QuotientGroup.mk'_surjective N y
+  rw [← ha, ← hb, quotientHiding_mk, quotientHiding_mk]
+  have hprod : (QuotientGroup.mk' N a)⁻¹ * (QuotientGroup.mk' N b) =
+      QuotientGroup.mk' N (a⁻¹ * b) := by
+    rw [map_mul, map_inv]
+  rw [hprod, Subgroup.mem_map]
+  constructor
+  · intro heq
+    exact ⟨a⁻¹ * b, (hf a b).mp heq, rfl⟩
+  · rintro ⟨h, hhH, hEq⟩
+    have hmem : h⁻¹ * (a⁻¹ * b) ∈ N :=
+      (QuotientGroup.eq).mp (by simpa [QuotientGroup.mk'_apply] using hEq)
+    have hab : a⁻¹ * b ∈ H := by
+      have h1 : a⁻¹ * b = h * (h⁻¹ * (a⁻¹ * b)) := by group
+      rw [h1]
+      exact H.mul_mem hhH (hNH hmem)
+    exact (hf a b).mpr hab
+
+theorem normalizer_gt_of_lt_top [Group.IsNilpotent G] {K : Subgroup G} (hK : K < ⊤) :
+    K < Subgroup.normalizer (K : Set G) :=
+  Group.normalizerCondition_of_isNilpotent K hK
+
+theorem exists_normalizer_mem_not_mem {H K : Subgroup G} [Group.IsNilpotent H]
+    (hKH : K ≤ H) (hlt : K < H) :
+    ∃ x : G, x ∈ H ∧ x ∈ Subgroup.normalizer (K : Set G) ∧ x ∉ K := by
+  have htop : K.subgroupOf H < ⊤ := by
+    rw [lt_top_iff_ne_top]
+    intro htop'
+    have hHK : H ≤ K := Subgroup.subgroupOf_eq_top.mp htop'
+    exact ne_of_lt hlt (le_antisymm hKH hHK)
+  have hstep : K.subgroupOf H <
+      Subgroup.normalizer ((K.subgroupOf H : Subgroup H) : Set H) :=
+    Group.normalizerCondition_of_isNilpotent (K.subgroupOf H) htop
+  have hnotle : ¬ (Subgroup.normalizer ((K.subgroupOf H : Subgroup H) : Set H) ≤
+      K.subgroupOf H) := hstep.2
+  obtain ⟨x, hxnorm, hxnotK⟩ := Set.not_subset.mp hnotle
+  refine ⟨(x : G), x.2, ?_, ?_⟩
+  · have hxsub : x ∈ (Subgroup.normalizer (K : Set G)).subgroupOf H := by
+      rw [Subgroup.subgroupOf_normalizer_eq hKH]
+      exact hxnorm
+    exact Subgroup.mem_subgroupOf.mp hxsub
+  · intro hxK
+    exact hxnotK (Subgroup.mem_subgroupOf.mpr hxK)
+
+theorem pow_eq_one_of_card_eq_prime {H : Subgroup G} {p : ℕ} [Fact p.Prime]
+    (hcard : Nat.card H = p) {h : G} (hh : h ∈ H) : h ^ p = 1 := by
+  have hdvd : orderOf h ∣ p := hcard ▸ Subgroup.orderOf_dvd_natCard H hh
+  exact orderOf_dvd_iff_pow_eq_one.mp hdvd
+
+theorem subset_elements_pow_eq_one {H : Subgroup G} {p : ℕ} [Fact p.Prime]
+    (hcard : Nat.card H = p ∨ Nat.card H = 1) :
+    ∀ h : G, h ∈ H → h ^ p = 1 := by
+  intro h hh
+  rcases hcard with hcard | hcard
+  · exact pow_eq_one_of_card_eq_prime hcard hh
+  · haveI : Subsingleton H := (Nat.card_eq_one_iff_unique.mp hcard).1
+    have h1 : (⟨h, hh⟩ : H) = 1 := Subsingleton.elim _ _
+    have : h = 1 := by
+      simpa using congrArg Subtype.val h1
+    rw [this, one_pow]
+
+theorem sylow_normal_of_nilpotent [Finite G] [Group.IsNilpotent G]
+    {p : ℕ} [Fact p.Prime] (P : Sylow p G) : (P : Subgroup G).Normal := by
+  have h' : ∀ (p : ℕ), Fact (Nat.Prime p) →
+      ∀ (P : Sylow p G), (P : Subgroup G).Normal :=
+    ((Group.isNilpotent_of_finite_tfae (G := G)).out 1 4).mp
+      (show Group.IsNilpotent G from inferInstance)
+  exact h' p inferInstance P
+
+noncomputable def sylowDirectProduct [Finite G] [Group.IsNilpotent G] :
+    ((p : (Nat.card G).primeFactors) → (P : Sylow (↑p) G) →
+      ↥(P : Subgroup G)) ≃* G :=
+  Sylow.directProductOfNormal (fun P => sylow_normal_of_nilpotent P)
+
+theorem subgroup_eq_sup_inf_of_coprime {P Q : Subgroup G} [P.Normal] [Q.Normal]
+    [Finite P] [Finite Q] (hdisj : P ⊓ Q = ⊥) (hsup : P ⊔ Q = ⊤)
+    (hcop : Nat.Coprime (Nat.card P) (Nat.card Q)) (H : Subgroup G) :
+    H = (H ⊓ P) ⊔ (H ⊓ Q) := by
+  classical
+  have hcomm : ∀ x ∈ P, ∀ y ∈ Q, Commute x y :=
+    fun x hx y hy => Subgroup.commute_of_normal_of_disjoint P Q ‹P.Normal› ‹Q.Normal›
+      (disjoint_iff.mpr hdisj) x y hx hy
+  apply le_antisymm
+  · intro h hhH
+    have hmem : h ∈ P ⊔ Q := by rw [hsup]; exact Subgroup.mem_top h
+    obtain ⟨p, hpP, q, hqQ, hpq⟩ := (Subgroup.mem_sup_of_normal_right).mp hmem
+    subst hpq
+    have hcommpq : Commute p q := hcomm p hpP q hqQ
+    have hp_pow : p ^ Nat.card P = 1 := by
+      have hdvd := Subgroup.orderOf_dvd_natCard P hpP
+      exact orderOf_dvd_iff_pow_eq_one.mp (hdvd.trans (Nat.dvd_refl _))
+    have hq_pow : q ^ Nat.card Q = 1 := by
+      have hdvd := Subgroup.orderOf_dvd_natCard Q hqQ
+      exact orderOf_dvd_iff_pow_eq_one.mp (hdvd.trans (Nat.dvd_refl _))
+
+    obtain ⟨a, b, hab⟩ : ∃ a b : ℤ,
+        a * (Nat.card P : ℤ) + b * (Nat.card Q : ℤ) = 1 := by
+      have hg : Nat.gcd (Nat.card P) (Nat.card Q) = 1 :=
+        Nat.coprime_iff_gcd_eq_one.mp hcop
+      have hbez := Nat.gcd_eq_gcd_ab (Nat.card P) (Nat.card Q)
+      refine ⟨Nat.gcdA (Nat.card P) (Nat.card Q), Nat.gcdB (Nat.card P) (Nat.card Q), ?_⟩
+      have hgZ : ((Nat.gcd (Nat.card P) (Nat.card Q) : ℕ) : ℤ) = 1 := by
+        exact_mod_cast hg
+      push_cast at hbez ⊢
+      linarith
+    have hpq_pow_P : (p * q) ^ (Nat.card P : ℤ) = q ^ (Nat.card P : ℤ) := by
+      rw [zpow_natCast, zpow_natCast, hcommpq.mul_pow, hp_pow, one_mul]
+    have hpq_pow_Q : (p * q) ^ (Nat.card Q : ℤ) = p ^ (Nat.card Q : ℤ) := by
+      rw [zpow_natCast, zpow_natCast, hcommpq.mul_pow, hq_pow, mul_one]
+    have hleft : (p * q) ^ (a * (Nat.card P : ℤ)) ∈ H ⊓ Q := by
+      constructor
+      · exact H.zpow_mem hhH _
+      · have heq : (p * q) ^ (a * (Nat.card P : ℤ)) =
+            q ^ (a * (Nat.card P : ℤ)) := by
+          calc
+            (p * q) ^ (a * (Nat.card P : ℤ)) =
+                ((p * q) ^ (Nat.card P : ℤ)) ^ a := by rw [zpow_mul']
+            _ = (q ^ (Nat.card P : ℤ)) ^ a := by rw [hpq_pow_P]
+            _ = q ^ (a * (Nat.card P : ℤ)) := by rw [zpow_mul']
+        rw [heq]
+        exact Q.zpow_mem hqQ _
+    have hright : (p * q) ^ (b * (Nat.card Q : ℤ)) ∈ H ⊓ P := by
+      constructor
+      · exact H.zpow_mem hhH _
+      · have heq : (p * q) ^ (b * (Nat.card Q : ℤ)) =
+            p ^ (b * (Nat.card Q : ℤ)) := by
+          calc
+            (p * q) ^ (b * (Nat.card Q : ℤ)) =
+                ((p * q) ^ (Nat.card Q : ℤ)) ^ b := by rw [zpow_mul']
+            _ = (p ^ (Nat.card Q : ℤ)) ^ b := by rw [hpq_pow_Q]
+            _ = p ^ (b * (Nat.card Q : ℤ)) := by rw [zpow_mul']
+        rw [heq]
+        exact P.zpow_mem hpP _
+    have hsplit : p * q = (p * q) ^ (a * (Nat.card P : ℤ)) *
+        (p * q) ^ (b * (Nat.card Q : ℤ)) := by
+      rw [← zpow_add, hab, zpow_one]
+    rw [hsplit]
+    simpa [sup_comm] using Subgroup.mul_mem_sup hleft hright
+  · exact sup_le inf_le_left inf_le_left
+
+theorem pow_eq_one_mul_of_central {N : Subgroup G} (hN : N ≤ Subgroup.center G)
+    {p : ℕ} {y z : G} (hz : z ∈ N) (hzp : z ^ p = 1) (hyp : y ^ p = 1) :
+    (y * z) ^ p = 1 := by
+  have hcomm : Commute y z :=
+    Subgroup.mem_center_iff.mp (hN hz) y
+  rw [hcomm.mul_pow, hyp, hzp, one_mul]
+
+theorem pow_eq_one_of_mul_central {N : Subgroup G} (hN : N ≤ Subgroup.center G)
+    {p : ℕ} {y z : G} (hz : z ∈ N) (hzp : z ^ p = 1) (h : (y * z) ^ p = 1) :
+    y ^ p = 1 := by
+  have hcomm : Commute y z :=
+    Subgroup.mem_center_iff.mp (hN hz) y
+  rw [hcomm.mul_pow, hzp, mul_one] at h
+  exact h
+
+theorem pow_eq_of_mem_central {N : Subgroup G} (hN : N ≤ Subgroup.center G)
+    {p : ℕ} (hNp : ∀ z ∈ N, z ^ p = 1) {x y : G} (h : x⁻¹ * y ∈ N) :
+    x ^ p = y ^ p := by
+  have hcomm : Commute x (x⁻¹ * y) := Subgroup.mem_center_iff.mp (hN h) x
+  have hy : y = x * (x⁻¹ * y) := by group
+  rw [hy, hcomm.mul_pow, hNp _ h, mul_one]
+
+theorem hides_restrict_commutator {H : Subgroup G} {f : G → α} (hf : Hides f H) :
+    Hides (fun x : ↥(H ⊔ ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆) => f (x : G))
+      (H.subgroupOf (H ⊔ ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆)) :=
+  hf.restrict
+
+set_option maxHeartbeats 800000 in
+
+theorem commutator_le_center_of_class_two [Group.IsNilpotent G]
+    (h : Group.nilpotencyClass G ≤ 2) :
+    ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆ ≤ Subgroup.center G := by
+  have hbot : Subgroup.lowerCentralSeries (⊤ : Subgroup G) 2 = ⊥ :=
+    Subgroup.lowerCentralSeries_eq_bot_iff_nilpotencyClass_le.mpr h
+  have h2 : Subgroup.lowerCentralSeries (⊤ : Subgroup G) 2 =
+      ⁅(⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆), (⊤ : Subgroup G)⁆ := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, Subgroup.lowerCentralSeries_succ, Subgroup.top_lowerCentralSeries_one]
+    rfl
+  rw [h2, Subgroup.commutator_eq_bot_iff_le_centralizer] at hbot
+  intro x hx
+  have hx' := hbot hx
+  rw [Subgroup.mem_centralizer_iff] at hx'
+  rw [Subgroup.mem_center_iff]
+  intro y
+  exact hx' y (Subgroup.mem_top y)
+
+theorem mul_comm_of_mem_sup_commutator {H : Subgroup G}
+    (hHab : ∀ x ∈ H, ∀ y ∈ H, x * y = y * x)
+    (hZ : ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆ ≤ Subgroup.center G)
+    {x y : G} (hx : x ∈ H ⊔ ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆)
+    (hy : y ∈ H ⊔ ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆) : x * y = y * x := by
+  haveI : (⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆).Normal := inferInstance
+  obtain ⟨a, ha, b, hb, rfl⟩ :=
+    (Subgroup.mem_sup_of_normal_right (s := H)
+      (t := ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆)).mp hx
+  obtain ⟨c, hc, d, hd, rfl⟩ :=
+    (Subgroup.mem_sup_of_normal_right (s := H)
+      (t := ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆)).mp hy
+  have hbc : b * c = c * b := (Subgroup.mem_center_iff.mp (hZ hb) c).symm
+  have hbd : b * d = d * b := (Subgroup.mem_center_iff.mp (hZ hb) d).symm
+  have had : a * d = d * a := (Subgroup.mem_center_iff.mp (hZ hd)) a
+  have hac : a * c = c * a := hHab a ha c hc
+  calc
+    (a * b) * (c * d) = a * (b * c) * d := by simp [mul_assoc]
+    _ = a * (c * b) * d := by rw [hbc]
+    _ = (a * c) * (b * d) := by simp [mul_assoc]
+    _ = (c * a) * (b * d) := by rw [hac]
+    _ = (c * a) * (d * b) := by rw [hbd]
+    _ = ((c * a) * d) * b := by simp only [mul_assoc]
+    _ = (c * (a * d)) * b := by simp only [mul_assoc]
+    _ = (c * (d * a)) * b := by rw [had]
+    _ = (c * d) * (a * b) := by simp [mul_assoc]
+
+theorem mul_comm_sup_commutator_of_class_two [Group.IsNilpotent G]
+    (h2 : Group.nilpotencyClass G ≤ 2) {H : Subgroup G}
+    (hHab : ∀ x ∈ H, ∀ y ∈ H, x * y = y * x) :
+    ∀ x ∈ H ⊔ ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆,
+      ∀ y ∈ H ⊔ ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆, x * y = y * x :=
+  fun _ hx _ hy =>
+    mul_comm_of_mem_sup_commutator hHab (commutator_le_center_of_class_two h2) hx hy
+
+theorem sup_commutator_normal (H : Subgroup G) :
+    (H ⊔ ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆).Normal :=
+  Subgroup.commutator_top_left_le_iff.mp
+    (le_trans (Subgroup.commutator_mono le_rfl le_top) le_sup_right)
+
+theorem abelianization_isMulCommutative : IsMulCommutative (Abelianization G) :=
+  inferInstance
+
+theorem abelianization_map_sup_commutator (H : Subgroup G) :
+    (H ⊔ ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆).map (Abelianization.of (G := G)) =
+      H.map (Abelianization.of (G := G)) := by
+  apply le_antisymm
+  · rintro _ ⟨x, hx, rfl⟩
+    haveI : (⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆).Normal := inferInstance
+    obtain ⟨a, ha, b, hb, rfl⟩ :=
+      (Subgroup.mem_sup_of_normal_right (s := H)
+        (t := ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆)).mp hx
+    have hbker : b ∈ (Abelianization.of (G := G)).ker := by
+      rw [Abelianization.ker_of]
+      exact hb
+    have hb1 : Abelianization.of (G := G) b = 1 := MonoidHom.mem_ker.mp hbker
+    refine Subgroup.mem_map.mpr ⟨a, ha, ?_⟩
+    simp [map_mul, hb1]
+  · intro y hy
+    obtain ⟨a, ha, rfl⟩ := Subgroup.mem_map.mp hy
+    exact Subgroup.mem_map.mpr ⟨a, Subgroup.mem_sup_left ha, rfl⟩
+
+end Qatlib.Papers.NilpotentHSP07.MainResults
